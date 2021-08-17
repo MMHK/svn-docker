@@ -1,6 +1,8 @@
-FROM alpine:3
+FROM alpine:3.7
 
 MAINTAINER SamZhou<sam@mixmedia.com>
+
+WORKDIR /var/svndata
 
 # Install and configure Apache WebDAV and Subversion
 RUN apk --no-cache add apache2 apache2-utils apache2-webdav mod_dav_svn subversion \
@@ -27,6 +29,12 @@ ADD run.sh /
 
 RUN chmod +x /run.sh
 EXPOSE 80
+
+ENV WWW_UID=1000
+ENV WWW_GID=1000
+ENV SVN_USER=mixmedia
+ENV SVN_PWD=123456
+
 
 # Define default command
 CMD ["/run.sh"]
