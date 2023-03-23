@@ -13,7 +13,5 @@ sed -i -e "s/Group apache/Group www/g" /etc/apache2/httpd.conf
 [ ! -f /var/svndata/svn-auth-file ] && { touch /var/svndata/svn-auth-file; }
 [ -f /var/svndata/svn-auth-file ] && { htpasswd -b /var/svndata/svn-auth-file "$SVN_USER" "$SVN_PWD"; }
 
-chown -Rf www:www /var/svndata
-chmod -Rf 777 /var/svndata 
 
 httpd -D FOREGROUND
