@@ -2,6 +2,11 @@
 
 Subverison service with docker
 
+[![dockeri.co](https://dockeri.co/image/mmhk/svn-docker)](https://hub.docker.com/r/mmhk/svn-docker)
+
+![GitHub](https://img.shields.io/github/license/mmhk/svn-docker)
+
+
 ## How to use
 
 
