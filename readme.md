@@ -9,7 +9,23 @@
 - 上游基底是 iF.SVNAdmin 1.6.2，本 stack 的現代化版本號為 **2.0.0**（Composer 化、前端控制器路由、
   Tailwind v4 UI、PHPUnit/PHPStan、多階段建置）
 
-## 目錄
+## 目錄（TOC）
+
+- [快速開始](#快速開始)
+- [首次啟動：建立管理員並登入](#首次啟動建立管理員並登入)
+- [路由表（新 → 舊）](#路由表新--舊)
+- [前端建置（Tailwind v4 + yarn 4）](#前端建置tailwind-v4--yarn-4)
+- [測試與靜態分析](#測試與靜態分析)
+- [功能裁剪](#功能裁剪)
+- [設定](#設定)
+- [升級與回滾](#升級與回滾)
+- [映像與多階段建置](#映像與多階段建置)
+- [PHP 8 相容性](#php-8-相容性)
+- [CI](#ci)
+- [注意事項](#注意事項)
+- [License](#license)
+
+## 專案結構
 
 ```
 .
@@ -72,6 +88,121 @@ SVN_HTTP_PORT=18080 bash test/verify.sh
 ```sh
 REGISTRY=docker-registry.demo2.mixmedia.com/mmhk ./build.sh
 ```
+
+### 最小可用流程
+
+```text
+build → up → 建使用者（或讓系統自動建 admin/admin）
+      → 指派管理員 → 登入 → 建倉庫
+```
+
+1. `./build.sh`（或直接 `docker compose up -d` 使用現成 image）
+2. 準備至少一個 `svn-auth-file` 使用者（GUI「建立使用者」或 `htpasswd -b`）
+3. 開 `http://<host>/svnadmin/`，依下方「首次啟動」完成管理員指派
+4. 用該帳號登入，到 `/svnadmin/repositories/new` 建倉庫
+
+## 首次啟動：建立管理員並登入
+
+> 本節描述的是目前程式（2.0.0）的實際行為，包含 `SettingsController`、
+> `bootstrap.php`、`FSAclManager` 與 `LoginController` 的判定順序。
+
+### 1. 前置條件：使用者必須先存在
+
+GUI 的帳號來自 `svn-auth-file`（htpasswd 格式，APR1 hash），**不是** Apache Basic
+認證那一組密碼。先建立使用者，例如：
+
+```sh
+docker compose exec -T svn htpasswd -b /var/svnlocal/svn-auth-file testuser testpass
+```
+
+若 `svn-auth-file` 裡**完全沒有使用者**，第一次打開 setadmin 頁面時，系統會自動建立
+預設帳號 **`admin` / `admin`** 並直接指派 Administrator。**登入後請立刻改密碼。**
+
+### 2. 判定邏輯（照程式實際行為）
+
+- 每個請求在 `bootstrap.php` 檢查：認證開啟、且 `data/userroleassignments.ini`
+  裡**沒有任何 `Administrator=`** 時，除了設定頁以外的路徑都會 `302` 到
+  `/svnadmin/settings`。
+- 進入 `/svnadmin/settings` 後：
+  - `[Common] FirstStart=0` 且尚未定義管理員 → 顯示「Define administrator」選單
+    （`settings/setadmin.html.php`）。
+  - `[Common] FirstStart=1` → 跳過登入檢查，直接顯示唯讀的系統資訊頁（backend），
+    **不會**顯示 setadmin 選單；這個模式是給你修 `data/config.ini` 的維護入口。
+- 也就是說：**真正觸發「導向 settings / 出現 setadmin」的條件是「沒有管理員」**；
+  `FirstStart=1` 只影響 settings 頁是否免登入、以及是否顯示 setadmin，本身不會把
+  `/svnadmin/` 導向 settings。
+- 在 settings 頁帶 `?firststart=1` 會把 `FirstStart` 寫回 `1` 並重新導向 settings。
+
+### 3. 操作步驟（GUI）
+
+1. 瀏覽 `http://<host>/svnadmin/`
+2. 沒有管理員時會自動 `302` 到 `/svnadmin/settings` 的「Define administrator」頁
+3. 從下拉選單選擇要成為管理員的帳號
+   （表單欄位：`name="selected_users[]"`，另有隱藏欄位 `setadmin=1`）
+4. 按 **Save**（送出 `saveadmin=Save`）→ 寫入 `data/userroleassignments.ini`，
+   格式為：
+   ```ini
+   [username]
+   Administrator=
+   ```
+5. 導回 `/svnadmin/`，用該帳號 + 它的 htpasswd 密碼登入
+6. 登入後可在 `/svnadmin/roles` 再指派其他角色（`Repository-Creator` 等）
+
+### 4. 手動等價做法（自動化 / 容器重建）
+
+```sh
+# 直接寫角色指派檔（容器內 www-data uid 33 需可寫）
+docker compose exec -T svn sh -c 'printf "\n[username]\nAdministrator=\n" >> /var/www-tools/svnadmin/data/userroleassignments.ini'
+```
+
+`data/` 是 host bind mount，也可以直接在 host 編輯 `./data/userroleassignments.ini`。
+
+### 5. 重跑首次啟動流程
+
+```sh
+# 方法 A：把 FirstStart 設回 1（之後 /svnadmin/settings 免登入，顯示系統資訊）
+curl -b cookie.txt 'http://localhost:8080/svnadmin/settings?firststart=1'
+
+# 方法 B：直接改 data/config.ini
+#   [Common]
+#   FirstStart=1
+```
+
+- 程式**不會**自動把 `FirstStart` 歸零；修完設定記得手動改回 `FirstStart=0`。
+- 想再看一次「Define administrator」選單：清空 `data/userroleassignments.ini`
+  （或移除所有 `Administrator=` 行），保持 `FirstStart=0`，再訪問 `/svnadmin/`。
+
+### 6. 登入 / 登出
+
+- 登入頁：`GET /svnadmin/login`；送出 `POST /svnadmin/login`
+  （欄位 `loginname`、`loginpass`、`login`，按鈕值 `Login`）
+- 登入成功 → `302` 到 `/svnadmin/index.php`
+- 登出：`/svnadmin/logout`（路由同時接受 GET 與 POST）→ `302` 到
+  `/svnadmin/login.php?loggedout=1`
+- 登入狀態存在 PHP session，key 為 `svnadmin_username`
+- 帳密來源是 `svn-auth-file` 的 htpasswd hash（APR1）
+- GUI 權限由 `data/userroleassignments.ini` 的角色決定（`Administrator=`、
+  `Repository-Creator=` 等）
+
+登入 curl 範例：
+
+```sh
+curl -c cookie.txt -d 'loginname=testuser&loginpass=testpass&login=Login' \
+  http://localhost:8080/svnadmin/login
+curl -b cookie.txt http://localhost:8080/svnadmin/
+```
+
+### 7. 常見卡點（FAQ）
+
+| 現象 | 原因 | 解法 |
+| --- | --- | --- |
+| 一直跳回登入頁 | 密碼錯誤，或該使用者不在 `svn-auth-file` | 用 `htpasswd -b` 補使用者 |
+| 登入成功但什麼都不能做 | `userroleassignments.ini` 沒有該使用者的角色 | 依上面步驟指派 Administrator |
+| `/svnadmin/` 一直導到 settings | `userroleassignments.ini` 沒有任何 `Administrator=` | 完成 setadmin，或手動寫入角色檔 |
+| 進了 settings 卻沒有帳號可選 | `svn-auth-file` 沒有任何使用者，或 `FirstStart=1` | 先建使用者；把 `FirstStart` 改回 `0` |
+| 設定頁出現唯讀系統資訊、沒有 setadmin | `FirstStart=1` | 改回 `FirstStart=0` 後重新訪問 |
+| Save 之後沒生效 | `data/` 對容器不可寫（uid 33） | `chown -R 33:33 data` 或 `chmod -R a+rwX data` |
+| 容器重建後又要重新設定 | `./data` 沒掛載或指向別的目錄 | 確認 compose 的 `SVN_DATA_ROOT` |
 
 ## 路由表（新 → 舊）
 
@@ -219,6 +350,22 @@ SVNUserFile=/var/svnlocal/svn-auth-file
 
 `/var/www` 的靜態站台不在這個 stack 範圍。
 
+## 升級與回滾
+
+```sh
+# 升級：抓新版 → 重建映像 → 重啟容器
+git pull
+./build.sh
+docker compose up -d
+```
+
+- **回滾映像**：把 `docker-compose.yml` 的 `image:` 指回舊 tag，例如
+  `mmhk/svn-docker:8.3` 或 `mmhk/svn-docker:8.3-phase4`，再 `docker compose up -d`。
+- **回滾程式**：`git reset --hard pre-modernization`（回到現代化前的版本）。
+- **資料不受影響**：`/var/svnlocal`（倉庫、`svn-auth-file`、`svn-access-file`）與
+  `./data`（`config.ini`、`userroleassignments.ini`）的格式全程未變，映像與程式版本
+  可前後切換。切換前仍建議先備份這兩個目錄。
+
 ## 映像與多階段建置
 
 `Dockerfile` 分三階段，runtime 不含建置工具與 dev 依賴：
@@ -264,6 +411,8 @@ iF.SVNAdmin 上游是 2013 年、以 PHP 5.3 寫的程式碼。升到 PHP 8.3 �
 ## 注意事項
 
 - 容器內 Apache 是 `www-data`(uid 33)，`/var/svnlocal` 下的 auth 檔需可被它寫入（原主機是 777）。
+- `data/`（掛到容器 `/var/www-tools/svnadmin/data`）也必須可被 uid 33 寫入，
+  否則 setadmin 指派、建立使用者、建立倉庫都會失敗（寫入 INI / htpasswd / authz 時被拒）。
 - `/svn/` 目錄列表維持原行為（沒有 `SVNListParentPath`，所以 403）。
 - `app/data/.htaccess` 用的是 Apache 2.2 的 `deny from all`，映像已啟用 `access_compat`。
 - 443 未開放，對外 HTTPS 交給上層的 nginx/letsencrypt。
