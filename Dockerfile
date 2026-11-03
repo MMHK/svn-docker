@@ -17,7 +17,8 @@ RUN apt-get update \
 
 # mod_dav_svn + Basic Auth + AuthzSVNAccessFile
 # access_compat：讓 2013 年的 .htaccess（deny from all）在 Apache 2.4 仍有效
-RUN a2enmod dav dav_svn authz_core auth_basic authz_user alias headers access_compat \
+# rewrite：front controller 路由需要
+RUN a2enmod dav dav_svn authz_core auth_basic authz_user alias headers access_compat rewrite \
  && rm -f /etc/apache2/sites-enabled/*
 
 # iF.SVNAdmin 直接打進映像，不再從 host bind mount

@@ -10,6 +10,10 @@ error_reporting(E_ALL & ~E_DEPRECATED);
 // Load composer autoload
 require_once __DIR__ . '/../vendor/autoload.php';
 
+// 前端控制器把 CWD 移到 public/（實際為 Apache 的 /var/www），這裡切回 app 根，
+// 讓既有相對路徑（./data、./translations、./data/backup）維持原行為
+chdir(dirname(__DIR__));
+
 // Set exception handler
 set_exception_handler('exception_handler');
 
@@ -42,10 +46,14 @@ $appTemplate = new \SvnAdmin\View\Template();
 \SvnAdmin\Core\ProviderFactory::initialize($appEngine, $appTemplate);
 
 // Check if administrator is defined (when auth is active)
-$appCurrentScriptFile = currentScriptFileName();
-if ($appEngine->isAuthenticationActive() && $appCurrentScriptFile != "settings.php") {
+// 前端控制器下 SCRIPT_NAME 永遠是 index.php，改用請求路徑判斷是否在設定頁，
+// 否則首次啟動會不斷 Redirect 到 settings 造成迴圈
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
+$isSettingsPage = str_contains($requestPath, 'settings');
+if ($appEngine->isAuthenticationActive() && !$isSettingsPage) {
     if (!$appEngine->getAclManager()->hasAdminDefined()) {
-        header("Location: settings.php");
+        // 相對於 /svnadmin/ 的設定頁（不要寫死 settings.php 或絕對路徑）
+        header("Location: settings");
         exit(0);
     }
 }

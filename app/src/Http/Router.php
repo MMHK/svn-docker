@@ -34,6 +34,20 @@ class Router
         
         // Parse URI (remove query string)
         $path = parse_url($uri, PHP_URL_PATH);
+
+        // 應用掛在 /svnadmin（SCRIPT_NAME 的目錄）之下，路由表則以相對於應用根的
+        // 路徑註冊（/users、/index.php…），這裡先剝掉掛載前綴再比對
+        $basePath = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+        $basePath = rtrim($basePath, '/');
+        if ($basePath !== '' && ($path === $basePath || str_starts_with($path, $basePath . '/'))) {
+            $path = substr($path, strlen($basePath));
+            if ($path === '') {
+                $path = '/';
+            }
+        }
+        if ($path === '') {
+            $path = '/';
+        }
         
         // Check legacy routes first (301 redirect)
         if (isset($this->legacyRoutes[$path])) {
