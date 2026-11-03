@@ -1,0 +1,20 @@
+/* ============================================================================
+ * 過渡樣式：舊版 ifappstyle.css（16 個尚未重寫的內頁仍依賴它）
+ *
+ * 為什麼要包一層：
+ *   ifappstyle.css 是 2013 年的無 layer 樣式表，內含全域 reset（body/h1/ul/a/
+ *   input…）。直接 <link> 進來會壓過 Tailwind 的 utility（未分層樣式永遠贏過
+ *   @layer 內的樣式），新外框就會被舊樣式打回原形。
+ *
+ * 做法：
+ *   這裡預先宣告 layer 順序 theme → base → legacy → components → utilities，
+ *   再把 ifappstyle.css 匯入 legacy 層。於是
+ *     - 舊樣式仍然壓過 Tailwind preflight（舊頁面外觀不變）
+ *     - 新外框的 components / utilities 壓過舊樣式（新外框不受影響）
+ *
+ * 生命週期：階段 4b 重寫完 16 個內頁後，刪掉這個檔案與 app/templates/ifappstyle.css。
+ * 注意：本檔是手寫的執行期資源，不是建置產物。
+ * ==========================================================================*/
+@layer theme, base, legacy, components, utilities;
+
+@import url("../templates/ifappstyle.css") layer(legacy);

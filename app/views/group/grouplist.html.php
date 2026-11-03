@@ -1,12 +1,6 @@
 <?php GlobalHeader(); ?>
 
-<script type="text/javascript">
-$(document).ready(function(){
-  $("#selectall").click(function(){
-    selectAll(this, "selected_groups[]");
-  });
-});
-</script>
+<?php /* 全選改用 assets/app.js：任何 id 以 selectall 開頭的核取方塊會選取同表格內的項目 */ ?>
 
 <h1><?php Translate("Group management"); ?></h1>
 <p class="hdesc"><?php Translate("Here you can see a list of all groups, which are defined in your subversion configuration."); ?></p>

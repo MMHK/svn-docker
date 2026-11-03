@@ -1,20 +1,6 @@
 <?php GlobalHeader(); ?>
 
-<script type="text/javascript">
-$(document).ready(function(){
-
-  $("#repostructuretype").change(function(){
-    var eSingle = $("#repostructuretype-single");
-    var eMulti  = $("#repostructuretype-multi");
-
-    eSingle.hide();
-    eMulti.hide();
-
-    if ($(this).val() == "single"){ eSingle.show(); }
-    else if ($(this).val() == "multi"){ eMulti.show(); }
-  });
-});
-</script>
+<?php /* 預設結構說明由 assets/app.js 依 select[data-toggle-targets] 切換顯示 */ ?>
 
 <h1><?php Translate("Create repository"); ?></h1>
 <p class="hdesc"><?php Translate("Create a new repository to manage your sources."); ?></p>
@@ -60,21 +46,21 @@ $(document).ready(function(){
 
     <div class="form-field">
       <label for="repostructuretype"><?php Translate("Pre-defined repository structure"); ?></label>
-      <select name="repostructuretype" id="repostructuretype">
+      <select name="repostructuretype" id="repostructuretype" data-toggle-targets="repostructuretype">
         <option value=""><?php Translate("No pre-defined structure"); ?></option>
         <option value="single"><?php Translate("Single project structure"); ?></option>
         <option value="multi"><?php Translate("Multi project structure"); ?></option>
       </select>
     </div>
 
-    <div class="form-field" id="repostructuretype-single" style="display:none;">
+    <div class="form-field" id="repostructuretype-single" data-toggle-group="repostructuretype" data-toggle-when="single" style="display:none;">
       <p>
         <b><?php Translate("Single project structure"); ?></b><br>
         <?php Translate("Creates the folders 'trunk', 'branches' and 'tags' in the root of the repository."); ?>
       </p>
     </div>
 
-    <div class="form-field" id="repostructuretype-multi" style="display:none;">
+    <div class="form-field" id="repostructuretype-multi" data-toggle-group="repostructuretype" data-toggle-when="multi" style="display:none;">
       <label for="projectname"><?php Translate("Project name"); ?></label>
       <input type="text" name="projectname" id="projectname" value="" class="lineedit">
       <p>

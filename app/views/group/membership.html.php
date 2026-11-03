@@ -1,15 +1,6 @@
 <?php GlobalHeader(); ?>
 
-<script type="text/javascript">
-$(document).ready(function(){
-  $("#selectallusers").click(function(){
-    selectAll(this, "selusers[]");
-  });
-  $("#selectallgroups").click(function(){
-    selectAll(this, "selgroups[]");
-  });
-});
-</script>
+<?php /* 全選改用 assets/app.js：任何 id 以 selectall 開頭的核取方塊會選取同表格內的項目 */ ?>
 
 <h1><?php Translate("User &lt;&gt; Group assignment"); ?></h1>
 <p class="hdesc"><?php Translate("Here you can assign users to groups."); ?></p>

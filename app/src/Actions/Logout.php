@@ -8,7 +8,7 @@ class Logout extends Action
         // Redirect, if the user authentication is not active.
         if( !$this->engine->isAuthenticationActive() )
         {
-          header('Location: index.php');
+          header('Location: ' . app_url('index.php'));
         }
 
         // Destroy session now.

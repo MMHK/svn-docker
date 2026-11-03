@@ -1,0 +1,279 @@
+/* ============================================================================
+ * iF.SVNAdmin — Tailwind CSS v4 建置入口
+ * 產物：app/public/assets/app.css（yarn build:css）
+ * ==========================================================================*/
+@import "tailwindcss";
+
+/* 掃描 views 目錄（階段 4a 起 pages/ 更名為 views/） */
+@source "../app/views";
+
+/* 深色模式：跟隨 data-color-mode */
+@custom-variant dark (&:where([data-color-mode="dark"], [data-color-mode="dark"] *));
+
+/* GitHub Primer 色票（節錄，light） */
+@theme {
+  --color-canvas-default: #ffffff;
+  --color-canvas-subtle: #f6f8fa;
+  --color-canvas-inset: #f6f8fa;
+  --color-fg-default: #1f2328;
+  --color-fg-muted: #59636e;
+  --color-fg-subtle: #6e7781;
+  --color-border-default: #d1d9e0;
+  --color-border-muted: #d1d9e0;
+  --color-accent-fg: #0969da;
+  --color-accent-emphasis: #0969da;
+  --color-accent-subtle: #ddf4ff;
+  --color-success-fg: #1a7f37;
+  --color-success-subtle: #dafbe1;
+  --color-danger-fg: #d1242f;
+  --color-danger-subtle: #ffebe9;
+  --color-attention-fg: #9a6700;
+  --color-attention-subtle: #fff8c5;
+  --color-neutral-subtle: #f6f8fa;
+  --color-header-bg: #25292e;
+  --color-header-fg: #ffffff;
+  --radius-md: 6px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+}
+
+/* 深色覆寫 */
+[data-color-mode="dark"] {
+  color-scheme: dark;
+  --color-canvas-default: #0d1117;
+  --color-canvas-subtle: #151b23;
+  --color-canvas-inset: #010409;
+  --color-fg-default: #f0f6fc;
+  --color-fg-muted: #9198a1;
+  --color-fg-subtle: #6e7781;
+  --color-border-default: #3d444d;
+  --color-accent-fg: #4493f8;
+  --color-accent-emphasis: #1f6feb;
+  --color-accent-subtle: #0c2d6b;
+  --color-success-fg: #3fb950;
+  --color-success-subtle: #12261e;
+  --color-danger-fg: #f85149;
+  --color-danger-subtle: #25171c;
+  --color-header-bg: #010409;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-color-mode="auto"] {
+    color-scheme: dark;
+    --color-canvas-default: #0d1117;
+    --color-canvas-subtle: #151b23;
+    --color-canvas-inset: #010409;
+    --color-fg-default: #f0f6fc;
+    --color-fg-muted: #9198a1;
+    --color-border-default: #3d444d;
+    --color-accent-fg: #4493f8;
+    --color-header-bg: #010409;
+  }
+}
+
+@layer components {
+  /* ---------------------------------------------------------------------
+   * 共用元件（Primer 風格）
+   * -------------------------------------------------------------------*/
+  .btn {
+    @apply inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border-default
+           bg-canvas-subtle px-3 py-1 text-sm font-medium text-fg-default
+           hover:bg-canvas-inset disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply border-transparent bg-accent-emphasis text-white hover:brightness-110;
+  }
+  .btn-danger {
+    @apply border-border-default text-danger-fg;
+  }
+  .box {
+    @apply rounded-md border border-border-default bg-canvas-default;
+  }
+  .box-header {
+    @apply border-b border-border-default bg-canvas-subtle px-4 py-2 text-sm font-semibold;
+  }
+  .box-row {
+    @apply border-b border-border-default px-4 py-2 last:border-0;
+  }
+  .label {
+    @apply inline-block rounded-full border border-border-default px-2 py-0.5 text-xs font-medium text-fg-muted;
+  }
+  .flash {
+    @apply mb-4 rounded-md border px-4 py-2 text-sm;
+  }
+  .flash-error {
+    @apply border-danger-fg/40 bg-danger-subtle text-danger-fg;
+  }
+  .flash-success {
+    @apply border-success-fg/40 bg-success-subtle text-success-fg;
+  }
+  .flash-highlight {
+    animation: gh-flash 0.9s ease-in-out 2;
+  }
+  .input {
+    @apply w-full rounded-md border border-border-default bg-canvas-default px-3 py-1.5 text-sm
+           text-fg-default focus:border-accent-fg focus:outline-none;
+  }
+
+  /* ---------------------------------------------------------------------
+   * 外框：頂部 header / 分頁導航 / footer
+   * -------------------------------------------------------------------*/
+  .gh-topbar {
+    @apply flex flex-wrap items-center gap-3 bg-header-bg px-4 py-2 text-header-fg;
+  }
+  .gh-brand {
+    @apply flex items-center gap-2 text-base font-semibold text-header-fg no-underline hover:text-header-fg;
+  }
+  .gh-topbar-controls {
+    @apply ml-auto flex flex-wrap items-center gap-2 text-sm;
+  }
+  .gh-topbar .gh-link {
+    @apply text-header-fg no-underline hover:underline;
+  }
+  .gh-select {
+    @apply rounded-md border border-white/25 bg-transparent px-2 py-1 text-xs text-header-fg;
+  }
+  .gh-select option {
+    color: var(--color-fg-default);
+    background-color: var(--color-canvas-default);
+  }
+  .gh-icon-btn {
+    @apply inline-flex cursor-pointer items-center gap-1 rounded-md border border-white/25
+           bg-transparent px-2 py-1 text-xs text-header-fg hover:bg-white/10;
+  }
+  .gh-menu {
+    @apply relative;
+  }
+  .gh-menu > summary {
+    @apply inline-flex cursor-pointer list-none items-center gap-1 rounded-md border border-white/25
+           bg-transparent px-2 py-1 text-xs text-header-fg hover:bg-white/10;
+  }
+  .gh-menu > summary::-webkit-details-marker {
+    display: none;
+  }
+  .gh-menu-panel {
+    @apply absolute right-0 z-20 mt-1 min-w-56 rounded-md border border-border-default
+           bg-canvas-default p-1 text-sm text-fg-default shadow-lg;
+  }
+  .gh-menu-panel a {
+    @apply block rounded px-2 py-1 text-fg-default no-underline hover:bg-canvas-subtle;
+  }
+  .gh-tabs {
+    @apply flex flex-wrap items-center gap-1 border-b border-border-default bg-canvas-default px-2;
+  }
+  .gh-tab {
+    @apply -mb-px inline-flex items-center gap-1.5 border-b-2 border-transparent px-3 py-2
+           text-sm text-fg-default no-underline hover:border-border-default;
+  }
+  .gh-tab[aria-current="page"] {
+    @apply border-accent-emphasis font-semibold;
+  }
+  .gh-tab-spacer {
+    @apply ml-auto flex items-center gap-2 pr-2;
+  }
+  /* 導航列裡的選單按鈕：白底，不能用 header 的白色字 */
+  .gh-tabs .gh-menu > summary {
+    @apply border-border-default text-fg-default hover:bg-canvas-subtle;
+  }
+  .gh-tabs-toggle {
+    @apply hidden cursor-pointer items-center rounded-md border border-white/25 bg-transparent
+           px-2 py-1 text-xs text-header-fg hover:bg-white/10;
+  }
+  @media (max-width: 47.9rem) {
+    .gh-tabs-toggle {
+      display: inline-flex;
+    }
+    .gh-tabs {
+      display: none;
+    }
+    .gh-tabs.is-open {
+      display: flex;
+    }
+  }
+
+  .gh-main {
+    @apply mx-auto w-full max-w-6xl px-4 py-6;
+  }
+  .gh-page-title {
+    @apply mb-1 text-2xl font-semibold;
+  }
+  .gh-footer {
+    @apply mx-auto flex w-full max-w-6xl flex-wrap items-center gap-2 border-t border-border-default
+           px-4 py-4 text-xs text-fg-muted;
+  }
+  .gh-footer a {
+    @apply text-fg-muted underline hover:text-accent-fg;
+  }
+
+  /* 舊內頁沿用的標題/描述（新外框下也套用 Primer 排版） */
+  .gh-main h1 {
+    @apply mb-1 font-sans text-2xl font-semibold not-italic text-fg-default;
+  }
+  .gh-main h2 {
+    @apply mt-6 mb-2 font-sans text-lg font-semibold not-italic text-fg-default;
+  }
+  .gh-main h3 {
+    @apply mb-2 font-sans text-base font-semibold not-italic text-fg-default;
+  }
+  .gh-main p.hdesc {
+    @apply mb-4 text-sm text-fg-muted;
+  }
+
+  /* ---------------------------------------------------------------------
+   * 深色模式：舊內頁（ifappstyle 在 legacy 層）的白底表格/表單需要轉深
+   * -------------------------------------------------------------------*/
+  [data-color-mode="dark"] .gh-main table.datatable,
+  [data-color-mode="dark"] .gh-main table.datatable th,
+  [data-color-mode="dark"] .gh-main .trbase {
+    background-color: var(--color-canvas-default);
+    background-image: none;
+    color: var(--color-fg-default);
+  }
+  [data-color-mode="dark"] .gh-main table.datatable th {
+    background-color: var(--color-canvas-subtle);
+  }
+  [data-color-mode="dark"] .gh-main .tralt {
+    background-color: var(--color-canvas-subtle);
+    color: var(--color-fg-default);
+  }
+  [data-color-mode="dark"] .gh-main table.datatable td {
+    border-color: var(--color-border-default);
+  }
+  /* 舊內頁連結色（ifappstyle 的深藍在深色底上幾乎看不見） */
+  [data-color-mode="dark"] .gh-main a {
+    color: var(--color-accent-fg);
+  }
+  [data-color-mode="dark"] .gh-main input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]),
+  [data-color-mode="dark"] .gh-main select,
+  [data-color-mode="dark"] .gh-main textarea {
+    border-color: var(--color-border-default);
+    background-color: var(--color-canvas-default);
+    color: var(--color-fg-default);
+  }
+  [data-color-mode="dark"] .gh-main input[type="submit"] {
+    border-color: var(--color-border-default);
+    background-color: var(--color-canvas-subtle);
+    background-image: none;
+    color: var(--color-fg-default);
+  }
+}
+
+/* 登入頁 */
+@layer components {
+  .login-shell {
+    @apply flex min-h-screen flex-col items-center justify-center gap-4 bg-canvas-subtle px-4 py-10;
+  }
+  .login-card {
+    @apply w-full max-w-sm rounded-md border border-border-default bg-canvas-default p-5 shadow-sm;
+  }
+  .login-logo {
+    @apply flex items-center justify-center gap-2 text-2xl font-semibold text-fg-default;
+  }
+  .login-field {
+    @apply mb-3 flex flex-col gap-1 text-sm;
+  }
+}
+
+@keyframes gh-flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}

@@ -215,3 +215,36 @@ function currentScriptFileName()
   $parts = explode("/", $_SERVER["SCRIPT_NAME"]);
   return $parts[count($parts)-1];
 }
+
+/**
+ * 應用掛載根路徑（例如 "/svnadmin"），沒有結尾斜線。
+ * 前端控制器下 SCRIPT_NAME 固定是 <base>/index.php。
+ */
+function app_base_path()
+{
+  $scriptName = str_replace('\\', '/', $_SERVER["SCRIPT_NAME"] ?? '');
+  $base = rtrim(dirname($scriptName), '/');
+  return ($base === '.' || $base === '/') ? '' : $base;
+}
+
+/**
+ * 產生相對於應用根的絕對路徑。
+ *
+ * 用途：HTTP Location 標頭是相對「目前網址」解析的，嵌套路由
+ * （例如 /svnadmin/users/view）下用 "index.php" 會指到
+ * /svnadmin/users/index.php；統一走這個函式可避免 404。
+ *
+ * @param string $path 例如 "index.php"、"error.php?e=x"、"settings"
+ * @return string 例如 "/svnadmin/index.php"
+ */
+function app_url($path)
+{
+  if ($path === '') {
+    return app_base_path() . '/';
+  }
+  // 已是絕對路徑或完整網址就原樣返回。
+  if (preg_match('#^(https?:)?//#i', $path) === 1 || str_starts_with($path, '/')) {
+    return $path;
+  }
+  return app_base_path() . '/' . ltrim($path, '/');
+}

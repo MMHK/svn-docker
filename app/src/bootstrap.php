@@ -23,7 +23,7 @@ if (!file_exists($configFile)) {
     if (!copy('./data/config.tpl.ini', $configFile)) {
         throw new Exception("Could not copy configuration file template. Require write permission (777) to \"data\" folder.");
     }
-    header("Location: settings.php");
+    header("Location: " . app_url("settings.php"));
     exit(0);
 }
 
@@ -52,8 +52,8 @@ $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
 $isSettingsPage = str_contains($requestPath, 'settings');
 if ($appEngine->isAuthenticationActive() && !$isSettingsPage) {
     if (!$appEngine->getAclManager()->hasAdminDefined()) {
-        // 相對於 /svnadmin/ 的設定頁（不要寫死 settings.php 或絕對路徑）
-        header("Location: settings");
+        // 相對於應用根的設定頁（不要寫死 settings.php 或絕對路徑）
+        header("Location: " . app_url("settings"));
         exit(0);
     }
 }

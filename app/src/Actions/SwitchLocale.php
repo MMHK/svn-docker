@@ -16,7 +16,7 @@ class SwitchLocale extends Action
         {
           $_COOKIE["locale"] = $requestedLocale;
           @setcookie("locale", $requestedLocale, time()+60*60*24*365); // 365 days
-          header("Location: index.php");
+          header("Location: " . app_url('index.php'));
         }
     }
 }

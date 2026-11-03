@@ -4,3 +4,12 @@ readme.md
 *.md
 .git
 .env
+
+# 前端建置：依賴與快取不進 context（建置產物在 app/public/assets/，階段 5 改成建置期產生）
+node_modules/
+.yarn/
+assets/
+package.json
+yarn.lock
+.yarnrc.yml
+build-assets.mjs

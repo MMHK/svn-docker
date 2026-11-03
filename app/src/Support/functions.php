@@ -48,17 +48,17 @@ function if_log_debug($message)
 
 function GlobalHeader()
 {
-	include("pages/global-header.php");
+	include(__DIR__."/../../views/global-header.php");
 }
 
 function GlobalFooter()
 {
-	include("pages/global-footer.php");
+	include(__DIR__."/../../views/global-footer.php");
 }
 
 function ProcessTemplate($file)
 {
-	include("pages/".$file);
+	include(__DIR__."/../../views/".$file);
 }
 
 function AppVersion()

@@ -1,26 +1,6 @@
 <?php GlobalHeader(); ?>
 
-<!-- 
-  Javascript
--->
-<script type="text/javascript">
-$(document).ready(function(){
-  $("#showrolelistlink").click(function(event){
-    event.preventDefault();
-    if ($("#rolelist").length == 0)
-    {
-      $.get("rolelist.php", function(data){
-        $("body").append(data);
-        $("#rolelist").dialog({width:750, height:450});
-      });
-    }
-    else
-    {
-      $("#rolelist").dialog();
-    }
-  });
-});
-</script>
+<?php /* 「顯示角色」改為頁內 <details>，不再用 AJAX + 對話框外掛 */ ?>
 
 <h1><?php Translate("User"); ?>: <?php PrintStringValue("Username"); ?></h1>
 <p class="hdesc"><?php Translate("On this page you can see all assignments of the user."); ?></p>
@@ -72,7 +52,25 @@ $(document).ready(function(){
 	        </td>
 	        <td align="right">
 	          <?php if (HasAccess(ACL_MOD_ROLE, ACL_ACTION_ASSIGN)) { ?>
-	          <small>(<a id="showrolelistlink" href="#"><?php Translate("Show roles"); ?></a>)</small>
+	          <details class="inline-block align-middle text-left">
+	            <summary class="cursor-pointer text-xs text-accent-fg"><?php Translate("Show roles"); ?></summary>
+	            <table class="datatable">
+	              <thead>
+	                <tr>
+	                  <th><?php Translate("Role"); ?></th>
+	                  <th><?php Translate("Description"); ?></th>
+	                </tr>
+	              </thead>
+	              <tbody>
+	                <?php foreach (GetArrayValue("RoleListAll") as $r) { ?>
+	                <tr>
+	                  <td><?php print($r->getTranslatedName()); ?></td>
+	                  <td><?php print($r->getTranslatedDescription()); ?></td>
+	                </tr>
+	                <?php } ?>
+	              </tbody>
+	            </table>
+	          </details>
 	          <select name="selected_assign_role_name">
 	            <option value="">--- <?php Translate("Role"); ?> ---</option>
 	            <?php foreach (GetArrayValue("RoleListAll") as $r) { ?>

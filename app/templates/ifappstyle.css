@@ -1,3 +1,11 @@
+/*******************************************************************************
+ * 【過渡樣式｜階段 4a】
+ * 這是 2010 年代的舊外框樣式表，仍被 16 個尚未重寫的內頁使用。
+ * 現在只透過 app/public/assets/legacy.css 以 @layer legacy 匯入
+ * （讓 Tailwind 的 components/utilities 能壓過它，而它仍能壓過 preflight），
+ * 不再直接 <link>。階段 4b 重寫完所有內頁後，本檔與 legacy.css 一起刪除。
+ ******************************************************************************/
+
 html,body,th,td,div,h1,h2,h3,h4,h5,h6,a,hr,ul,li,ol,dd,dt,dl { padding:0; margin:0; }
 body { font-family:"Lucida Grande",Verdana,Arial,"Bitstream Vera Sans",sans-serif; font-size:12px; color:#000000; }
 body { background-color:#ffffff; }

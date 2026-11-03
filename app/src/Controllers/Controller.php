@@ -25,14 +25,15 @@ abstract class Controller
     {
         global $appTemplate;
         ob_start();
-        include __DIR__ . '/../../pages/' . $template;
+        include __DIR__ . '/../../views/' . $template;
         $content = ob_get_clean();
         $this->response->setBody($content);
     }
     
     protected function redirect(string $url, int $code = 302): Response
     {
-        return $this->response->redirect($url, $code);
+        // 同上：Location 相對目前網址解析，嵌套路由下必須補上應用根路徑。
+        return $this->response->redirect(app_url($url), $code);
     }
     
     protected function checkAuthentication(bool $redirect = true): bool

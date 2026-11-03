@@ -207,7 +207,9 @@ class Engine
 		}
 
 		// Set the forward now.
-		header('Location: ' . $location . $params);
+		// 用 app_url() 產生相對於應用根的絕對路徑，否則嵌套路由
+		// （/svnadmin/users/view）下的相對 Location 會指到錯的目錄。
+		header('Location: ' . app_url($location . $params));
 
 		// Do it NOW or let the sciprt finish execution?
 		if ($immediate)
