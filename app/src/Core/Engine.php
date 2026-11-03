@@ -268,31 +268,45 @@ class Engine
 	 * @param string $action The name of the action
 	 * @return void
 	 */
-	public function handleAction( $action )
+	public function handleAction(string $action): void
 	{
-		global $appEngine;
-		global $appTemplate;	// @todo Remove this variable from this place.
-		global $appTR;			// @todo Remove this variable from this place.
-
+		global $appTR;
 		$appTR->loadModule("actions");
 
-		if(!defined('ACTION_HANDLING'))
-		{
+		if (!defined('ACTION_HANDLING')) {
 			define('ACTION_HANDLING', true);
 		}
 
-		// Path to action implementation.
-		$filename = 'actions/'.$action.'.php';
+		$actionMap = [
+			'assign_projectmanager' => \SvnAdmin\Actions\AssignProjectManager::class,
+			'assign_usergrouptoaccesspath' => \SvnAdmin\Actions\AssignUserGroupToAccessPath::class,
+			'assign_userrole' => \SvnAdmin\Actions\AssignUserRole::class,
+			'assign_usertogroup' => \SvnAdmin\Actions\AssignUserToGroup::class,
+			'change_password' => \SvnAdmin\Actions\ChangePassword::class,
+			'create_accesspath' => \SvnAdmin\Actions\CreateAccessPath::class,
+			'create_group' => \SvnAdmin\Actions\CreateGroup::class,
+			'create_repository' => \SvnAdmin\Actions\CreateRepository::class,
+			'create_user' => \SvnAdmin\Actions\CreateUser::class,
+			'delete_accesspath' => \SvnAdmin\Actions\DeleteAccessPath::class,
+			'delete_group' => \SvnAdmin\Actions\DeleteGroup::class,
+			'delete_repository' => \SvnAdmin\Actions\DeleteRepository::class,
+			'delete_user' => \SvnAdmin\Actions\DeleteUser::class,
+			'login_authentication' => \SvnAdmin\Actions\LoginAuthentication::class,
+			'logout' => \SvnAdmin\Actions\Logout::class,
+			'switch_locale' => \SvnAdmin\Actions\SwitchLocale::class,
+			'unassign_permission' => \SvnAdmin\Actions\UnassignPermission::class,
+			'unassign_projectmanager' => \SvnAdmin\Actions\UnassignProjectManager::class,
+			'unassign_usergroup' => \SvnAdmin\Actions\UnassignUserGroup::class,
+			'unassign_userrole' => \SvnAdmin\Actions\UnassignUserRole::class,
+		];
 
-		if(file_exists($filename))
-		{
-			$code = file_get_contents($filename);
-			eval(' ?>'.$code.'<?php ');
+		if (!isset($actionMap[$action])) {
+			throw new \Exception('Can not find implementation for action: ' . $action);
 		}
-		else
-		{
-			throw new Exception('Can not find implementation for action: '.$action);
-		}
+
+		$actionClass = $actionMap[$action];
+		$actionInstance = new $actionClass($this, $appTR, new \SvnAdmin\View\Template());
+		$actionInstance->execute();
 	}
 
 	/**
