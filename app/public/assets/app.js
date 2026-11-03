@@ -78,7 +78,7 @@
     return window.confirm(question);
   }
 
-  /** 交替列底色（舊 ifappstyle 的 .trbase / .tralt）。 */
+  /** 交替列底色（保留舊頁面的 .trbase / .tralt 掛點）。 */
   function highlightDatatables() {
     each(document.querySelectorAll('table.datatable'), function (table) {
       var bodies = table.getElementsByTagName('tbody');

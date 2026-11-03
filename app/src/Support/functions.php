@@ -262,8 +262,8 @@ function HasAppMessages()
 function HtmlFilterBox($tableId, $columnIndex=0)
 {?>
 	<div class="datatablesearch">
-		<?php Translate("Filter"); ?>:
-	  <input type="text" class="filterbox" onkeyup="filterDataTable('<?php print($tableId); ?>', <?php print($columnIndex); ?>,this.value);">
+		<label class="sr-only" for="filter-<?php print($tableId); ?>"><?php Translate("Filter"); ?></label>
+		<input type="text" id="filter-<?php print($tableId); ?>" class="filterbox input max-w-xs" placeholder="<?php Translate("Filter"); ?> &hellip;" onkeyup="filterDataTable('<?php print($tableId); ?>', <?php print($columnIndex); ?>,this.value);">
 	</div>
 <?php
 }

@@ -17,7 +17,6 @@ if (!in_array($svnColorMode, array('auto', 'light', 'dark'), true)) {
 	<base href="<?php print($svnBasePath); ?>/">
 	<title>iF.SVNAdmin | <?php PrintApplicationVersion(); ?></title>
 	<meta name="Author" content="Manuel Freiholz, insaneFactory.com">
-	<link rel="stylesheet" href="<?php print($svnBasePath); ?>/assets/legacy.css">
 	<link rel="stylesheet" href="<?php print($svnBasePath); ?>/assets/app.css">
 	<script src="<?php print($svnBasePath); ?>/assets/app.js" defer></script>
 </head>
