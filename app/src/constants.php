@@ -4,8 +4,8 @@
  */
 
 // Version constants (from original config.inc.php)
-define("MAJOR_VERSION", "1");
-define("MINOR_VERSION", "6.2");
+define("MAJOR_VERSION", "2");
+define("MINOR_VERSION", "0.0");
 define("VERSION_EXTRA", "");
 
 // ACL Modules

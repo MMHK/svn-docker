@@ -3,7 +3,7 @@ version: "3"
 services:
   svn:
     build: .
-    image: "mmhk/svn-docker:8.3"
+    image: "mmhk/svn-docker:2.0"
     container_name: svn
     restart: always
     ports:

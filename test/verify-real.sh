@@ -4,7 +4,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-IMAGE="${IMAGE:-mmhk/svn-docker:8.3}"
+IMAGE="${IMAGE:-mmhk/svn-docker:2.0}"
 REAL_DIR="$PWD/test/real"
 BASE="http://127.0.0.1:18081"
 FAIL=0

@@ -2,7 +2,6 @@ test/data/
 test/real/
 *.log
 data/backup/
-data/ldap.cache.json
 app/vendor/
 
 # Tailwind 建置管線（yarn V4）：依賴與快取不入庫，package.json / yarn.lock / 產物入庫

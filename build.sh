@@ -3,15 +3,15 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-IMAGE="${IMAGE:-mmhk/svn-docker}"
-TAG="${TAG:-php74}"
+IMAGE="${IMAGE:-mmhk/svn-docker:2.0}"
+TAG="${TAG:-${IMAGE##*:}}"
 
-docker build -t "${IMAGE}:${TAG}" .
-echo "built ${IMAGE}:${TAG}"
+docker build -t "${IMAGE}" .
+echo "built ${IMAGE}"
 
 # 例：REGISTRY=docker-registry.demo2.mixmedia.com/mmhk ./build.sh
 if [ -n "${REGISTRY:-}" ]; then
-  docker tag "${IMAGE}:${TAG}" "${REGISTRY}/svn:${TAG}"
+  docker tag "${IMAGE}" "${REGISTRY}/svn:${TAG}"
   docker push "${REGISTRY}/svn:${TAG}"
   echo "pushed ${REGISTRY}/svn:${TAG}"
 fi

@@ -1,3 +1,5 @@
+> 本專案已現代化（PHP 8.3 / Composer / Tailwind），請見上層 [readme.md](../readme.md)。以下為 iF.SVNAdmin 原始說明。
+
 iF.SVNAdmin
 ===========
 The iF.SVNAdmin application is a web based GUI to your Subversion authorization 

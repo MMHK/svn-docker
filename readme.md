@@ -14,7 +14,7 @@
 ```
 .
 ├── Dockerfile                 三階段建置：assets → vendor → php:8.3-apache
-├── docker-compose.yml         service: svn / image: mmhk/svn-docker:8.3 / 80:80
+├── docker-compose.yml         service: svn / image: mmhk/svn-docker:2.0 / 80:80
 ├── .env                       COMPOSE_PROJECT_NAME=svn
 ├── build.sh                   建置（可選推 registry）
 ├── app/                       iF.SVNAdmin（PHP 8.3 現代化版）
@@ -55,7 +55,7 @@
 ## 快速開始
 
 ```sh
-./build.sh                     # 產生 mmhk/svn-docker:8.3（內含 Tailwind / Composer 產物）
+./build.sh                     # 產生 mmhk/svn-docker:2.0（內含 Tailwind / Composer 產物）
 docker compose up -d           # 預設 80:80
 docker compose logs -f --tail 50
 ```
@@ -230,7 +230,8 @@ SVNUserFile=/var/svnlocal/svn-auth-file
 3. **runtime**（`php:8.3-apache`）：apt 安裝 `libapache2-mod-svn` / `subversion` / mbstring，
    複製 `app/`、生產 `vendor/` 與建置後前端產物；`data/` 由 compose 掛載覆蓋
 
-目前映像大小約 **726 MB**（`docker images mmhk/svn-docker:8.3`）。第二次建置可完整吃到 layer cache。
+目前映像大小約 **726 MB**（`docker images mmhk/svn-docker:2.0`）。第二次建置可完整吃到 layer cache。
+`mmhk/svn-docker:8.3` 保留為回滾點。
 
 ## PHP 8 相容性
 
