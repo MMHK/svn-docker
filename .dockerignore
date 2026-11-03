@@ -1,0 +1,6 @@
+# 只有 app/、data/、conf/ 需要進 build context
+test/
+readme.md
+*.md
+.git
+.env

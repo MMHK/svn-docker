@@ -1,0 +1,33 @@
+version: "3"
+
+services:
+  svn:
+    build: .
+    image: "mmhk/svn-docker:8.3"
+    container_name: svn
+    restart: always
+    ports:
+      - "${SVN_HTTP_PORT:-80}:80"
+    environment:
+      - TZ=Asia/Hong_Kong
+    dns_search:
+      - 192.168.33.7
+    volumes:
+      # 倉庫與授權檔：直接 bind mount，不複製 77G 資料
+      - "${SVN_ROOT:-/var/svnlocal}:/var/svnlocal"
+      # iF.SVNAdmin 已內建在映像，只把 data/（config.ini、角色指派、備份）留在 host
+      - "${SVN_DATA_ROOT:-./data}:/var/www-tools/svnadmin/data"
+      # 設定檔留在 host，改完 restart 即可
+      - "./conf/svn.conf:/etc/apache2/sites-enabled/000-default.conf:ro"
+      - "./conf/php-svnadmin.ini:/usr/local/etc/php/conf.d/zz-svnadmin.ini:ro"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://127.0.0.1/svnadmin/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
