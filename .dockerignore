@@ -1,15 +1,24 @@
-# 只有 app/、data/、conf/ 需要進 build context
-test/
-readme.md
-*.md
+# build context 只保留建置真正需要的東西
+
+# 版本控制與本機設定
 .git
+.gitattributes
 .env
 
-# 前端建置：依賴與快取不進 context（建置產物在 app/public/assets/，階段 5 改成建置期產生）
+# 文件與腳本
+*.md
+readme.md
+build.sh
+
+# 測試資料（不進映像）
+test/
+
+# 前端依賴與快取：由 node:22-alpine stage 重新安裝
 node_modules/
 .yarn/
-assets/
-package.json
-yarn.lock
-.yarnrc.yml
-build-assets.mjs
+
+# PHP 依賴：由 composer:2 stage 重新安裝（--no-dev）
+app/vendor/
+
+# data/ 備份目錄（執行期產生）
+data/backup/

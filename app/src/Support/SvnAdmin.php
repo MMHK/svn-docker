@@ -77,7 +77,7 @@ class SvnAdmin extends SvnBase
 
 		if ($exitCode != 0)
 		{
-			throw new SvnCommandExecutionException('Command='.$cmd.'; Return='.$exitCode.'; Output='.$output.';');
+			throw new SvnCommandExecutionException('Command='.$cmd.'; Return='.$exitCode.'; Output='.implode("\n", (array) $output).';');
 		}
 	}
 
