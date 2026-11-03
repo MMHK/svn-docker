@@ -37,7 +37,7 @@ $accesspathEnc = get_request_var('accesspath');
 $accesspath = rawurldecode( $accesspathEnc );
 
 // View data.
-$o = new \svnadmin\core\entities\AccessPath;
+$o = new \SvnAdmin\Entities\AccessPath;
 $o->path = $accesspath;
 
 $users = $appEngine->getAccessPathViewProvider()->getUsersOfPath($o);
@@ -50,21 +50,21 @@ if ($appEngine->isAccessPathEditActive() && $appEngine->checkUserAccess(ACL_MOD_
 	if ($appEngine->isUserViewActive())
 	{
 		$allusers = $appEngine->getUserViewProvider()->getUsers();
-		usort($allusers, array('\svnadmin\core\entities\User',"compare"));
+		usort($allusers, array('\SvnAdmin\Entities\User',"compare"));
 		SetValue("UserListAll", $allusers);
 	}
 
 	if ($appEngine->isGroupViewActive())
 	{
 		$allgroups = $appEngine->getGroupViewProvider()->getGroups();
-		usort($allgroups, array('\svnadmin\core\entities\Group',"compare"));
+		usort($allgroups, array('\SvnAdmin\Entities\Group',"compare"));
 		SetValue("GroupListAll", $allgroups);
 	}
 }
 
-SetValue("PermNone", \svnadmin\core\entities\Permission::$PERM_NONE);
-SetValue("PermRead", \svnadmin\core\entities\Permission::$PERM_READ);
-SetValue("PermReadWrite", \svnadmin\core\entities\Permission::$PERM_READWRITE);
+SetValue("PermNone", \SvnAdmin\Entities\Permission::$PERM_NONE);
+SetValue("PermRead", \SvnAdmin\Entities\Permission::$PERM_READ);
+SetValue("PermReadWrite", \SvnAdmin\Entities\Permission::$PERM_READWRITE);
 SetValue("UserList", $users);
 SetValue("GroupList", $groups);
 SetValue("AccessPath", $accesspath);

@@ -23,7 +23,7 @@ include("include/config.inc.php");
 // Authentication
 //
 
-$engine = \svnadmin\core\Engine::getInstance();
+$engine = \SvnAdmin\Core\Engine::getInstance();
 
 if (!$engine->isProviderActive(PROVIDER_REPOSITORY_EDIT)) {
 	$engine->forwardInvalidModule(true);

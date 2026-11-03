@@ -44,12 +44,12 @@ else
 	  // Iterate all selected users and roles.
 	  for ($i=0; $i<count($selroles); $i++)
 	  {
-	    $oR = new \svnadmin\core\entities\Role;
+	    $oR = new \SvnAdmin\Entities\Role;
 	    $oR->name = $selroles[$i];
 	
 	    for ($j=0; $j<count($selusers); $j++)
 	    {
-	      $oU = new \svnadmin\core\entities\User;
+	      $oU = new \SvnAdmin\Entities\User;
 	      $oU->name = $selusers[$j];
 	
 	      if ($appEngine->getAclManager()->removeUserFromRole($oU, $oR))

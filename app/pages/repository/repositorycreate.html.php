@@ -50,7 +50,6 @@ $(document).ready(function(){
       <label for="repotype"><?php Translate("Type"); ?></label>
       <select name="repotype">
         <option value="fsfs" selected="selected"><?php Translate("File System (Recommended)"); ?></option>
-        <option value="bdb"><?php Translate("Berkly DB"); ?></option>
       </select>
     </div>
 

@@ -3,7 +3,7 @@ if (!defined('ACTION_HANDLING')) {
 	die("HaHa!");
 }
 
-$engine = \svnadmin\core\Engine::getInstance();
+$engine = \SvnAdmin\Core\Engine::getInstance();
 
 //
 // Authentication
@@ -21,7 +21,6 @@ $engine->checkUserAuthentication(true, ACL_MOD_REPO, ACL_ACTION_ADD);
 
 $varParentIdentifierEnc = get_request_var('pi');
 $reponame = get_request_var("reponame");
-$repotype = get_request_var("repotype");
 
 $varParentIdentifier = rawurldecode($varParentIdentifierEnc);
 
@@ -33,11 +32,11 @@ if ($reponame == NULL) {
 	$engine->addException(new ValidationException(tr("You have to fill out all fields.")));
 }
 else {
-	$r = new \svnadmin\core\entities\Repository($reponame, $varParentIdentifier);
+	$r = new \SvnAdmin\Entities\Repository($reponame, $varParentIdentifier);
 
 	// Create repository.
 	try {
-		$engine->getRepositoryEditProvider()->create($r, $repotype);
+		$engine->getRepositoryEditProvider()->create($r);
 		$engine->getRepositoryEditProvider()->save();
 		$engine->addMessage(tr("The repository %0 has been created successfully", array($reponame)));
 
@@ -46,7 +45,7 @@ else {
 			if (get_request_var("accesspathcreate") != NULL
 				&& $engine->isProviderActive(PROVIDER_ACCESSPATH_EDIT)) {
 				
-				$ap = new \svnadmin\core\entities\AccessPath($reponame . ':/');
+				$ap = new \SvnAdmin\Entities\AccessPath($reponame . ':/');
 
 				if ($engine->getAccessPathEditProvider()->createAccessPath($ap)) {
 					$engine->getAccessPathEditProvider()->save();

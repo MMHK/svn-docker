@@ -41,14 +41,6 @@
     </li>
     <?php } ?>
 
-    <?php if (IsViewUpdateable() && HasAccess(ACL_MOD_UPDATE, ACL_ACTION_SYNCHRONIZE) && AppEngine()->getConfig()->getValueAsBoolean('GUI', 'AllowUpdateByGui', true)) {?>
-    <li><a href="update.php"><?php Translate("Update"); ?></a>
-      <ul class="ddm-sub">
-      <?php if (HasAccess(ACL_MOD_UPDATE, ACL_ACTION_SYNCHRONIZE)){?><li><a href="update.php"><?php Translate("Synchronize"); ?></a></li><?php } ?>
-      </ul>
-    </li>
-    <?php } ?>
-
     <?php if (HasAccess(ACL_MOD_SETTINGS, ACL_ACTION_CHANGE)) { ?>
     <li><a href="settings.php"><?php Translate("Settings"); ?></a>
       <ul class="ddm-sub">

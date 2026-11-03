@@ -19,7 +19,10 @@
  */
 // PHP 8 起 dynamic property / null 傳參等 deprecation 太吵，只留真正的錯誤。
 error_reporting(E_ALL & ~E_DEPRECATED);
-include_once("./classes/util/global.func.php");
+// Composer autoload：SvnAdmin\ 的類別，以及全局函式（src/Support/functions.php、
+// src/Support/globals.php、src/Config/IniFileFunctions.php）與
+// src/Legacy/compat.php（舊 FQCN 的 class_alias）。
+require_once(__DIR__ . '/../vendor/autoload.php');
 set_exception_handler('exception_handler');
 
 // Check PHP version.
@@ -41,10 +44,12 @@ if (!file_exists("./data/config.ini"))
 
 /**
  * Password encryption type for BASIC authentication.
+ *
+ * Optional, nothing is defined by default (the Apache APR1 MD5 hash is used):
+ *   define("SVNADMIN_HTPASSWD_DEFAULT_CRYPT", "CRYPT"); // Unix only.
+ *   define("SVNADMIN_HTPASSWD_DEFAULT_CRYPT", "SHA1");
+ *   define("SVNADMIN_HTPASSWD_DEFAULT_CRYPT", "MD5"); // Custom Apache APR1 MD5 hash.
  */
-//define("IF_HtPasswd_DefaultCrypt", "CRYPT"); // Unix only.
-//define("IF_HtPasswd_DefaultCrypt", "SHA1");
-//define("IF_HtPasswd_DefaultCrypt", "MD5"); // Custom Apache APR1 MD5 hash.
 
 /**
  * PHP/Subversion bug workarround for:
@@ -52,49 +57,8 @@ if (!file_exists("./data/config.ini"))
  */
 //define("IF_SVNBaseC_ConfigDir", "E:/Development/Test/temp svnadmin/svn-config-dir");
 
-// The iF.CoreLib
-$ifcorelib_path = "./include/ifcorelib/";
-include_once($ifcorelib_path."globals.php");
-include_once($ifcorelib_path."IF_StringUtils.class.php");
-include_once($ifcorelib_path."IF_IniFile.func.php");	// TODO: Remove include.
-include_once($ifcorelib_path."IF_IniFile.class.php");	// TODO: Remove include.
-include_once($ifcorelib_path."IF_Config.class.php");
-include_once($ifcorelib_path."IF_SVNBaseC.class.php");
-include_once($ifcorelib_path."IF_SVNAuthFileC.class.php");
-include_once($ifcorelib_path."IF_SVNClientC.class.php");
-include_once($ifcorelib_path."IF_File.class.php");
-include_once($ifcorelib_path."IF_Translator.class.php");
-include_once($ifcorelib_path."IF_Template.class.php");
-include_once($ifcorelib_path."IF_AbstractLdapConnector.class.php");
-include_once($ifcorelib_path."IF_SVNAdminC.class.php");
-include_once($ifcorelib_path."IF_ACLModule.class.php");
-include_once($ifcorelib_path."IF_ACLRole.class.php");
-include_once($ifcorelib_path."IF_ACL.class.php");
-
-// Core interfaces and classes.
-include_once( "./classes/core/entities/Permission.class.php" );
-include_once( "./classes/core/entities/Group.class.php" );
-include_once( "./classes/core/entities/User.class.php" );
-include_once( "./classes/core/entities/AccessPath.class.php" );
-include_once( "./classes/core/entities/Repository.class.php" );
-include_once( "./classes/core/entities/RepositoryPath.class.php" );
-include_once( "./classes/core/entities/RepositoryParent.class.php" );
-include_once( "./classes/core/entities/Role.class.php" );
-include_once( "./classes/core/interfaces/IProvider.iface.php" );
-include_once( "./classes/core/interfaces/IAuthenticator.iface.php" );
-include_once( "./classes/core/interfaces/IViewProvider.iface.php" );
-include_once( "./classes/core/interfaces/IEditProvider.iface.php" );
-include_once( "./classes/core/interfaces/IGroupEditProvider.iface.php" );
-include_once( "./classes/core/interfaces/IGroupViewProvider.iface.php" );
-include_once( "./classes/core/interfaces/IPathsEditProvider.iface.php" );
-include_once( "./classes/core/interfaces/IPathsViewProvider.iface.php" );
-include_once( "./classes/core/interfaces/IUserEditProvider.iface.php" );
-include_once( "./classes/core/interfaces/IUserViewProvider.iface.php" );
-include_once( "./classes/core/interfaces/IRepositoryEditProvider.iface.php" );
-include_once( "./classes/core/interfaces/IRepositoryViewProvider.iface.php" );
-include_once( "./classes/core/interfaces/IAclManager.iface.php" );
-include_once( "./classes/core/Engine.class.php" );
-include_once( "./classes/core/Exceptions.class.php" );
+// The former iF.CoreLib2 classes (include/ifcorelib) are now PSR-4 classes below
+// app/src and are loaded by the Composer autoloader.
 
 /**
  * iF.SVNAdmin version.
@@ -113,7 +77,6 @@ define("ACL_MOD_GROUP",                "groups");
 define("ACL_MOD_ACCESSPATH",           "accesspaths");
 define("ACL_MOD_ROLE",                 "roles");
 define("ACL_MOD_SETTINGS",             "settings");
-define("ACL_MOD_UPDATE",               "updates");
 define("ACL_MOD_PROJECTMANAGER",       "projectmanagers");
 
 /**
@@ -127,9 +90,7 @@ define("ACL_ACTION_UNASSIGN",			"unassign");
 define("ACL_ACTION_LOGIN",				"login");			// ACL_MOD_BASIC only!
 define("ACL_ACTION_CHANGEPASS",			"changepass");		// ACL_MOD_USER only!
 define("ACL_ACTION_CHANGEPASS_OTHER",	"changepassother");	// ACL_MOD_USER only!
-define("ACL_ACTION_SYNCHRONIZE",		"synchronize");		// ACL_MOD_UPDATE only!
 define("ACL_ACTION_CHANGE",				"change");			// ACL_MOD_SETTINGS only (atm...)!
-define("ACL_ACTION_DUMP",				"dump");			// ACL_MOD_REPO
 
 /*
  * Switch current locale procecure.
@@ -145,81 +106,47 @@ if ($requestedLocale != null)
  * The variable is a global variable and can be called in each class
  * and function which are used with this application.
  *
- * @var $appEngine \svnadmin\core\Engine
- * @global $appEngine \svnadmin\core\Engine
+ * @var $appEngine \SvnAdmin\Core\Engine
+ * @global $appEngine \SvnAdmin\Core\Engine
  * @deprecated No longer use this global variable!
  */
-$appEngine = \svnadmin\core\Engine::getInstance();
+$appEngine = \SvnAdmin\Core\Engine::getInstance();
 
 /**
  * Global object to translate strings into different languages.
  *
- * @global IF_Translator
+ * @global \SvnAdmin\I18n\Translator
  */
-$appTR = \IF_Translator::getInstance();
+$appTR = \SvnAdmin\I18n\Translator::getInstance();
 $appTR->setTranslationDirectory($appEngine->getConfig()->getValue("Translation", "Directory"));
 
 /**
  * The template of the current opened page.
  * It supports translations and ACL's.
  *
- * @global IF_Template
+ * @global \SvnAdmin\View\Template
  */
-$appTemplate = new \IF_Template;
+$appTemplate = new \SvnAdmin\View\Template;
 
 
 $cfg = $appEngine->getConfig();
 
 /**
  * User view provider.
+ * This deployment uses the htpasswd file (passwd) only.
  */
 if ($cfg->getValue("Engine:Providers", "UserViewProviderType") == "passwd")
 {
-  include_once($ifcorelib_path."IF_HtPasswd.class.php");
-  include_once("./classes/providers/PasswdUserProvider.class.php");
-  $userView = \svnadmin\providers\PasswdUserProvider::getInstance();
+  $userView = \SvnAdmin\Providers\PasswdUserProvider::getInstance();
   $appEngine->setUserViewProvider( $userView );
-}
-elseif ($cfg->getValue("Engine:Providers", "UserViewProviderType") == "digest")
-{
-  include_once($ifcorelib_path."IF_HtDigest.class.php");
-  include_once( "./classes/providers/DigestUserProvider.class.php" );
-  $userView = \svnadmin\providers\DigestUserProvider::getInstance();
-  $appEngine->setUserViewProvider( $userView );
-}
-elseif ($cfg->getValue("Engine:Providers", "UserViewProviderType") == "ldap")
-{
-	$userView = null;
-	include_once("./classes/providers/ldap/LdapUserViewProvider.class.php");
-  
-	if ($cfg->getValueAsBoolean('Ldap', 'CacheEnabled', false)) {
-		include_once("./classes/providers/ldap/CachedLdapUserViewProvider.class.php");
-		include_once("./include/ifcorelib/IF_JsonObjectStorage.class.php");
-		$userView = \svnadmin\providers\ldap\CachedLdapUserViewProvider::getInstance();
-	}
-	else {
-		$userView = \svnadmin\providers\ldap\LdapUserViewProvider::getInstance();
-	}
-
-	$appEngine->setUserViewProvider( $userView );
 }
 
 /**
  * User edit provider.
- * LDAP is currently not supported as edit provider.
  */
 if ($cfg->getValue("Engine:Providers", "UserEditProviderType") == "passwd")
 {
-  include_once($ifcorelib_path."IF_HtPasswd.class.php");
-  include_once( "./classes/providers/PasswdUserProvider.class.php" );
-  $userEdit = \svnadmin\providers\PasswdUserProvider::getInstance();
-  $appEngine->setUserEditProvider( $userEdit );
-}
-if ($cfg->getValue("Engine:Providers", "UserEditProviderType") == "digest")
-{
-  include_once($ifcorelib_path."IF_HtDigest.class.php");
-  include_once( "./classes/providers/DigestUserProvider.class.php" );
-  $userEdit = \svnadmin\providers\DigestUserProvider::getInstance();
+  $userEdit = \SvnAdmin\Providers\PasswdUserProvider::getInstance();
   $appEngine->setUserEditProvider( $userEdit );
 }
 
@@ -228,36 +155,16 @@ if ($cfg->getValue("Engine:Providers", "UserEditProviderType") == "digest")
  */
 if ($cfg->getValue("Engine:Providers", "GroupViewProviderType") == "svnauthfile")
 {
-  include_once( "./classes/providers/AuthFileGroupAndPathsProvider.class.php" );
-  $groupView = \svnadmin\providers\AuthFileGroupAndPathProvider::getInstance();
+  $groupView = \SvnAdmin\Providers\AuthFileGroupAndPathProvider::getInstance();
   $appEngine->setGroupViewProvider( $groupView );
-}
-elseif($cfg->getValue("Engine:Providers", "GroupViewProviderType") == "ldap" && $cfg->getValue("Engine:Providers", "UserViewProviderType") == "ldap")
-{
-	$groupView = null;
-	include_once("./classes/providers/ldap/LdapUserViewProvider.class.php");
-	include_once("./classes/providers/AuthFileGroupAndPathsProvider.class.php");
-	
-	if ($cfg->getValueAsBoolean('Ldap', 'CacheEnabled', false)) {
-		include_once("./classes/providers/ldap/CachedLdapUserViewProvider.class.php");
-		include_once("./include/ifcorelib/IF_JsonObjectStorage.class.php");
-		$groupView = \svnadmin\providers\ldap\CachedLdapUserViewProvider::getInstance();
-	}
-	else {
-		$groupView = \svnadmin\providers\ldap\LdapUserViewProvider::getInstance();
-	}
-	
-	$appEngine->setGroupViewProvider($groupView);
 }
 
 /**
  * Group edit provider.
- * No LDAP support.
  */
 if ($cfg->getValue("Engine:Providers", "GroupEditProviderType") == "svnauthfile" )
 {
-  include_once( "./classes/providers/AuthFileGroupAndPathsProvider.class.php" );
-  $groupEdit = \svnadmin\providers\AuthFileGroupAndPathProvider::getInstance();
+  $groupEdit = \SvnAdmin\Providers\AuthFileGroupAndPathProvider::getInstance();
   $appEngine->setGroupEditProvider( $groupEdit );
 }
 
@@ -266,8 +173,7 @@ if ($cfg->getValue("Engine:Providers", "GroupEditProviderType") == "svnauthfile"
  */
 if ($cfg->getValue("Engine:Providers", "AccessPathViewProviderType") == "svnauthfile")
 {
-  include_once( "./classes/providers/AuthFileGroupAndPathsProvider.class.php" );
-  $pathsView = \svnadmin\providers\AuthFileGroupAndPathProvider::getInstance();
+  $pathsView = \SvnAdmin\Providers\AuthFileGroupAndPathProvider::getInstance();
   $appEngine->setAccessPathViewProvider( $pathsView );
 }
 
@@ -276,8 +182,7 @@ if ($cfg->getValue("Engine:Providers", "AccessPathViewProviderType") == "svnauth
  */
 if ($cfg->getValue("Engine:Providers", "AccessPathEditProviderType") == "svnauthfile")
 {
-  include_once( "./classes/providers/AuthFileGroupAndPathsProvider.class.php" );
-  $pathsEdit = \svnadmin\providers\AuthFileGroupAndPathProvider::getInstance();
+  $pathsEdit = \SvnAdmin\Providers\AuthFileGroupAndPathProvider::getInstance();
   $appEngine->setAccessPathEditProvider( $pathsEdit );
 }
 
@@ -286,8 +191,7 @@ if ($cfg->getValue("Engine:Providers", "AccessPathEditProviderType") == "svnauth
  */
 if ($cfg->getValue("Engine:Providers", "RepositoryViewProviderType") == "svnclient")
 {
-  include_once( "./classes/providers/RepositoryViewProvider.class.php" );
-  $repoView = \svnadmin\providers\RepositoryViewProvider::getInstance();
+  $repoView = \SvnAdmin\Providers\RepositoryViewProvider::getInstance();
   $appEngine->setRepositoryViewProvider( $repoView );
 }
 
@@ -296,8 +200,7 @@ if ($cfg->getValue("Engine:Providers", "RepositoryViewProviderType") == "svnclie
  */
 if ($cfg->getValue("Engine:Providers", "RepositoryEditProviderType") == "svnclient")
 {
-  include_once( "./classes/providers/RepositoryEditProvider.class.php" );
-  $repoEdit = \svnadmin\providers\RepositoryEditProvider::getInstance();
+  $repoEdit = \SvnAdmin\Providers\RepositoryEditProvider::getInstance();
   $appEngine->setRepositoryEditProvider( $repoEdit );
 }
 
@@ -306,17 +209,15 @@ if ($cfg->getValue("Engine:Providers", "RepositoryEditProviderType") == "svnclie
  */
 if ($cfg->getValue("Engine:Providers", "AuthenticationStatus") == "basic")
 {
-  include( "./classes/providers/EngineBaseAuthenticator.class.php" );
-  session_start();
-  $o = new \svnadmin\providers\EngineBaseAuthenticator;
+  \SvnAdmin\Http\Session::instance()->start();
+  $o = new \SvnAdmin\Providers\EngineBaseAuthenticator;
   $appEngine->setAuthenticator($o);
 
   // Engine: IAclManager
   // The ACL feature can only be used with authentication.
   if (true)
   {
-    include_once("./classes/core/acl/FSAclManager.class.php");
-    $o = new \svnadmin\core\acl\FSAclManager($cfg->getValue("ACLManager", "UserRoleAssignmentFile"));
+    $o = new \SvnAdmin\Acl\FSAclManager($cfg->getValue("ACLManager", "UserRoleAssignmentFile"));
     $appEngine->setAclManager($o);
     $appTemplate->setAcl($appEngine);
   }
@@ -327,7 +228,7 @@ if ($cfg->getValue("Engine:Providers", "AuthenticationStatus") == "basic")
  * Otherwise nobody could setup the application.
  */
 $appCurrentScriptFile = currentScriptFileName();
-if ($appEngine->isAuthenticationActive() && $appCurrentScriptFile != "settings.php" && $appCurrentScriptFile != "update_ldap.php")
+if ($appEngine->isAuthenticationActive() && $appCurrentScriptFile != "settings.php")
 {
   if (!$appEngine->getAclManager()->hasAdminDefined())
   {

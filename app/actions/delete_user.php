@@ -41,7 +41,7 @@ else
 	
 	  for($i=0; $i<$selusersCount; $i++)
 	  {
-	    $u = new \svnadmin\core\entities\User;
+	    $u = new \SvnAdmin\Entities\User;
 	    $u->id = $selusers[$i];
 	    $u->name = $selusers[$i];
 	

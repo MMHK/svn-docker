@@ -23,7 +23,7 @@ include("include/config.inc.php");
 // Authentication
 //
 
-$engine = \svnadmin\core\Engine::getInstance();
+$engine = \SvnAdmin\Core\Engine::getInstance();
 
 if (!$engine->isProviderActive(PROVIDER_REPOSITORY_VIEW)) {
 	$engine->forwardError(ERROR_INVALID_MODULE);
@@ -38,10 +38,6 @@ $appTR->loadModule("repositorylist");
 
 if (check_request_var("delete")) {
 	$engine->handleAction("delete_repository");
-}
-else if (check_request_var('dump')) {
-	$engine->handleAction('dump_repository');
-	exit(0);
 }
 else if (check_request_var('load')) {
 	
@@ -61,16 +57,7 @@ try {
 	// Repositories of all locations.
 	foreach ($repositoryParentList as $rp) {
 		$repositoryList[$rp->identifier] = $engine->getRepositoryViewProvider()->getRepositoriesOfParent($rp);
-		usort($repositoryList[$rp->identifier], array('\svnadmin\core\entities\Repository', 'compare'));
-	}
-	
-	// Show options column?
-	if (($engine->isProviderActive(PROVIDER_REPOSITORY_EDIT)
-		&& $engine->hasPermission(ACL_MOD_REPO, ACL_ACTION_DUMP)
-		&& $engine->getConfig()->getValueAsBoolean('GUI', 'RepositoryDumpEnabled', false))
-		){
-		SetValue('ShowOptions', true);
-		SetValue('ShowDumpOption', true);
+		usort($repositoryList[$rp->identifier], array('\SvnAdmin\Entities\Repository', 'compare'));
 	}
 }
 catch (Exception $ex) {

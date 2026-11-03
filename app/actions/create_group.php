@@ -12,7 +12,7 @@ if ($name == NULL)
 else
 {
   // Create user object.
-  $g = new \svnadmin\core\entities\Group;
+  $g = new \SvnAdmin\Entities\Group;
   $g->id = $name;
   $g->name = $name;
   

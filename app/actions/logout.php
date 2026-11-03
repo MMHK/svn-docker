@@ -28,5 +28,5 @@ if( !$appEngine->isAuthenticationActive() )
 }
 
 // Destroy session now.
-session_destroy();
+\SvnAdmin\Http\Session::instance()->destroy();
 ?>

@@ -37,7 +37,7 @@ else
     // Iterate all selected users and delete them.
     for($i=0; $i<count($selected); $i++)
     {
-      $g = new \svnadmin\core\entities\Group;
+      $g = new \SvnAdmin\Entities\Group;
       $g->id = $selected[$i];
       $g->name = $selected[$i];
 

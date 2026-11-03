@@ -35,7 +35,7 @@ else if ($password != $password2)
 else
 {
   // Create user object.
-  $u = new \svnadmin\core\entities\User;
+  $u = new \SvnAdmin\Entities\User;
   $u->id = $username;
   $u->name = $username;
   $u->password = $password;

@@ -43,12 +43,12 @@ if ($appEngine->isUserViewActive() && $appEngine->checkUserAuthentication(false,
   $users = $appEngine->getUserViewProvider()->getUsers();
 
   // Remove the * user from array.
-  $o = new \svnadmin\core\entities\User;
+  $o = new \SvnAdmin\Entities\User;
   $o->id = '*';
   $o->name = '*';
   
   $users = remove_item_by_value($users, $o, true);
-  usort($users, array('\svnadmin\core\entities\User',"compare"));
+  usort($users, array('\SvnAdmin\Entities\User',"compare"));
 }
 
 // Group list.
@@ -56,7 +56,7 @@ $groups=null;
 if ($appEngine->isGroupViewActive() && $appEngine->checkUserAuthentication(false, ACL_MOD_GROUP, ACL_ACTION_VIEW))
 {
   $groups = $appEngine->getGroupViewProvider()->getGroups();
-  usort( $groups, array('\svnadmin\core\entities\Group',"compare") );
+  usort( $groups, array('\SvnAdmin\Entities\Group',"compare") );
 }
 
 SetValue("UserList", $users);

@@ -21,18 +21,13 @@
 				<th>
 					<?php Translate("Repository"); ?>
 				</th>
-				<?php if (GetBoolValue("ShowOptions")) : ?>
-				<th width="150">
-					<?php Translate("Options"); ?>
-				</th>
-				<?php endif; ?>
 			</tr>
 		</thead>
 
 		<?php if (GetBoolValue("ShowDeleteButton") && IsProviderActive(PROVIDER_REPOSITORY_EDIT) && HasAccess(ACL_MOD_REPO, ACL_ACTION_DELETE)): ?>
 		<tfoot>
 			<tr>
-				<td colspan="4">
+				<td colspan="3">
 
 				<table class="datatableinline">
 				<colgroup>
@@ -78,15 +73,6 @@
 				<td>
 					<a href="repositoryview.php?pi=<?php print($r->getEncodedParentIdentifier()); ?>&amp;r=<?php print($r->getEncodedName()); ?>"><?php print($r->name); ?></a>
 				</td>
-				<?php if (GetBoolValue("ShowOptions")) : ?>
-				<td>
-					<?php if (GetBoolValue("ShowDumpOption")) : ?>
-					<a href="repositorylist.php?pi=<?php print($r->getEncodedParentIdentifier()); ?>&amp;r=<?php print($r->getEncodedName()); ?>&amp;dump=true">
-						<img src="templates/icons/exportdump.png" border="0" alt="<?php Translate("Dump"); ?>" title="<?php Translate("Export dump"); ?>">
-					</a>
-					<?php endif; ?>
-				</td>
-				<?php endif; ?>
 			</tr>
 			<?php endforeach; ?>
 		</tbody>

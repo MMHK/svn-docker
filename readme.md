@@ -84,8 +84,8 @@ iF.SVNAdmin 1.6.2 是 2013 年、以 PHP 5.3 寫的程式碼。升級到 PHP 8.3
 
 | 檔案 | 修改 | 原因 |
 | --- | --- | --- |
-| `app/include/ifcorelib/IF_HtPasswd.class.php` | `$plainpasswd{0}` → `$plainpasswd[0]` | 大括號字串位移 PHP 8.0 移除，會直接 parse error |
-| `app/include/ifcorelib/globals.php` | `utf8_encode/decode()` → `mb_convert_encoding()` | UTF-8 函式 PHP 8.2 起 deprecated |
+| `app/src/Support/HtPasswd.php` | `$plainpasswd{0}` → `$plainpasswd[0]` | 大括號字串位移 PHP 8.0 移除，會直接 parse error |
+| `app/src/Support/globals.php` | `utf8_encode/decode()` → `mb_convert_encoding()` | UTF-8 函式 PHP 8.2 起 deprecated |
 | `app/include/config.inc.php` | `error_reporting(E_ALL)` → `E_ALL & ~E_DEPRECATED` | PHP 8 的 dynamic property 等 deprecation 太吵 |
 
 另外確認過程式碼裡**沒有** `each()`、`create_function()`、`ereg*`、`split()`、`mysql_*`、

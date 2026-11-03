@@ -12,7 +12,7 @@ else
 {
   try {
     $doCreate = true;
-    $p = new \svnadmin\core\entities\AccessPath();
+    $p = new \SvnAdmin\Entities\AccessPath();
     $p->path = $path;
 
     // Is the user restricted to some paths? (project-manager)

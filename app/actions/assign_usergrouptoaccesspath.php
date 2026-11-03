@@ -27,13 +27,13 @@ else
 	  $selusersLen =  ($selusers  != NULL) ? count($selusers)  : 0;
 
 	  // Create permission object.
-	  $oP = new \svnadmin\core\entities\Permission;
+	  $oP = new \SvnAdmin\Entities\Permission;
 	  $oP->perm = $selperm;
 
 	  // Iterate all selected_accesspaths.
 	  for( $i=0; $i<$selpathsLen; $i++ )
 	  {
-	    $oAP = new \svnadmin\core\entities\AccessPath;
+	    $oAP = new \SvnAdmin\Entities\AccessPath;
 	    $oAP->id = $selpaths[$i];
 	    $oAP->path = $selpaths[$i];
 
@@ -55,7 +55,7 @@ else
 		// Iterate selected_users.
 		for( $iu=0; $iu<$selusersLen; $iu++ )
     	{
-			$oU = new \svnadmin\core\entities\User;
+			$oU = new \SvnAdmin\Entities\User;
 			$oU->id = $selusers[$iu];
 			$oU->name = $selusers[$iu];
 
@@ -74,7 +74,7 @@ else
 	    // Iterate selected_groups.
 	    for( $ig=0; $ig<$selgroupsLen; $ig++ )
 	    {
-	      $oG = new \svnadmin\core\entities\Group;
+	      $oG = new \SvnAdmin\Entities\Group;
 	      $oG->id = $selgroups[$ig];
 	      $oG->name = $selgroups[$ig];
 

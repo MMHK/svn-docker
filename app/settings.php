@@ -3,7 +3,7 @@ include("include/config.inc.php");
 
 /**
  * The configuration of the web application.
- * @global $cfgEngine IF_IniFile
+ * @global $cfgEngine \SvnAdmin\Config\Config
  */
 $cfgEngine = $appEngine->getConfig();
 
@@ -50,36 +50,6 @@ if (!$skip_auth)
 $appTR->loadModule("settings");
 
 ////////////////////////////////////////////////////////////////////////////////
-// Fetch request parameters.
-////////////////////////////////////////////////////////////////////////////////
-
-$pUserViewProviderType = get_request_var("UserViewProviderType");
-$pUserEditProviderType = get_request_var("UserEditProviderType");
-$pGroupViewProviderType = get_request_var("GroupViewProviderType");
-$pGroupEditProviderType = get_request_var("GroupEditProviderType");
-$pRepositoryViewProviderType = get_request_var("RepositoryViewProviderType");
-$pRepositoryEditProviderType = get_request_var("RepositoryEditProviderType");
-$pSVNAuthFile = get_request_var("SVNAuthFile");
-$pSVNUserFile = get_request_var("SVNUserFile");
-$pSVNUserDigestFile = get_request_var("SVNUserDigestFile");
-$pSVNDigestRealm = get_request_var("SVNDigestRealm");
-$pSVNParentPath = get_request_var("SVNParentPath");
-$pSvnExecutable = get_request_var("SvnExecutable");
-$pSvnAdminExecutable = get_request_var("SvnAdminExecutable");
-$pLdapHostAddress = get_request_var("LdapHostAddress");
-$pLdapProtocolVersion = get_request_var("LdapProtocolVersion");
-$pLdapBindDN = get_request_var("LdapBindDN");
-$pLdapBindPassword = get_request_var("LdapBindPassword");
-$pLdapUserBaseDn = get_request_var("LdapUserBaseDn");
-$pLdapUserSearchFilter = get_request_var("LdapUserSearchFilter");
-$pLdapUserAttributes = get_request_var("LdapUserAttributes");
-$pLdapGroupBaseDn = get_request_var("LdapGroupBaseDn");
-$pLdapGroupSearchFilter = get_request_var("LdapGroupSearchFilter");
-$pLdapGroupAttributes = get_request_var("LdapGroupAttributes");
-$pLdapGroupsToUserAttribute = get_request_var("LdapGroupsToUserAttribute");
-$pLdapGroupsToUserAttributeValue = get_request_var("LdapGroupsToUserAttributeValue");
-
-////////////////////////////////////////////////////////////////////////////////
 // Reset first start up value.
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -93,262 +63,6 @@ if (check_request_var("firststart"))
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Save values.
-////////////////////////////////////////////////////////////////////////////////
-
-if (check_request_var("save"))
-{
-	$cfgEngine->setValue("Engine:Providers", "UserViewProviderType", $pUserViewProviderType);
-	$cfgEngine->setValue("Engine:Providers", "UserEditProviderType", $pUserEditProviderType);
-	$cfgEngine->setValue("Engine:Providers", "GroupViewProviderType", $pGroupViewProviderType);
-	$cfgEngine->setValue("Engine:Providers", "GroupEditProviderType", $pGroupEditProviderType);
-	$cfgEngine->setValue("Engine:Providers", "RepositoryViewProviderType", $pRepositoryViewProviderType);
-	$cfgEngine->setValue("Engine:Providers", "RepositoryEditProviderType", $pRepositoryEditProviderType);
-	$cfgEngine->setValue("Subversion", "SVNAuthFile", $pSVNAuthFile);
-	$cfgEngine->setValue("Users:passwd", "SVNUserFile", $pSVNUserFile);
-	$cfgEngine->setValue("Users:digest", "SVNUserDigestFile", $pSVNUserDigestFile);
-	$cfgEngine->setValue("Users:digest", "SVNDigestRealm", $pSVNDigestRealm);
-	$cfgEngine->setValue("Repositories:svnclient", "SVNParentPath", $pSVNParentPath);
-	$cfgEngine->setValue("Repositories:svnclient", "SvnExecutable", $pSvnExecutable);
-	$cfgEngine->setValue("Repositories:svnclient", "SvnAdminExecutable", $pSvnAdminExecutable);
-	$cfgEngine->setValue("Ldap", "HostAddress", $pLdapHostAddress);
-	$cfgEngine->setValue("Ldap", "ProtocolVersion", $pLdapProtocolVersion);
-	$cfgEngine->setValue("Ldap", "BindDN", $pLdapBindDN);
-	$cfgEngine->setValue("Ldap", "BindPassword", $pLdapBindPassword);
-	$cfgEngine->setValue("Users:ldap", "BaseDN", $pLdapUserBaseDn);
-	$cfgEngine->setValue("Users:ldap", "SearchFilter", $pLdapUserSearchFilter);
-	$cfgEngine->setValue("Users:ldap", "Attributes", $pLdapUserAttributes);
-	$cfgEngine->setValue("Groups:ldap", "BaseDN", $pLdapGroupBaseDn);
-	$cfgEngine->setValue("Groups:ldap", "SearchFilter", $pLdapGroupSearchFilter);
-	$cfgEngine->setValue("Groups:ldap", "Attributes", $pLdapGroupAttributes);
-	$cfgEngine->setValue("Groups:ldap", "GroupsToUserAttribute", $pLdapGroupsToUserAttribute);
-	$cfgEngine->setValue("Groups:ldap", "GroupsToUserAttributeValue", $pLdapGroupsToUserAttributeValue);
-	$cfgEngine->setValue("Common", "FirstStart", 0);
-
-	// Save configuration now.
-	try {
-		$b = $cfgEngine->saveToFile();
-		if (!$b) {
-			throw new Exception("ERROR: " + tr("Could not save configuration. You should check the file permissions."));
-		}
-
-		if (!$hasAdminDefined) {
-			header("Location: settings.php");
-			exit(0);
-		}
-
-		$appEngine->addMessage(tr("Done."));
-	}
-	catch (Exception $except) {
-		$appEngine->addException($except);
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Do the tests. (Comes in with AJAX)
-////////////////////////////////////////////////////////////////////////////////
-
-if (check_request_var("dotest") && check_request_var("dotestsec"))
-{
-	// Turn off error reporting, we only want return JSON code.
-	// Update: Do NOT turn it off. We probably could use register_shutdown_function()
-	// for fatal functions but actually its enough that the "error" event on client
-	// side dispaly the error output from this php script, if an error occurs.
-	// (mostly ldap based..)
-	//@error_reporting(0);
-	ini_set("display_errors", "Off");
-
-	$msgOk = null;
-	$msgErr = null;
-	$testSection = get_request_var("dotestsec");
-
-	switch($testSection)
-	{
-		case "SVNAuthFile":
-			if (file_exists($pSVNAuthFile))
-				if (is_writable($pSVNAuthFile))
-					$msgOk = $appTR->tr("Test passed.");
-				else
-					$msgErr = $appTR->tr("The file exists but is not writable.");
-			else
-				$msgErr = $appTR->tr("The file does not exist.");
-			break;
-
-
-		case "SVNUserFile":
-			if (file_exists($pSVNUserFile))
-				if (is_writable($pSVNUserFile))
-					$msgOk = $appTR->tr("Test passed.");
-				else
-					$msgErr = $appTR->tr("The file exists but is not writable.");
-			else
-				$msgErr = $appTR->tr("The file does not exist.");
-			break;
-
-
-		case "SVNUserDigestFile":
-			if (file_exists($pSVNUserDigestFile))
-				if (is_writable($pSVNUserDigestFile))
-					$msgOk = $appTR->tr("Test passed.");
-				else
-					$msgErr = $appTR->tr("The file exists but is not writable.");
-			else
-				$msgErr = $appTR->tr("The file does not exist.");
-			break;
-
-
-		case "SVNParentPath":
-			if (file_exists($pSVNParentPath))
-				if (is_writable($pSVNParentPath))
-					$msgOk = $appTR->tr("Test passed.");
-				else
-					$msgErr = $appTR->tr("The folder exists but is not writable.");
-			else
-				$msgErr = $appTR->tr("The folder does not exist.");
-			break;
-
-
-		case "SvnExecutable":
-			if (file_exists($pSvnExecutable))
-				if (is_executable($pSvnExecutable))
-					$msgOk = $appTR->tr("Test passed.");
-				else
-					$msgErr = $appTR->tr("The file exists but is not executable.");
-			else
-				$msgErr = $appTR->tr("The file does not exist.");
-			break;
-
-
-		case "SvnAdminExecutable":
-			if (file_exists($pSvnAdminExecutable))
-				if (is_executable($pSvnAdminExecutable))
-					$msgOk = $appTR->tr("Test passed.");
-				else
-					$msgErr = $appTR->tr("The file exists but is not executable.");
-			else
-				$msgErr = $appTR->tr("The file does not exist.");
-			break;
-
-
-		case "LdapConnection":
-			if (IF_AbstractLdapConnector::isLdapExtensionEnabled())
-			{
-				$connector = new IF_AbstractLdapConnector();
-				if ($connector->connect($pLdapHostAddress, 0, $pLdapProtocolVersion))
-				{
-					if ($connector->bind($pLdapBindDN, $pLdapBindPassword))
-						$msgOk = tr("Test passed.");
-					else
-						$msgErr = tr("Connection failed:")." ".ldap_error($connector->connection);
-				}
-				else
-				{
-					$msgErr = tr("Connection failed:")." ".ldap_error($connector->connection);
-				}
-			}
-			else
-			{
-				$msgErr = tr("PHP LDAP extension is not available.");
-			}
-			break;
-
-
-		case "LdapUser":
-			if (IF_AbstractLdapConnector::isLdapExtensionEnabled())
-			{
-				include_once("./classes/providers/ldap/LdapUserViewProvider.class.php");
-
-				$up = new \svnadmin\providers\ldap\LdapUserViewProvider();
-				$up->setConnectionInformation($pLdapHostAddress, 0, $pLdapProtocolVersion, $pLdapBindDN, $pLdapBindPassword);
-				$up->setUserViewInformation($pLdapUserBaseDn, $pLdapUserSearchFilter, $pLdapUserAttributes);
-
-				if ($up->init() === true)
-				{
-					$users = $up->getUsers();
-					$usersCount = count($users);
-
-					$t = "Found ".$usersCount." users.<br>";
-
-					$doComma = false;
-					for ($i=0; $i<$usersCount; $i++)
-					{
-						if ($doComma)
-							$t.= ", ";
-						$doComma = true;
-						$t.= $users[$i]->name;
-					}
-					$msgOk = $t;
-				}
-				else
-				{
-					$msgErr = tr("Connection failed:")." ".ldap_error($up->connection);
-				}
-			}
-			else
-			{
-				$msgErr = tr("PHP LDAP extension is not available.");
-			}
-			break;
-
-
-		case "LdapGroup":
-			if (IF_AbstractLdapConnector::isLdapExtensionEnabled())
-			{
-				include_once("./classes/providers/ldap/LdapUserViewProvider.class.php");
-
-				$up = new \svnadmin\providers\ldap\LdapUserViewProvider();
-				$up->setConnectionInformation($pLdapHostAddress, 0, $pLdapProtocolVersion, $pLdapBindDN, $pLdapBindPassword);
-				$up->setGroupViewInformation($pLdapGroupBaseDn, $pLdapGroupSearchFilter, $pLdapGroupAttributes, $pLdapGroupsToUserAttribute, $pLdapGroupsToUserAttributeValue);
-
-				if ($up->init() === true)
-				{
-					$groups = $up->getGroups();
-					$groupsCount = count($groups);
-
-					$t = "Found ".$groupsCount." groups.<br>";
-
-					$doComma = false;
-					for ($i=0; $i<$groupsCount; $i++)
-					{
-						if ($doComma)
-							$t.= ", ";
-						$doComma = true;
-						$t.= $groups[$i]->name;
-					}
-					$msgOk = $t;
-				}
-				else
-				{
-					$msgErr = tr("Connection failed:")." ".ldap_error($up->connection);
-				}
-			}
-			else
-			{
-				$msgErr = tr("PHP LDAP extension is not available.");
-			}
-			break;
-
-		default:
-			$msgErr = "Invalid request.";
-	}
-
-	// Prepare data for JSON response.
-	header("Content-Type: application/json");
-	$json = new stdClass();
-	$json->type = (empty($msgOk) ? "error" : "success");
-	$json->message = (empty($msgOk) ? $msgErr : $msgOk);
-
-	$php_error = error_get_last();
-	if ($php_error !== null)
-	{
-		$json->php_error = $php_error;
-	}
-
-	print(json_encode($json));
-	exit(0);
-}
-
-////////////////////////////////////////////////////////////////////////////////
 // Set administrator.
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -359,10 +73,10 @@ if (check_request_var("setadmin") || $show_setadmin)
   {
     $selusers = get_request_var("selected_users");
 
-    $oU = new \svnadmin\core\entities\User;
+    $oU = new \SvnAdmin\Entities\User;
     $oU->name = $selusers[0];
 
-    $oR = new \svnadmin\core\entities\Role;
+    $oR = new \SvnAdmin\Entities\Role;
     $oR->name = "Administrator";
 
     // Set selected user as Administrator.
@@ -398,7 +112,7 @@ if (check_request_var("setadmin") || $show_setadmin)
     {
       if ($appEngine->isUserEditActive())
       {
-        $u = new \svnadmin\core\entities\User();
+        $u = new \SvnAdmin\Entities\User();
         $u->name = "admin";
         $u->password = "admin";
 
@@ -415,7 +129,7 @@ if (check_request_var("setadmin") || $show_setadmin)
         	$appEngine->addException($e);
         }
 
-        $r = new \svnadmin\core\entities\Role;
+        $r = new \SvnAdmin\Entities\Role;
         $r->name = "Administrator";
 
         try {
@@ -443,7 +157,7 @@ if (check_request_var("setadmin") || $show_setadmin)
     // Display user selection.
     else
     {
-      usort($users, array('\svnadmin\core\entities\User',"compare"));
+      usort($users, array('\SvnAdmin\Entities\User',"compare"));
       SetValue("UserList", $users);
       SetValue("ShowUserSelection", true);
     }
@@ -456,134 +170,101 @@ if (check_request_var("setadmin") || $show_setadmin)
   ProcessTemplate("settings/setadmin.html.php");
   exit(0);
 }
+
 ////////////////////////////////////////////////////////////////////////////////
-// Form values.
+// System information (read only).
 ////////////////////////////////////////////////////////////////////////////////
 
-// Load template configuration. (Read only!)
-$cfgTpl = new \IF_IniFile();
-$cfgTpl->loadFromFile("data/config.tpl.ini");
+/**
+ * Describes the access state of a configured file or directory.
+ *
+ * @param string $path Absolute path from the configuration.
+ * @return string Translated state of the path.
+ */
+function settings_path_state($path)
+{
+	if ($path === null || trim($path) === "")
+	{
+		return tr("Not configured");
+	}
 
-// SVNAuthFile
-$svnAuthFile = $cfgEngine->getValue("Subversion","SVNAuthFile");
-$svnAuthFileEx = $cfgTpl->getValue("Subversion","SVNAuthFile");
+	if (!file_exists($path))
+	{
+		return tr("Does not exist");
+	}
+
+	$readable = is_readable($path);
+	$writable = is_writable($path);
+
+	if ($readable && $writable)
+		return tr("Readable and writable");
+	if ($readable)
+		return tr("Readable, not writable");
+	if ($writable)
+		return tr("Not readable, writable");
+	return tr("Not readable, not writable");
+}
+
+/**
+ * Gets the version string of the configured "svn" executable.
+ *
+ * @param string $executable Path of the "svn" binary.
+ * @return string Version or "-" if it could not be determined.
+ */
+function settings_svn_version($executable)
+{
+	if ($executable === null || trim($executable) === "")
+	{
+		$executable = "svn";
+	}
+
+	$output = array();
+	$returnCode = 0;
+	@exec(escapeshellarg($executable) . " --version --quiet 2>&1", $output, $returnCode);
+
+	if ($returnCode === 0 && count($output) > 0)
+	{
+		return trim($output[0]);
+	}
+
+	return "-";
+}
+
+// Application version.
+SetValue("AppVersion", MAJOR_VERSION . "." . MINOR_VERSION . (VERSION_EXTRA != "" ? "-" . VERSION_EXTRA : ""));
+
+// PHP version.
+SetValue("PHPVersion", PHP_VERSION);
+
+// Subversion version.
+$svnExecutable = $cfgEngine->getValue("Repositories:svnclient", "SvnExecutable");
+SetValue("SvnVersion", settings_svn_version($svnExecutable));
+
+// Subversion paths and their access state.
+$svnAuthFile = $cfgEngine->getValue("Subversion", "SVNAuthFile");
 SetValue("SVNAuthFile", $svnAuthFile);
-SetValue("SVNAuthFileEx", $svnAuthFileEx);
+SetValue("SVNAuthFileState", settings_path_state($svnAuthFile));
 
-// UserViewProviderType
-$userViewProviderTypes = array(/*"off",*/ "passwd", "digest", "ldap");
-array_unshift($userViewProviderTypes, $cfgEngine->getValue("Engine:Providers","UserViewProviderType"));
-SetValue("userViewProviderTypes", $userViewProviderTypes);
-
-// UserEditProviderType
-$userEditProviderTypes = array("off", "passwd", "digest");
-array_unshift($userEditProviderTypes, $cfgEngine->getValue("Engine:Providers","UserEditProviderType"));
-SetValue("userEditProviderTypes", $userEditProviderTypes);
-
-// GroupViewProviderType
-$groupViewProviderTypes = array("off", "svnauthfile", "ldap");
-array_unshift($groupViewProviderTypes, $cfgEngine->getValue("Engine:Providers","GroupViewProviderType"));
-SetValue("groupViewProviderTypes", $groupViewProviderTypes);
-
-// GroupEditProviderType
-$groupEditProviderTypes = array("off", "svnauthfile");
-array_unshift($groupEditProviderTypes, $cfgEngine->getValue("Engine:Providers","GroupEditProviderType"));
-SetValue("groupEditProviderTypes", $groupEditProviderTypes);
-
-// RepositoryViewProviderType
-$repositoryViewProviderTypes = array("off", "svnclient");
-array_unshift($repositoryViewProviderTypes, $cfgEngine->getValue("Engine:Providers","RepositoryViewProviderType"));
-$appTemplate->addReplacement("repositoryViewProviderTypes", $repositoryViewProviderTypes);
-SetValue("repositoryViewProviderTypes", $repositoryViewProviderTypes);
-
-// RepositoryEditProviderType
-$repositoryEditProviderTypes = array("off", "svnclient");
-array_unshift($repositoryEditProviderTypes, $cfgEngine->getValue("Engine:Providers","RepositoryEditProviderType"));
-SetValue("repositoryEditProviderTypes", $repositoryEditProviderTypes);
-
-// Passwd file.
-$svnUserFile = $cfgEngine->getValue("Users:passwd","SVNUserFile");
-$svnUserFileEx = $cfgTpl->getValue("Users:passwd","SVNUserFile");
+$svnUserFile = $cfgEngine->getValue("Users:passwd", "SVNUserFile");
 SetValue("SVNUserFile", $svnUserFile);
-SetValue("SVNUserFileEx", $svnUserFileEx);
+SetValue("SVNUserFileState", settings_path_state($svnUserFile));
 
-// Digest.
-$svnUserDigestFile = $cfgEngine->getValue("Users:digest","SVNUserDigestFile");
-$svnUserDigestFileEx = $cfgTpl->getValue("Users:digest","SVNUserDigestFile");
-$svnDigestRealm = $cfgEngine->getValue("Users:digest","SVNDigestRealm");
-$svnDigestRealmEx = $cfgTpl->getValue("Users:digest","SVNDigestRealm");
-SetValue("SVNUserDigestFile", $svnUserDigestFile);
-SetValue("SVNUserDigestFileEx", $svnUserDigestFileEx);
-SetValue("SVNDigestRealm", $svnDigestRealm);
-SetValue("SVNDigestRealmEx", $svnDigestRealmEx);
-
-// Repositories:svnclient
-$svnParentPath = $cfgEngine->getValue("Repositories:svnclient","SVNParentPath");
-$svnParentPathEx = $cfgTpl->getValue("Repositories:svnclient","SVNParentPath");
-$svnExecutable = $cfgEngine->getValue("Repositories:svnclient","SvnExecutable");
-$svnExecutableEx = $cfgTpl->getValue("Repositories:svnclient","SvnExecutable");
-$svnAdminExecutable = $cfgEngine->getValue("Repositories:svnclient","SvnAdminExecutable");
-$svnAdminExecutableEx = $cfgTpl->getValue("Repositories:svnclient","SvnAdminExecutable");
+$svnParentPath = $cfgEngine->getValue("Repositories:svnclient", "SVNParentPath");
 SetValue("SVNParentPath", $svnParentPath);
-SetValue("SVNParentPathEx", $svnParentPathEx);
-SetValue("SvnExecutable", $svnExecutable);
-SetValue("SvnExecutableEx", $svnExecutableEx);
-SetValue("SvnAdminExecutable", $svnAdminExecutable);
-SetValue("SvnAdminExecutableEx", $svnAdminExecutableEx);
+SetValue("SVNParentPathState", settings_path_state($svnParentPath));
 
-// LDAP connection.
-$ldapHostAddress = $cfgEngine->getValue("Ldap","HostAddress");
-$ldapHostAddressEx = $cfgTpl->getValue("Ldap","HostAddress");
-$ldapProtocolVersion = $cfgEngine->getValue("Ldap","ProtocolVersion");
-$ldapProtocolVersionEx = $cfgTpl->getValue("Ldap","ProtocolVersion");
-$ldapBindDN = $cfgEngine->getValue("Ldap","BindDN");
-$ldapBindDNEx = $cfgTpl->getValue("Ldap","BindDN");
-$ldapBindPassword = $cfgEngine->getValue("Ldap","BindPassword");
-$ldapBindPasswordEx = $cfgTpl->getValue("Ldap","BindPassword");
-SetValue("LdapHostAddress", $ldapHostAddress);
-SetValue("LdapHostAddressEx", $ldapHostAddressEx);
-SetValue("LdapProtocolVersion", $ldapProtocolVersion);
-SetValue("LdapProtocolVersionEx", $ldapProtocolVersionEx);
-SetValue("LdapBindDN", $ldapBindDN);
-SetValue("LdapBindDNEx", $ldapBindDNEx);
-SetValue("LdapBindPassword", $ldapBindPassword);
-SetValue("LdapBindPasswordEx", $ldapBindPasswordEx);
-
-// LDAP user provider information.
-$ldapUserBaseDn = $cfgEngine->getValue("Users:ldap","BaseDN");
-$ldapUserBaseDnEx = $cfgTpl->getValue("Users:ldap","BaseDN");
-$ldapUserSearchFilter = $cfgEngine->getValue("Users:ldap","SearchFilter");
-$ldapUserSearchFilterEx = $cfgTpl->getValue("Users:ldap","SearchFilter");
-$ldapUserAttributes = $cfgEngine->getValue("Users:ldap","Attributes");
-$ldapUserAttributesEx = $cfgTpl->getValue("Users:ldap","Attributes");
-SetValue("LdapUserBaseDn", $ldapUserBaseDn);
-SetValue("LdapUserBaseDnEx", $ldapUserBaseDnEx);
-SetValue("LdapUserSearchFilter", $ldapUserSearchFilter);
-SetValue("LdapUserSearchFilterEx", $ldapUserSearchFilterEx);
-SetValue("LdapUserAttributes", $ldapUserAttributes);
-SetValue("LdapUserAttributesEx", $ldapUserAttributesEx);
-
-// LDAP group provider information.
-$ldapGroupBaseDn = $cfgEngine->getValue("Groups:ldap","BaseDN");
-$ldapGroupBaseDnEx = $cfgTpl->getValue("Groups:ldap","BaseDN");
-$ldapGroupSearchFilter = $cfgEngine->getValue("Groups:ldap","SearchFilter");
-$ldapGroupSearchFilterEx = $cfgTpl->getValue("Groups:ldap","SearchFilter");
-$ldapGroupAttributes = $cfgEngine->getValue("Groups:ldap","Attributes");
-$ldapGroupAttributesEx = $cfgTpl->getValue("Groups:ldap","Attributes");
-$ldapGroupsToUserAttribute = $cfgEngine->getValue("Groups:ldap","GroupsToUserAttribute");
-$ldapGroupsToUserAttributeEx = $cfgTpl->getValue("Groups:ldap","GroupsToUserAttribute");
-$ldapGroupsToUserAttributeValue = $cfgEngine->getValue("Groups:ldap","GroupsToUserAttributeValue");
-$ldapGroupsToUserAttributeValueEx = $cfgTpl->getValue("Groups:ldap","GroupsToUserAttributeValue");
-SetValue("LdapGroupBaseDn", $ldapGroupBaseDn);
-SetValue("LdapGroupBaseDnEx", $ldapGroupBaseDnEx);
-SetValue("LdapGroupSearchFilter", $ldapGroupSearchFilter);
-SetValue("LdapGroupSearchFilterEx", $ldapGroupSearchFilterEx);
-SetValue("LdapGroupAttributes", $ldapGroupAttributes);
-SetValue("LdapGroupAttributesEx", $ldapGroupAttributesEx);
-SetValue("LdapGroupsToUserAttribute", $ldapGroupsToUserAttribute);
-SetValue("LdapGroupsToUserAttributeEx", $ldapGroupsToUserAttributeEx);
-SetValue("LdapGroupsToUserAttributeValue", $ldapGroupsToUserAttributeValue);
-SetValue("LdapGroupsToUserAttributeValueEx", $ldapGroupsToUserAttributeValueEx);
+// Active providers.
+$providerTypes = array(
+	"UserViewProviderType"        => $cfgEngine->getValue("Engine:Providers", "UserViewProviderType"),
+	"UserEditProviderType"        => $cfgEngine->getValue("Engine:Providers", "UserEditProviderType"),
+	"GroupViewProviderType"       => $cfgEngine->getValue("Engine:Providers", "GroupViewProviderType"),
+	"GroupEditProviderType"       => $cfgEngine->getValue("Engine:Providers", "GroupEditProviderType"),
+	"AccessPathViewProviderType"  => $cfgEngine->getValue("Engine:Providers", "AccessPathViewProviderType"),
+	"AccessPathEditProviderType"  => $cfgEngine->getValue("Engine:Providers", "AccessPathEditProviderType"),
+	"RepositoryViewProviderType"  => $cfgEngine->getValue("Engine:Providers", "RepositoryViewProviderType"),
+	"RepositoryEditProviderType"  => $cfgEngine->getValue("Engine:Providers", "RepositoryEditProviderType")
+);
+SetValue("ProviderTypes", $providerTypes);
 
 // Process template.
 ProcessTemplate("settings/backend.html.php");

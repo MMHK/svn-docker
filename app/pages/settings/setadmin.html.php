@@ -5,7 +5,7 @@
 <?php if (GetBoolValue("NoUserEditActive")): ?>
 <p>
   <?php Translate("You have not defined an \"UserEditProviderType\", but the system also could not find any user from the configured user view provider."); ?><br>
-  <?php Translate("You should now create a new user in your configured backend (e.g.: LDAP/Active Directory)."); ?>
+  <?php Translate("You should now create a new user in your configured user authentication file."); ?>
 </p>
 <p><?php Translate("If you think your configuration is incorrect, <a href=\"settings.php?firststart=1\">click here.</a>"); ?></p>
 <?php endif; ?>

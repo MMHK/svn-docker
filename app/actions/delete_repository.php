@@ -25,7 +25,7 @@ if (!defined('ACTION_HANDLING')) {
 // Authentication
 //
 
-$engine = \svnadmin\core\Engine::getInstance();
+$engine = \SvnAdmin\Core\Engine::getInstance();
 
 if (!$engine->isProviderActive(PROVIDER_REPOSITORY_EDIT)) {
 	$engine->forwardError(ERROR_INVALID_MODULE);
@@ -58,7 +58,7 @@ else {
 		// Iterate all selected items.
 		$c = count($selrepos);
 		for($i = 0; $i < $c; $i++) {
-			$oR = new \svnadmin\core\entities\Repository($selrepos[$i], $varParentIdentifier);
+			$oR = new \SvnAdmin\Entities\Repository($selrepos[$i], $varParentIdentifier);
 
 			$b = $appEngine->getRepositoryEditProvider()->delete($oR);
 			if (!$b) {

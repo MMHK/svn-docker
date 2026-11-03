@@ -42,12 +42,12 @@ else
 	try {
 		if ($appEngine->getAuthenticator() != null)
 		{
-			$u = new \svnadmin\core\entities\User($loginname, $loginname);
+			$u = new \SvnAdmin\Entities\User($loginname, $loginname);
 			$authOK = $appEngine->getAuthenticator()->authenticate( $u, $loginpass );
 			if ($authOK)
 			{
 				// Set session variable which indicates that the user is logged in.
-				$_SESSION["svnadmin_username"] = $loginname;
+				\SvnAdmin\Http\Session::instance()->setUsername($loginname);
 				$appEngine->forward(PAGE_HOME, null, true);
 			}
 			else

@@ -3,3 +3,4 @@ test/real/
 *.log
 data/backup/
 data/ldap.cache.json
+app/vendor/

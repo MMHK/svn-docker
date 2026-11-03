@@ -48,7 +48,7 @@ else
 {
 	for ($i = 0; $i < count($selected); $i++)
 	{
-		$ap = new \svnadmin\core\entities\AccessPath();
+		$ap = new \SvnAdmin\Entities\AccessPath();
 		$ap->path = $selected[$i];
 
 		// Is the user restricted to some paths? (project-manager)

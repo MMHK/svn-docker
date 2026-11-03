@@ -21,7 +21,7 @@ if (!defined('ACTION_HANDLING')) {
   die("HaHa!");
 }
 
-$engine = \svnadmin\core\Engine::getInstance();
+$engine = \SvnAdmin\Core\Engine::getInstance();
 
 //
 // Authentication
@@ -57,7 +57,7 @@ else {
 	  
 		// iterate all selected_accesspaths
 		for ($i = 0; $i < $selpathsLen; ++$i) {
-			$oAP = new \svnadmin\core\entities\AccessPath($selpaths[$i]);
+			$oAP = new \SvnAdmin\Entities\AccessPath($selpaths[$i]);
 	
 			// Is the user restricted to some paths? (project-manager)
 			if ($engine->isAuthenticationActive()) {
@@ -76,7 +76,7 @@ else {
 					continue;
 				}
 			
-				$oU = new \svnadmin\core\entities\User($selusers[$iu], $selusers[$iu]);
+				$oU = new \SvnAdmin\Entities\User($selusers[$iu], $selusers[$iu]);
 	      
 				// remove user from ap
 				try {
@@ -96,7 +96,7 @@ else {
 					continue;
 				}
 			
-				$oG = new \svnadmin\core\entities\Group($selgroups[$ig], $selgroups[$ig]);
+				$oG = new \SvnAdmin\Entities\Group($selgroups[$ig], $selgroups[$ig]);
 				
 				// remove group from ap
 				try {

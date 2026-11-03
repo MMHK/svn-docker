@@ -23,7 +23,7 @@ include("include/config.inc.php");
 // Authentication
 //
 
-$engine = \svnadmin\core\Engine::getInstance();
+$engine = \SvnAdmin\Core\Engine::getInstance();
 
 if (!$engine->isProviderActive(PROVIDER_REPOSITORY_VIEW)) {
 	$engine->forwardError(ERROR_INVALID_MODULE);
@@ -48,7 +48,7 @@ $varPath = rawurldecode($varPathEnc);
 // View Data
 //
 
-$oR = new \svnadmin\core\entities\Repository($varRepo, $varParentIdentifier);
+$oR = new \SvnAdmin\Entities\Repository($varRepo, $varParentIdentifier);
 
 try {
 	// Get the files of the selected repository path.
@@ -79,12 +79,12 @@ try {
 
 			if ($hasApacheWebLink)
 			{
-				$val->apacheWebLink = IF_StringUtils::arguments($apacheWebLink, $args);
+				$val->apacheWebLink = \SvnAdmin\Support\StringUtils::arguments($apacheWebLink, $args);
 			}
 
 			if ($hasCustomWebLink)
 			{
-				$val->customWebLink = IF_StringUtils::arguments($customWebLink, $args);
+				$val->customWebLink = \SvnAdmin\Support\StringUtils::arguments($customWebLink, $args);
 			}
 		}
 		$itemList[] = $val;

@@ -30,7 +30,7 @@ $phpVersion=phpversion();
 $roles=null;
 if ($appEngine->isAuthenticationActive())
 {
-  $u=new \svnadmin\core\entities\User();
+  $u=new \SvnAdmin\Entities\User();
   $u->name=$appEngine->getSessionUsername();
   
   $roles=$appEngine->getAclManager()->getRolesOfUser($u);

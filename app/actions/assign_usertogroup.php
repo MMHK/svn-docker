@@ -36,13 +36,13 @@ else
     // Iterate all selected users and groups.
     for( $i=0; $i<count($selgroups); $i++ )
     {
-      $oG = new \svnadmin\core\entities\Group;
+      $oG = new \SvnAdmin\Entities\Group;
       $oG->id = $selgroups[$i];
       $oG->name = $selgroups[$i];
       
       for( $j=0; $j<count($selusers); $j++ )
       {
-        $oU = new \svnadmin\core\entities\User;
+        $oU = new \SvnAdmin\Entities\User;
         $oU->id = $selusers[$j];
         $oU->name = $selusers[$j];
         
