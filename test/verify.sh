@@ -145,6 +145,46 @@ fi
 echo "== bind mount =="
 if [ -f "$SVN_ROOT/test1/format" ]; then echo "  OK   repos 寫在 bind mount 上"; else echo "  FAIL repos 沒寫到 bind mount"; FAIL=1; fi
 
+echo "== 現代化路由（乾淨 URL） =="
+NEW_ROUTES=(
+  ""
+  "users"
+  "repositories"
+  "access-paths"
+  "groups"
+  "settings"
+)
+for r in "${NEW_ROUTES[@]}"; do
+  check "新路由 /svnadmin/$r 應 200" 200 "$(code -b "$JAR" "$BASE/svnadmin/$r")"
+done
+
+echo "== 前端資源（Tailwind CSS / app.js） =="
+check "assets/app.css 應 200" 200 "$(code -b "$JAR" "$BASE/svnadmin/assets/app.css")"
+check "assets/app.js 應 200"  200 "$(code -b "$JAR" "$BASE/svnadmin/assets/app.js")"
+
+if curl -s -b "$JAR" "$BASE/svnadmin/" | grep -qi "jquery"; then
+  echo "  FAIL 頁面仍含 jquery 字樣"; FAIL=1
+else
+  echo "  OK   頁面不含 jquery 字樣"
+fi
+
+if curl -s -b "$JAR" -b "color_mode=dark" "$BASE/svnadmin/" \
+     | grep -q 'data-color-mode="dark"'; then
+  echo "  OK   color_mode=dark 時輸出 data-color-mode=\"dark\""
+else
+  echo "  FAIL color_mode=dark 沒有切換深色模式"; FAIL=1
+fi
+
+echo "== 舊 .php 路徑兼容（別名仍 200） =="
+LEGACY_PAGES=(
+  "userlist.php"
+  "groupcreate.php"
+  "repositoryview.php?r=test1"
+)
+for p in "${LEGACY_PAGES[@]}"; do
+  check "舊路徑 $p 應 200" 200 "$(code -b "$JAR" "$BASE/svnadmin/$p")"
+done
+
 rm -f "$JAR" /tmp/svn-mounts.txt
 echo
 [ "$FAIL" = 0 ] && echo "全部通過" || echo "有項目失敗"

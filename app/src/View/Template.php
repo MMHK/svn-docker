@@ -531,7 +531,7 @@ class Template
 										$strLoopIterationPart = $strLoopContent;
 										
 										// Create Reflection object to current element.
-										$oReflectionObject = new ReflectionObject( $element );
+										$oReflectionObject = new \ReflectionObject( $element );
 										
 										// Find all object calls.
 										if( preg_match_all( "/\\$\{\b$strVariableName\b\}\{([A-Za-z0-9_]+)\}/" , 

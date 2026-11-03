@@ -35,6 +35,10 @@
       "SvnAdmin\\Tests\\": "tests/"
     }
   },
+  "scripts": {
+    "test": "phpunit",
+    "stan": "phpstan analyse --memory-limit=1G"
+  },
   "config": {
     "sort-packages": true,
     "optimize-autoloader": true,

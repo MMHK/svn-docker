@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, json
+          tools: composer:v2
+
+      - name: PHP lint
+        run: find app -name '*.php' -not -path 'app/vendor/*' -print0 | xargs -0 -n1 -P4 php -l
+
+      - name: Composer validate
+        run: composer validate --strict --working-dir=app
+
+      - name: Install
+        run: composer install --working-dir=app --no-interaction
+
+      - name: PHPUnit
+        run: composer test --working-dir=app
+
+      - name: PHPStan
+        run: composer stan --working-dir=app
