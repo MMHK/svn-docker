@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.
  */
-include("include/config.inc.php");
+require_once __DIR__ . '/src/bootstrap.php';
 $appEngine->forwardInvalidModule( !$appEngine->isUserEditActive() );
 $appEngine->checkUserAuthentication(true, ACL_MOD_USER, ACL_ACTION_ADD);
 $appTR->loadModule("usercreate");

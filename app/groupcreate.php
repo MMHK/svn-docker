@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.
  */
-include("include/config.inc.php");
+require_once __DIR__ . '/src/bootstrap.php';
 $appEngine->forwardInvalidModule(!$appEngine->isGroupEditActive());
 $appEngine->checkUserAuthentication(true, ACL_MOD_GROUP, ACL_ACTION_ADD);
 $appTR->loadModule("groupcreate");

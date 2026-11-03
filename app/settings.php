@@ -1,5 +1,5 @@
 <?php
-include("include/config.inc.php");
+require_once __DIR__ . '/src/bootstrap.php';
 
 /**
  * The configuration of the web application.

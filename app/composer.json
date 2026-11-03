@@ -23,9 +23,10 @@
       "src/Core/Exceptions.php"
     ],
     "files": [
+      "src/constants.php",
+      "src/Support/functions.php",
       "src/Support/globals.php",
       "src/Config/IniFileFunctions.php",
-      "src/Support/functions.php",
       "src/Legacy/compat.php"
     ]
   },

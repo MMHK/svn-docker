@@ -20,36 +20,6 @@
 namespace SvnAdmin\Core;
 
 ///////////////////////////////////////////////////////////////////////////////
-// Global defines which are required for Engine usage.
-///////////////////////////////////////////////////////////////////////////////
-
-/**
- * Constant provider identifiers.
- */
-define("PROVIDER_USER_VIEW",           1);
-define("PROVIDER_USER_EDIT",           2);
-define("PROVIDER_GROUP_VIEW",          3);
-define("PROVIDER_GROUP_EDIT",          4);
-define("PROVIDER_ACCESSPATH_VIEW",     5);
-define("PROVIDER_ACCESSPATH_EDIT",     6);
-define("PROVIDER_REPOSITORY_VIEW",     7);
-define("PROVIDER_REPOSITORY_EDIT",     8);
-define("PROVIDER_AUTHENTICATION",      9);
-
-/**
- * Page forward defines.
- */
-define("PAGE_HOME",				"index.php");
-define("PAGE_LOGIN",			"login.php");
-define("PAGE_ERROR",			"error.php");
-
-/**
- * Error type defines.
- */
-define("ERROR_INVALID_MODULE",		"invalid_module");
-define("ERROR_NO_ACCESS",			"no_access");
-
-///////////////////////////////////////////////////////////////////////////////
 // Class: Engine
 ///////////////////////////////////////////////////////////////////////////////
 

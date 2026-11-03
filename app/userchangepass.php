@@ -1,5 +1,5 @@
 <?php
-include("include/config.inc.php");
+require_once __DIR__ . '/src/bootstrap.php';
 $appEngine->forwardInvalidModule(!$appEngine->isUserEditActive());
 $appEngine->checkUserAuthentication(true, ACL_MOD_USER, ACL_ACTION_CHANGEPASS);
 $appTR->loadModule("userchangepass");

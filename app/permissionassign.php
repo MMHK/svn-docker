@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.
  */
-require_once("include/config.inc.php");
+require_once __DIR__ . '/src/bootstrap.php';
 
 if (!$appEngine->isAccessPathViewActive() || (!$appEngine->isUserViewActive() && !$appEngine->isGroupViewActive()))
 {
