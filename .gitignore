@@ -15,3 +15,4 @@ web/.yarn/
 
 # 註：api/pkg/webui/dist 是 rspack 建置產物，但目前刻意入庫，
 #     讓沒有 Node 的環境也能 go build / 跑測試；不要加進忽略清單。
+/.env
