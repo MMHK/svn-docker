@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ApiError, createSession, fetchSession } from '../api/client';
+import { ApiError, createSession, fetchSession, getSetupStatus } from '../api/client';
 import { t } from '../i18n';
 import { useAuthStore } from '../stores/auth';
 
@@ -30,8 +30,27 @@ const redirect = computed<string | null>(() => {
   return value;
 });
 
-function isSetupRequired(cause: unknown): boolean {
-  return cause instanceof ApiError && (cause.code === 'setup_required' || cause.status === 503);
+/**
+ * Classifies a 503. A pending administrator means "go to /setup", but a
+ * missing auth/access file means the deployment itself is broken and the
+ * generic sign-in error would hide it.
+ */
+async function checkSetup(cause: unknown): Promise<'none' | 'redirect' | 'incomplete'> {
+  if (!(cause instanceof ApiError) || (cause.code !== 'setup_required' && cause.status !== 503)) {
+    return 'none';
+  }
+
+  try {
+    const status = await getSetupStatus();
+
+    if (status.reason === 'missing_auth_file' || status.reason === 'missing_access_file') {
+      return 'incomplete';
+    }
+  } catch {
+    // The diagnostic failed too; the setup page still explains the state.
+  }
+
+  return 'redirect';
 }
 
 function messageFor(cause: unknown): string {
@@ -64,8 +83,15 @@ async function submit(): Promise<void> {
     auth.applySession(session);
     await router.push(redirect.value === null ? { name: 'home' } : redirect.value);
   } catch (cause) {
-    if (isSetupRequired(cause)) {
+    const setup = await checkSetup(cause);
+
+    if (setup === 'redirect') {
       await router.replace({ name: 'setup' });
+      return;
+    }
+
+    if (setup === 'incomplete') {
+      error.value = t('login.dataIncomplete');
       return;
     }
 
@@ -85,8 +111,15 @@ onMounted(async () => {
   try {
     await fetchSession();
   } catch (cause) {
-    if (isSetupRequired(cause)) {
+    const setup = await checkSetup(cause);
+
+    if (setup === 'redirect') {
       await router.replace({ name: 'setup' });
+      return;
+    }
+
+    if (setup === 'incomplete') {
+      error.value = t('login.dataIncomplete');
     }
   }
 });

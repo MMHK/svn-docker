@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/mmhk/svn-admin/pkg/config"
+	"github.com/mmhk/svn-admin/pkg/store/roles"
 )
 
 func testSystem(t *testing.T) (*System, string) {
@@ -131,5 +132,70 @@ func TestSystemReadyReportsMissingFiles(t *testing.T) {
 
 	if !found {
 		t.Error("svnAuthFile check is missing from readiness output")
+	}
+}
+
+func TestSystemReadyReportsBootstrapState(t *testing.T) {
+	dir := t.TempDir()
+	parent := filepath.Join(dir, "svn")
+
+	if err := os.MkdirAll(parent, 0o755); err != nil {
+		t.Fatalf("mkdir parent: %v", err)
+	}
+
+	authFile := filepath.Join(dir, "svn-auth-file")
+	if err := os.WriteFile(authFile, nil, 0o640); err != nil {
+		t.Fatalf("write auth file: %v", err)
+	}
+
+	accessFile := filepath.Join(dir, "svn-access-file")
+	if err := os.WriteFile(accessFile, nil, 0o640); err != nil {
+		t.Fatalf("write access file: %v", err)
+	}
+
+	roleFile := filepath.Join(dir, "userroleassignments.ini")
+
+	cfg := config.Config{
+		SVNParentPath: parent,
+		SVNAuthFile:   authFile,
+		SVNAccessFile: accessFile,
+		RoleFile:      roleFile,
+	}
+
+	system := NewSystem("3.0.0-test", cfg, roles.New(roleFile))
+
+	ready := system.Ready(context.Background())
+	if ready.Status != "ok" {
+		t.Fatalf("Status = %q, checks = %+v", ready.Status, ready.Checks)
+	}
+
+	checks := map[string]string{}
+	for _, check := range ready.Checks {
+		if !check.OK {
+			t.Errorf("check %s is not OK: %s", check.Name, check.Message)
+		}
+
+		checks[check.Name] = check.Message
+	}
+
+	if checks["roleFile"] != "missing (setup will create it)" {
+		t.Errorf("roleFile message = %q", checks["roleFile"])
+	}
+
+	if checks["administrator"] != "missing (bootstrap required)" {
+		t.Errorf("administrator message = %q", checks["administrator"])
+	}
+
+	// Once an administrator is recorded, both probes go quiet.
+	if err := os.WriteFile(roleFile, []byte("[admin]\nAdministrator=\n"), 0o640); err != nil {
+		t.Fatalf("write role file: %v", err)
+	}
+
+	ready = system.Ready(context.Background())
+
+	for _, check := range ready.Checks {
+		if check.Name == "administrator" && check.Message != "" {
+			t.Errorf("administrator message = %q, want empty", check.Message)
+		}
 	}
 }

@@ -409,6 +409,19 @@ DOCS_BODY="$(body "$BASE/svnadmin/api/docs/openapi.json")"
 check_eq "docs/openapi.json 應 200" "200" "$(status "$BASE/svnadmin/api/docs/openapi.json")"
 check_contains "openapi.json 有 repos 端點" "$DOCS_BODY" "/svnadmin/api/v1/repos"
 check_contains "openapi.json 有 bearerAuth" "$DOCS_BODY" "bearerAuth"
+check_contains "openapi.json 有 setup/status" "$DOCS_BODY" "/svnadmin/api/v1/setup/status"
+
+# -----------------------------------------------------------------------------
+# 13b) 首次設定狀態（免 token；fixture 已建立 admin）
+# -----------------------------------------------------------------------------
+echo "== 13b) setup status =="
+
+SETUP_STATUS_CODE="$(status "$API/setup/status")"
+SETUP_STATUS_BODY="$(body "$API/setup/status")"
+check_eq "免 token GET /setup/status" "200" "$SETUP_STATUS_CODE"
+check_contains "setup 完成後 setupRequired=false" "$SETUP_STATUS_BODY" '"setupRequired":false'
+check_contains "setup 完成後 administratorPresent=true" "$SETUP_STATUS_BODY" '"administratorPresent":true'
+check_absent "setup/status 不洩漏絕對路徑" "$SETUP_STATUS_BODY" "$SVN_ROOT"
 
 # -----------------------------------------------------------------------------
 # 14) 偽造 X-Forwarded-For（§5.5.1）

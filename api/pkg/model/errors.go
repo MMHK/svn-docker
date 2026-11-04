@@ -113,6 +113,28 @@ func (e *SetupRequiredError) Error() string {
 	return "administrator setup is required"
 }
 
+// StorageUnavailableError reports that a required file could not be created
+// because its directory is missing or not writable. The transport maps it to
+// 503 with code storage_unavailable. Reason must not contain an absolute path.
+type StorageUnavailableError struct {
+	Reason string
+}
+
+func (e *StorageUnavailableError) Error() string {
+	if e.Reason == "" {
+		return "storage is unavailable"
+	}
+
+	return "storage unavailable: " + e.Reason
+}
+
+// IsStorageUnavailable reports whether err is a storage-unavailable error.
+func IsStorageUnavailable(err error) bool {
+	var target *StorageUnavailableError
+
+	return errors.As(err, &target)
+}
+
 // IsValidation reports whether err is a validation error.
 func IsValidation(err error) bool {
 	var target *ValidationError

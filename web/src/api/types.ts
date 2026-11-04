@@ -55,6 +55,40 @@ export interface Session {
 export interface SetupResult {
   username: string;
   role: string;
+  accountCreated: boolean;
+  initializedFiles: string[];
+}
+
+/** State of one bootstrap-related file (GET /setup/status). */
+export interface SetupFileStatus {
+  exists: boolean;
+  readable: boolean;
+  writable: boolean;
+}
+
+/** Credential file state, which also carries the account count. */
+export interface SetupAuthFileStatus extends SetupFileStatus {
+  userCount: number;
+}
+
+/** Role file state; `administratorPresent` says whether setup is already done. */
+export interface SetupRoleFileStatus extends SetupFileStatus {
+  administratorPresent: boolean;
+}
+
+/**
+ * GET /setup/status payload. `reason` is one of `missing_auth_file`,
+ * `missing_access_file`, `no_admin` or `''` (setup completed). `users` is only
+ * populated while setup is pending.
+ */
+export interface SetupStatus {
+  setupRequired: boolean;
+  reason: string;
+  authFile: SetupAuthFileStatus;
+  accessFile: SetupFileStatus;
+  roleFile: SetupRoleFileStatus;
+  users: string[];
+  canCreateAccount: boolean;
 }
 
 export interface User {

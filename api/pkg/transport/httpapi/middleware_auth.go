@@ -40,6 +40,10 @@ func authExempt(r *http.Request) bool {
 		}
 	}
 
+	if r.Method == http.MethodGet && r.URL.Path == "/svnadmin/api/v1/setup/status" {
+		return true
+	}
+
 	return false
 }
 

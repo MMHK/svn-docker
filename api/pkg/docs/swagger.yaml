@@ -439,8 +439,38 @@ definitions:
         example: rw
         type: string
     type: object
+  github_com_mmhk_svn-admin_pkg_view.SetupAuthFileStatus:
+    properties:
+      exists:
+        example: true
+        type: boolean
+      readable:
+        example: true
+        type: boolean
+      userCount:
+        example: 3
+        type: integer
+      writable:
+        example: true
+        type: boolean
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.SetupFileStatus:
+    properties:
+      exists:
+        example: true
+        type: boolean
+      readable:
+        example: true
+        type: boolean
+      writable:
+        example: true
+        type: boolean
+    type: object
   github_com_mmhk_svn-admin_pkg_view.SetupRequest:
     properties:
+      password:
+        example: Passw0rd!
+        type: string
       token:
         example: bootstrap-token-from-stderr
         type: string
@@ -450,12 +480,60 @@ definitions:
     type: object
   github_com_mmhk_svn-admin_pkg_view.SetupResult:
     properties:
+      accountCreated:
+        example: true
+        type: boolean
+      initializedFiles:
+        example:
+        - authFile
+        - accessFile
+        - roleFile
+        items:
+          type: string
+        type: array
       role:
         example: Administrator
         type: string
       username:
         example: alice
         type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.SetupRoleFileStatus:
+    properties:
+      administratorPresent:
+        example: false
+        type: boolean
+      exists:
+        example: false
+        type: boolean
+      readable:
+        example: false
+        type: boolean
+      writable:
+        example: false
+        type: boolean
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.SetupStatus:
+    properties:
+      accessFile:
+        $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.SetupFileStatus'
+      authFile:
+        $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.SetupAuthFileStatus'
+      canCreateAccount:
+        example: true
+        type: boolean
+      reason:
+        example: no_admin
+        type: string
+      roleFile:
+        $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.SetupRoleFileStatus'
+      setupRequired:
+        example: true
+        type: boolean
+      users:
+        items:
+          type: string
+        type: array
     type: object
   github_com_mmhk_svn-admin_pkg_view.SystemInfo:
     properties:
@@ -1752,11 +1830,12 @@ paths:
       consumes:
       - application/json
       description: Requires the one-time bootstrap token from SVN_ADMIN_BOOTSTRAP_TOKEN
-        (or the token printed to stderr at startup). It grants the Administrator role
-        to an existing SVN account and fails once an administrator already exists.
-        Other API routes answer 503 setup_required until this succeeds.
+        (or the token printed to stderr at startup). When the account does not exist
+        yet a password is required and the account is created; when it exists the
+        password is ignored. Missing auth/access/role files are created. Other API
+        routes answer 503 setup_required until this succeeds.
       parameters:
-      - description: account name and bootstrap token
+      - description: account name, optional password and bootstrap token
         in: body
         name: request
         required: true
@@ -1778,10 +1857,36 @@ paths:
           schema:
             $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
         "422":
-          description: Unprocessable Entity
+          description: invalid account name or missing/invalid password
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "500":
+          description: the role write failed; a freshly created account is rolled
+            back
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: 'storage_unavailable: the auth/access/role directory is missing
+            or not writable'
           schema:
             $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
       summary: Create the first administrator
+      tags:
+      - setup
+  /svnadmin/api/v1/setup/status:
+    get:
+      description: Public diagnostic used by the login page. It reports whether an
+        administrator still has to be created, why, and whether the credential file
+        is usable. It never exposes absolute paths, password hashes or file contents.
+        The users list is only populated while setup is pending.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.SetupStatus'
+      summary: Report the first-run setup state
       tags:
       - setup
   /svnadmin/api/v1/system/info:

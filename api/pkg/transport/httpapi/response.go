@@ -93,6 +93,7 @@ func classifyError(err error) (status int, code, message string) {
 		unauthorized  *model.UnauthorizedError
 		rateLimited   *model.RateLimitError
 		setupRequired *model.SetupRequiredError
+		storageFailed *model.StorageUnavailableError
 		operation     *model.OperationError
 	)
 
@@ -119,6 +120,10 @@ func classifyError(err error) (status int, code, message string) {
 		return http.StatusTooManyRequests, "rate_limited", "too many login attempts"
 	case errors.As(err, &setupRequired):
 		return http.StatusServiceUnavailable, "setup_required", "an administrator must be created first"
+	case errors.As(err, &storageFailed):
+		// The bootstrap flow could not create its files. The reason names the
+		// resource but never an absolute path.
+		return http.StatusServiceUnavailable, "storage_unavailable", storageFailed.Error()
 	default:
 		return http.StatusInternalServerError, "internal_error", "internal server error"
 	}

@@ -24,15 +24,3 @@ type LoginRequest struct {
 	Username string `json:"username" example:"alice"`
 	Password string `json:"password" example:"secret"`
 }
-
-// SetupRequest is the POST /setup/admin body.
-type SetupRequest struct {
-	Username string `json:"username" example:"alice"`
-	Token    string `json:"token" example:"bootstrap-token-from-stderr"`
-}
-
-// SetupResult is the POST /setup/admin success payload.
-type SetupResult struct {
-	Username string `json:"username" example:"alice"`
-	Role     string `json:"role" example:"Administrator"`
-}

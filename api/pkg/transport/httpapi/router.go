@@ -114,6 +114,7 @@ func New(opts Options) (http.Handler, error) {
 	mux.HandleFunc("POST /svnadmin/api/v1/session/refresh", api.refreshSession)
 	mux.HandleFunc("DELETE /svnadmin/api/v1/session", api.logout)
 	mux.HandleFunc("POST /svnadmin/api/v1/setup/admin", api.setupAdmin)
+	mux.HandleFunc("GET /svnadmin/api/v1/setup/status", api.setupStatus)
 
 	mux.HandleFunc("GET /svnadmin/api/v1/system/info", api.systemInfo)
 	mux.HandleFunc("GET /svnadmin/api/v1/users", api.listUsers)

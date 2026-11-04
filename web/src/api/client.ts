@@ -17,6 +17,7 @@ import type {
   RoleList,
   Session,
   SetupResult,
+  SetupStatus,
   SystemInfo,
   User,
   UserAccessPaths,
@@ -28,16 +29,26 @@ import type {
 /** All management endpoints live under this prefix (plan D2). */
 export const API_BASE = '/svnadmin/api/v1';
 
+/** Machine readable part of an error response (`{ error: ... }`). */
+export interface ApiErrorBody {
+  code: string;
+  message: string;
+  details?: Record<string, string>;
+}
+
 /** Error carrying the HTTP status and the API error code. */
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
+  /** The `error` object of the response envelope, when the server sent one. */
+  readonly body: ApiErrorBody | null;
 
-  constructor(status: number, code: string, message: string) {
+  constructor(status: number, code: string, message: string, body: ApiErrorBody | null = null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
+    this.body = body;
   }
 
   /** True for a transport failure where no HTTP response was received. */
@@ -76,7 +87,13 @@ function errorFromEnvelope(status: number, payload: unknown): ApiError {
   const envelope = payload as Partial<ErrorEnvelope> | null;
 
   if (envelope && typeof envelope === 'object' && envelope.error) {
-    return new ApiError(status, envelope.error.code ?? 'error', envelope.error.message ?? 'request failed');
+    const body: ApiErrorBody = {
+      code: envelope.error.code ?? 'error',
+      message: envelope.error.message ?? 'request failed',
+      details: envelope.error.details,
+    };
+
+    return new ApiError(status, body.code, body.message, body);
   }
 
   return new ApiError(status, 'error', `request failed with status ${status}`);
@@ -190,10 +207,26 @@ export function destroySession(): Promise<void> {
   return request<void>('/session', { method: 'DELETE', suppressUnauthorized: true });
 }
 
-export function createAdmin(username: string, token: string): Promise<SetupResult> {
+/**
+ * First-run diagnostics (no token). The reason tells the UI why setup is still
+ * pending; `users` is only populated while setup is pending.
+ */
+export function getSetupStatus(): Promise<SetupStatus> {
+  return request<SetupStatus>('/setup/status', {
+    auth: false,
+    suppressUnauthorized: true,
+  });
+}
+
+/**
+ * Creates the first administrator (no token). `password` may be an empty
+ * string when the chosen account already exists: the API then reuses the
+ * stored credential.
+ */
+export function createAdmin(username: string, password: string, token: string): Promise<SetupResult> {
   return request<SetupResult>('/setup/admin', {
     method: 'POST',
-    body: { username, token },
+    body: { username, password, token },
     auth: false,
     suppressUnauthorized: true,
   });

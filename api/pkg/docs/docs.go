@@ -1721,7 +1721,7 @@ const docTemplate = `{
         },
         "/svnadmin/api/v1/setup/admin": {
             "post": {
-                "description": "Requires the one-time bootstrap token from SVN_ADMIN_BOOTSTRAP_TOKEN (or the token printed to stderr at startup). It grants the Administrator role to an existing SVN account and fails once an administrator already exists. Other API routes answer 503 setup_required until this succeeds.",
+                "description": "Requires the one-time bootstrap token from SVN_ADMIN_BOOTSTRAP_TOKEN (or the token printed to stderr at startup). When the account does not exist yet a password is required and the account is created; when it exists the password is ignored. Missing auth/access/role files are created. Other API routes answer 503 setup_required until this succeeds.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1734,7 +1734,7 @@ const docTemplate = `{
                 "summary": "Create the first administrator",
                 "parameters": [
                     {
-                        "description": "account name and bootstrap token",
+                        "description": "account name, optional password and bootstrap token",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -1763,9 +1763,41 @@ const docTemplate = `{
                         }
                     },
                     "422": {
-                        "description": "Unprocessable Entity",
+                        "description": "invalid account name or missing/invalid password",
                         "schema": {
                             "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "the role write failed; a freshly created account is rolled back",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
+                        }
+                    },
+                    "503": {
+                        "description": "storage_unavailable: the auth/access/role directory is missing or not writable",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/svnadmin/api/v1/setup/status": {
+            "get": {
+                "description": "Public diagnostic used by the login page. It reports whether an administrator still has to be created, why, and whether the credential file is usable. It never exposes absolute paths, password hashes or file contents. The users list is only populated while setup is pending.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "setup"
+                ],
+                "summary": "Report the first-run setup state",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.SetupStatus"
                         }
                     }
                 }
@@ -3141,9 +3173,51 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_mmhk_svn-admin_pkg_view.SetupAuthFileStatus": {
+            "type": "object",
+            "properties": {
+                "exists": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "readable": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "userCount": {
+                    "type": "integer",
+                    "example": 3
+                },
+                "writable": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "github_com_mmhk_svn-admin_pkg_view.SetupFileStatus": {
+            "type": "object",
+            "properties": {
+                "exists": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "readable": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "writable": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
         "github_com_mmhk_svn-admin_pkg_view.SetupRequest": {
             "type": "object",
             "properties": {
+                "password": {
+                    "type": "string",
+                    "example": "Passw0rd!"
+                },
                 "token": {
                     "type": "string",
                     "example": "bootstrap-token-from-stderr"
@@ -3157,6 +3231,21 @@ const docTemplate = `{
         "github_com_mmhk_svn-admin_pkg_view.SetupResult": {
             "type": "object",
             "properties": {
+                "accountCreated": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "initializedFiles": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "authFile",
+                        "accessFile",
+                        "roleFile"
+                    ]
+                },
                 "role": {
                     "type": "string",
                     "example": "Administrator"
@@ -3164,6 +3253,59 @@ const docTemplate = `{
                 "username": {
                     "type": "string",
                     "example": "alice"
+                }
+            }
+        },
+        "github_com_mmhk_svn-admin_pkg_view.SetupRoleFileStatus": {
+            "type": "object",
+            "properties": {
+                "administratorPresent": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "exists": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "readable": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "writable": {
+                    "type": "boolean",
+                    "example": false
+                }
+            }
+        },
+        "github_com_mmhk_svn-admin_pkg_view.SetupStatus": {
+            "type": "object",
+            "properties": {
+                "accessFile": {
+                    "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.SetupFileStatus"
+                },
+                "authFile": {
+                    "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.SetupAuthFileStatus"
+                },
+                "canCreateAccount": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "reason": {
+                    "type": "string",
+                    "example": "no_admin"
+                },
+                "roleFile": {
+                    "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.SetupRoleFileStatus"
+                },
+                "setupRequired": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
