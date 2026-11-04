@@ -13,7 +13,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.svn
-    image: "mmhk/svn:3.0"
+    image: "svn-docker:repo"
     restart: unless-stopped
     expose:
       - "80"
@@ -52,7 +52,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.admin
-    image: "mmhk/svn-admin:3.0"
+    image: "svn-docker:admin"
     restart: unless-stopped
     # 直接以目標 uid/gid 執行（Go 服務不需要 root）；entrypoint 也會再驗一次
     user: "${PUID:-1000}:${PGID:-1000}"

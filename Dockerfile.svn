@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1
 # =============================================================================
-# mmhk/svn:3.0 — Apache 2.4 + mod_dav_svn
+# svn-docker:repo — Apache 2.4 + mod_dav_svn
 #
 # 只負責 SVN（`/svn`）與管理面的反向代理（`/svnadmin`）。
 # 沒有 PHP、沒有 iF.SVNAdmin、沒有 Node、沒有 Go。
 #
 # 建置：
-#   docker build -f Dockerfile.svn -t mmhk/svn:3.0-dev .
+#   docker build -f Dockerfile.svn -t svn-docker:repo .
 # =============================================================================
 FROM debian:bookworm-slim
 

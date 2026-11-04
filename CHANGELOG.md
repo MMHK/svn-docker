@@ -33,7 +33,7 @@
 
 ### Changed
 
-- 版號 `2.0.0` → **`3.0.0`**；映像改為 `mmhk/svn:3.0` + `mmhk/svn-admin:3.0`。
+- 版號 `2.0.0` → **`3.0.0`**；映像改為 `svn-docker:repo` + `svn-docker:admin`。
 - 設定來源改以環境變數 `SVN_ADMIN_*` 為權威；`data/config.ini` 僅作三個 SVN 路徑的唯讀 fallback。
 - 進程 uid/gid 預設 **`1000:1000`**（等於 `/var/svnlocal` owner），不再依賴 `www-data`(33) 與 777。
 - `/svn` 行為不變（DAV + Basic + `AuthzSVNAccessFile`）；`/svnadmin` 由 Apache `mod_proxy` 轉到 Go。

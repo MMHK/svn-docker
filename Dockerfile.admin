@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1
 # =============================================================================
-# mmhk/svn-admin:3.0 — Go REST API + 內嵌 Vue 3 SPA
+# svn-docker:admin — Go REST API + 內嵌 Vue 3 SPA
 #
 # 三階段：web（rspack build）→ api（Go 靜態編譯）→ runtime（只有 binary）
 # runtime 不含 PHP / Node / Go / Composer。
 #
 # 建置：
-#   docker build -f Dockerfile.admin -t mmhk/svn-admin:3.0-dev .
+#   docker build -f Dockerfile.admin -t svn-docker:admin .
 # =============================================================================
 
 # -----------------------------------------------------------------------------

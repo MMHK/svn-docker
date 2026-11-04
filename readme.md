@@ -2,9 +2,9 @@
 
 `svn-docker` 打包一套可自架的 Subversion 服務：
 
-- **`svn`**（`mmhk/svn:3.0`）：Apache 2.4 + `mod_dav_svn`，提供 `/svn`（Basic + authz），
+- **`svn`**（`svn-docker:repo`）：Apache 2.4 + `mod_dav_svn`，提供 `/svn`（Basic + authz），
   並把 `/svnadmin` 以 `mod_proxy` 轉給管理服務。
-- **`svn-admin`**（`mmhk/svn-admin:3.0`）：**Go REST API**，內嵌 **rspack + Vue 3 + Tailwind CSS**
+- **`svn-admin`**（`svn-docker:admin`）：**Go REST API**，內嵌 **rspack + Vue 3 + Tailwind CSS**
   的 SPA，只 `expose: 8080`、永不 publish。
 
 **沒有 PHP**：v3 不再包含 iF.SVNAdmin、Composer、模板引擎或 PHP Apache 模組。runtime 也不含
@@ -239,16 +239,16 @@ SVN Basic/authz、session token、唯讀端點、使用者/群組/ACL/倉庫生�
 ## 映像與建置
 
 ```sh
-docker build -f Dockerfile.svn   -t mmhk/svn:3.0 .
-docker build -f Dockerfile.admin -t mmhk/svn-admin:3.0 .
+docker build -f Dockerfile.svn   -t svn-docker:repo .
+docker build -f Dockerfile.admin -t svn-docker:admin .
 # 或一次建兩個（可選 REGISTRY=... 推送）
 ./build.sh
 ```
 
 | 映像 | 內容 | 大小目標 |
 | --- | --- | --- |
-| `mmhk/svn:3.0` | apache2 + libapache2-mod-svn + subversion + curl | ≤ 300 MB |
-| `mmhk/svn-admin:3.0` | subversion CLI + Go 靜態 binary（SPA 已 embed） | ≤ 150 MB |
+| `svn-docker:repo` | apache2 + libapache2-mod-svn + subversion + curl | ≤ 300 MB |
+| `svn-docker:admin` | subversion CLI + Go 靜態 binary（SPA 已 embed） | ≤ 150 MB |
 
 runtime 不含 PHP / Node / Go / Composer；`svn-admin` 以非 root 執行。
 
