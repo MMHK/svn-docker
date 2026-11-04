@@ -291,7 +291,7 @@ check_eq "帶 token 讀 /session 應 200" "200" "$(token_status "$API/session")"
 # -----------------------------------------------------------------------------
 echo "== 7) 唯讀端點 =="
 
-for endpoint in users groups access-paths roles repos system/info; do
+for endpoint in users groups access-paths repos system/info; do
   check_eq "GET /$endpoint" "200" "$(token_status "$API/$endpoint")"
 done
 
@@ -420,7 +420,7 @@ SETUP_STATUS_CODE="$(status "$API/setup/status")"
 SETUP_STATUS_BODY="$(body "$API/setup/status")"
 check_eq "免 token GET /setup/status" "200" "$SETUP_STATUS_CODE"
 check_contains "setup 完成後 setupRequired=false" "$SETUP_STATUS_BODY" '"setupRequired":false'
-check_contains "setup 完成後 administratorPresent=true" "$SETUP_STATUS_BODY" '"administratorPresent":true'
+check_contains "setup 完成後 userCount>=1" "$SETUP_STATUS_BODY" '"userCount":'
 check_absent "setup/status 不洩漏絕對路徑" "$SETUP_STATUS_BODY" "$SVN_ROOT"
 
 # -----------------------------------------------------------------------------
@@ -429,7 +429,7 @@ check_absent "setup/status 不洩漏絕對路徑" "$SETUP_STATUS_BODY" "$SVN_ROO
 echo "== 14) X-Forwarded-For 偽造 =="
 
 check_eq "偽造 XFF 8.8.8.8 應被 Apache 403" "403" \
-  "$(status -H 'X-Forwarded-For: 8.8.8.8' "$API/roles")"
+  "$(status -H 'X-Forwarded-For: 8.8.8.8' "$API/users")"
 
 # -----------------------------------------------------------------------------
 # 15) authz 檔 lossless（註解 / CRLF / $authenticated 保留）

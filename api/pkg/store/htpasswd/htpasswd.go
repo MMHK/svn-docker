@@ -227,10 +227,16 @@ func (s *Store) Load() (*File, error) {
 	return Parse(s.path, data), nil
 }
 
-// ListUsers implements model.UserStore. Hashes are never exposed.
+// ListUsers implements model.UserStore. Hashes are never exposed. A missing
+// auth file is treated as an empty account list so the bootstrap flow can
+// create it.
 func (s *Store) ListUsers(_ context.Context, query model.PageQuery) (model.Page[model.User], error) {
 	file, err := s.Load()
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return model.Page[model.User]{}, nil
+		}
+
 		return model.Page[model.User]{}, err
 	}
 

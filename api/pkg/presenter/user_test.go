@@ -28,11 +28,6 @@ func TestUserList(t *testing.T) {
 		t.Errorf("order = %q, %q; want admin, alice", list.Items[0].Name, list.Items[1].Name)
 	}
 
-	admin := list.Items[0]
-	if len(admin.Roles) == 0 || admin.Roles[0] != string(model.RoleAdministrator) {
-		t.Errorf("admin roles = %v", admin.Roles)
-	}
-
 	alice := list.Items[1]
 	if len(alice.Groups) != 1 || alice.Groups[0] != "devs" {
 		t.Errorf("alice groups = %v", alice.Groups)

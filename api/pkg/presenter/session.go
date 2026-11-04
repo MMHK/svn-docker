@@ -12,7 +12,6 @@ import (
 // Session serves the login/logout/refresh use cases.
 type Session struct {
 	credentials model.CredentialStore
-	roles       model.RoleStore
 	tokens      *auth.Manager
 	limiter     *auth.RateLimiter
 }
@@ -20,11 +19,10 @@ type Session struct {
 // NewSession builds the session presenter.
 func NewSession(
 	credentials model.CredentialStore,
-	roles model.RoleStore,
 	tokens *auth.Manager,
 	limiter *auth.RateLimiter,
 ) *Session {
-	return &Session{credentials: credentials, roles: roles, tokens: tokens, limiter: limiter}
+	return &Session{credentials: credentials, tokens: tokens, limiter: limiter}
 }
 
 // Login verifies credentials and issues an opaque bearer token. clientIP keys
@@ -47,12 +45,7 @@ func (p *Session) Login(ctx context.Context, username, password, clientIP string
 		return view.Session{}, err
 	}
 
-	roles, err := p.rolesOf(ctx, username)
-	if err != nil {
-		return view.Session{}, err
-	}
-
-	token, session, err := p.tokens.Issue(username, roles)
+	token, session, err := p.tokens.Issue(username)
 	if err != nil {
 		return view.Session{}, err
 	}
@@ -80,32 +73,11 @@ func (p *Session) Describe(session auth.Session) view.Session {
 	return sessionView(session, "")
 }
 
-func (p *Session) rolesOf(ctx context.Context, username string) ([]model.Role, error) {
-	assignments, err := p.roles.Assignments(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	roles := assignments.Roles[username]
-	if roles == nil {
-		roles = []model.Role{}
-	}
-
-	return roles, nil
-}
-
 func sessionView(session auth.Session, token string) view.Session {
-	roles := make([]string, 0, len(session.Roles))
-	for _, role := range session.Roles {
-		roles = append(roles, string(role))
-	}
-
 	return view.Session{
 		Token:         token,
 		ExpiresAt:     session.ExpiresAt,
 		IdleExpiresAt: session.IdleExpiresAt,
-		Me:            view.SessionUser{Name: session.Username, Roles: roles},
-		Roles:         roles,
-		Permissions:   auth.Permissions(session.Roles),
+		Me:            view.SessionUser{Name: session.Username},
 	}
 }

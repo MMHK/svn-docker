@@ -3,14 +3,13 @@ package httpapi
 import (
 	"net/http"
 
-	"github.com/mmhk/svn-admin/pkg/auth"
 	"github.com/mmhk/svn-admin/pkg/view"
 )
 
 // listUsers godoc
 //
 //	@Summary		List SVN accounts
-//	@Description	Paged list of htpasswd accounts with their roles and groups. Password hashes are never returned.
+//	@Description	Paged list of htpasswd accounts with their groups. Password hashes are never returned.
 //	@Tags			users
 //	@Produce		json
 //	@Security		bearerAuth
@@ -24,12 +23,6 @@ import (
 //	@Failure		503		{object}	view.ErrorEnvelope	"setup_required"
 //	@Router			/svnadmin/api/v1/users [get]
 func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
-	if err := a.authorize(r, auth.ModuleUser, auth.ActionView); err != nil {
-		a.writeError(w, r, err)
-
-		return
-	}
-
 	query, err := parsePageQuery(r)
 	if err != nil {
 		a.writeError(w, r, err)
@@ -64,12 +57,6 @@ func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 //	@Failure		503		{object}	view.ErrorEnvelope	"setup_required"
 //	@Router			/svnadmin/api/v1/users/{name}/access-paths [get]
 func (a *API) getUserAccessPaths(w http.ResponseWriter, r *http.Request) {
-	if err := a.authorize(r, auth.ModuleUser, auth.ActionView); err != nil {
-		a.writeError(w, r, err)
-
-		return
-	}
-
 	paths, err := a.user.AccessPaths(r.Context(), r.PathValue("name"))
 	if err != nil {
 		a.writeError(w, r, err)
@@ -95,12 +82,6 @@ func (a *API) getUserAccessPaths(w http.ResponseWriter, r *http.Request) {
 //	@Failure		503		{object}	view.ErrorEnvelope	"setup_required"
 //	@Router			/svnadmin/api/v1/users/{name} [get]
 func (a *API) getUser(w http.ResponseWriter, r *http.Request) {
-	if err := a.authorize(r, auth.ModuleUser, auth.ActionView); err != nil {
-		a.writeError(w, r, err)
-
-		return
-	}
-
 	user, err := a.user.Get(r.Context(), r.PathValue("name"))
 	if err != nil {
 		a.writeError(w, r, err)

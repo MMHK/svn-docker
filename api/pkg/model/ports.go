@@ -76,14 +76,6 @@ type AccountWriter interface {
 	SetPassword(ctx context.Context, name, password string, opts WriteOptions) error
 }
 
-// RoleWriter is the lossless writer for data/userroleassignments.ini.
-type RoleWriter interface {
-	SetRoles(ctx context.Context, username string, roles []Role, opts WriteOptions) error
-	AddAccessPaths(ctx context.Context, username string, paths []string, opts WriteOptions) error
-	RemoveAccessPaths(ctx context.Context, username string, paths []string, opts WriteOptions) error
-	RemoveUser(ctx context.Context, username string, opts WriteOptions) error
-}
-
 // AuthzWriter is the lossless writer for the authz file: group membership and
 // per-user ACL removal (plan T2.3, T2.4; the full editor is P3).
 type AuthzWriter interface {
@@ -150,19 +142,3 @@ type AccessPathWriter interface {
 	DeleteACL(ctx context.Context, path, principal string, opts WriteOptions) error
 }
 
-// RoleAssignments is the parsed content of data/userroleassignments.ini.
-//
-// Roles maps a user name to the roles assigned in the [user] section;
-// AccessPaths maps a user name to the project-manager scope recorded under
-// [user:AccessPaths]. Both maps preserve file order.
-type RoleAssignments struct {
-	Roles       map[string][]Role
-	AccessPaths map[string][]string
-}
-
-// RoleStore is the persistence port for role assignments.
-type RoleStore interface {
-	ListRoles(ctx context.Context) ([]Role, error)
-	Assignments(ctx context.Context) (RoleAssignments, error)
-	AssignRole(ctx context.Context, username string, role Role) error
-}

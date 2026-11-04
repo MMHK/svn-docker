@@ -12,26 +12,14 @@ import (
 	"github.com/mmhk/svn-admin/pkg/store/memory"
 )
 
-// failingRoles is a RoleWriter that always fails, used to prove the delete
+// failingAuthz is an AuthzWriter that always fails, used to prove the delete
 // cascade reports the step it stopped at.
-type failingRoles struct {
+type failingAuthz struct {
 	*memory.Store
 	err error
 }
 
-func (f failingRoles) SetRoles(context.Context, string, []model.Role, model.WriteOptions) error {
-	return f.err
-}
-
-func (f failingRoles) AddAccessPaths(context.Context, string, []string, model.WriteOptions) error {
-	return f.err
-}
-
-func (f failingRoles) RemoveAccessPaths(context.Context, string, []string, model.WriteOptions) error {
-	return f.err
-}
-
-func (f failingRoles) RemoveUser(context.Context, string, model.WriteOptions) error {
+func (f failingAuthz) RemoveUser(context.Context, string, model.WriteOptions) error {
 	return f.err
 }
 
@@ -40,13 +28,11 @@ func TestDeleteCascadeReportsFailedStep(t *testing.T) {
 	tokens := auth.NewManager(auth.Options{TTL: time.Hour, Idle: time.Hour})
 
 	presenter := NewUser(UserDeps{
-		Users:      store,
-		Accounts:   store,
-		Roles:      store,
-		RoleWriter: failingRoles{Store: store, err: errors.New("role file is read-only")},
-		Groups:     store,
-		Authz:      store,
-		Tokens:     tokens,
+		Users:    store,
+		Accounts: store,
+		Groups:   store,
+		Authz:    failingAuthz{Store: store, err: errors.New("authz file is read-only")},
+		Tokens:   tokens,
 	})
 
 	err := presenter.Delete(context.Background(), "alice")
@@ -59,17 +45,17 @@ func TestDeleteCascadeReportsFailedStep(t *testing.T) {
 		t.Fatalf("error = %T %v, want *model.OperationError", err, err)
 	}
 
-	if operation.Operation != "user.delete" || operation.Step != "roles" {
+	if operation.Operation != "user.delete" || operation.Step != "authz" {
 		t.Errorf("operation/step = %q/%q", operation.Operation, operation.Step)
 	}
 
-	if len(operation.Completed) != 1 || operation.Completed[0] != "authz" {
-		t.Errorf("completed = %v, want [authz]", operation.Completed)
+	if len(operation.Completed) != 0 {
+		t.Errorf("completed = %v, want none", operation.Completed)
 	}
 
-	// The safe message names the steps and never leaks a path or a hash.
+	// The safe message names the step and never leaks a path or a hash.
 	message := operation.SafeMessage()
-	if !strings.Contains(message, "roles") || !strings.Contains(message, "authz") {
+	if !strings.Contains(message, "authz") {
 		t.Errorf("SafeMessage() = %q", message)
 	}
 
@@ -78,7 +64,7 @@ func TestDeleteCascadeReportsFailedStep(t *testing.T) {
 	}
 
 	// The cascade stopped before touching the credentials file, so alice can
-	// still authenticate. This is the documented "partially updated" state.
+	// still authenticate.
 	if err := store.VerifyPassword(context.Background(), "alice", "testpass"); err != nil {
 		t.Errorf("VerifyPassword(alice) error = %v, want the account to still exist", err)
 	}
@@ -89,16 +75,14 @@ func TestDeleteRevokesTokens(t *testing.T) {
 	tokens := auth.NewManager(auth.Options{TTL: time.Hour, Idle: time.Hour})
 
 	presenter := NewUser(UserDeps{
-		Users:      store,
-		Accounts:   store,
-		Roles:      store,
-		RoleWriter: store,
-		Groups:     store,
-		Authz:      store,
-		Tokens:     tokens,
+		Users:    store,
+		Accounts: store,
+		Groups:   store,
+		Authz:    store,
+		Tokens:   tokens,
 	})
 
-	token, _, err := tokens.Issue("alice", []model.Role{model.RoleUser})
+	token, _, err := tokens.Issue("alice")
 	if err != nil {
 		t.Fatalf("Issue() error = %v", err)
 	}
@@ -121,16 +105,14 @@ func TestChangePasswordRevokesTokens(t *testing.T) {
 	tokens := auth.NewManager(auth.Options{TTL: time.Hour, Idle: time.Hour})
 
 	presenter := NewUser(UserDeps{
-		Users:      store,
-		Accounts:   store,
-		Roles:      store,
-		RoleWriter: store,
-		Groups:     store,
-		Authz:      store,
-		Tokens:     tokens,
+		Users:    store,
+		Accounts: store,
+		Groups:   store,
+		Authz:    store,
+		Tokens:   tokens,
 	})
 
-	token, _, err := tokens.Issue("alice", []model.Role{model.RoleUser})
+	token, _, err := tokens.Issue("alice")
 	if err != nil {
 		t.Fatalf("Issue() error = %v", err)
 	}
@@ -160,33 +142,12 @@ func TestChangePasswordRevokesTokens(t *testing.T) {
 	}
 }
 
-func TestSetRolesAndGroupsValidate(t *testing.T) {
+func TestSetGroupsValidate(t *testing.T) {
 	presenter := newUserPresenter()
 	ctx := context.Background()
 
-	if _, err := presenter.SetRoles(ctx, "alice", []model.Role{"Nope"}, model.WriteOptions{}); !model.IsValidation(err) {
-		t.Errorf("SetRoles(unknown) error = %v, want ValidationError", err)
-	}
-
-	if _, err := presenter.SetRoles(ctx, "nobody", nil, model.WriteOptions{}); !model.IsNotFound(err) {
-		t.Errorf("SetRoles(unknown user) error = %v, want NotFoundError", err)
-	}
-
 	if _, err := presenter.SetGroups(ctx, "alice", []string{"missing"}, model.WriteOptions{}); !model.IsValidation(err) {
 		t.Errorf("SetGroups(unknown group) error = %v, want ValidationError", err)
-	}
-
-	roles, err := ParseRoles([]string{"user", "Repository-Creator", "User"})
-	if err != nil {
-		t.Fatalf("ParseRoles() error = %v", err)
-	}
-
-	if len(roles) != 2 || roles[0] != model.RoleUser || roles[1] != model.RoleRepositoryCreator {
-		t.Errorf("ParseRoles() = %v, want canonical, de-duplicated roles", roles)
-	}
-
-	if _, err := ParseRoles([]string{"Nope"}); !model.IsValidation(err) {
-		t.Errorf("ParseRoles(unknown) error = %v, want ValidationError", err)
 	}
 }
 

@@ -17,7 +17,6 @@ const (
 	KindGroup      Kind = "group"
 	KindRepository Kind = "repository"
 	KindAccessPath Kind = "access-path"
-	KindRole       Kind = "role"
 	KindSession    Kind = "session"
 )
 
@@ -105,8 +104,8 @@ func (e *RateLimitError) Error() string {
 	return fmt.Sprintf("too many login attempts; retry in %s", e.RetryAfter.Round(time.Second))
 }
 
-// SetupRequiredError reports that no administrator exists yet. The transport
-// maps it to 503 with code setup_required.
+// SetupRequiredError reports that no user exists yet. The transport maps it to
+// 503 with code setup_required.
 type SetupRequiredError struct{}
 
 func (e *SetupRequiredError) Error() string {

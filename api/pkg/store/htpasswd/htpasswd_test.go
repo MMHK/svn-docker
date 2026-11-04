@@ -201,21 +201,16 @@ func TestStoreVerifyPassword(t *testing.T) {
 	}
 }
 
-func TestStoreMissingFileIsTypedError(t *testing.T) {
+func TestStoreMissingFileReturnsEmptyList(t *testing.T) {
 	store := New(filepath.Join(t.TempDir(), "does-not-exist"))
 
-	_, err := store.ListUsers(context.Background(), model.PageQuery{})
-	if err == nil {
-		t.Fatal("ListUsers() error = nil, want a read error")
+	page, err := store.ListUsers(context.Background(), model.PageQuery{})
+	if err != nil {
+		t.Fatalf("ListUsers() error = %v, want nil (missing file → empty)", err)
 	}
 
-	var typed *Error
-	if !errors.As(err, &typed) {
-		t.Fatalf("error = %T, want *htpasswd.Error", err)
-	}
-
-	if typed.Op != "read" {
-		t.Errorf("Op = %q, want read", typed.Op)
+	if page.Total != 0 || len(page.Items) != 0 {
+		t.Errorf("page = %+v, want empty", page)
 	}
 }
 

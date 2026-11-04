@@ -41,12 +41,8 @@ func credentialLine(content, name string) string {
 	return ""
 }
 
-func (env testEnv) rolesFile() string {
-	return env.rolesPath
-}
-
 func TestCreateUser(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	token := env.mustToken(t, "testuser", testPassword)
 
 	recorder := env.request(t, http.MethodPost, "/svnadmin/api/v1/users", "127.0.0.1:5555",
@@ -102,7 +98,7 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestCreateUserValidationAndForbidden(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 
 	for _, body := range []string{
@@ -119,16 +115,6 @@ func TestCreateUserValidationAndForbidden(t *testing.T) {
 		}
 	}
 
-	for _, user := range []string{"viewer", "norole"} {
-		token := env.mustToken(t, user, testPassword)
-
-		recorder := env.request(t, http.MethodPost, "/svnadmin/api/v1/users", "127.0.0.1:5555",
-			bearer(token), `{"username":"sneaky","password":"x"}`)
-		if recorder.Code != http.StatusForbidden {
-			t.Errorf("%s status = %d, want 403 (body %s)", user, recorder.Code, recorder.Body.String())
-		}
-	}
-
 	// No token at all is 401.
 	if recorder := env.request(t, http.MethodPost, "/svnadmin/api/v1/users", "127.0.0.1:5555", nil,
 		`{"username":"x","password":"y"}`); recorder.Code != http.StatusUnauthorized {
@@ -137,10 +123,10 @@ func TestCreateUserValidationAndForbidden(t *testing.T) {
 }
 
 func TestDeleteUserCascade(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 
-	// Build a user that owns a group membership, a role and an ACL entry.
+	// Build a user that owns a group membership and an ACL entry.
 	if recorder := env.request(t, http.MethodPost, "/svnadmin/api/v1/users", "127.0.0.1:5555",
 		bearer(admin), `{"username":"temporary","password":"temp-secret"}`); recorder.Code != http.StatusCreated {
 		t.Fatalf("create status = %d, body = %s", recorder.Code, recorder.Body.String())
@@ -149,11 +135,6 @@ func TestDeleteUserCascade(t *testing.T) {
 	if recorder := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/temporary/groups", "127.0.0.1:5555",
 		bearer(admin), `{"groups":["devs"]}`); recorder.Code != http.StatusOK {
 		t.Fatalf("groups status = %d, body = %s", recorder.Code, recorder.Body.String())
-	}
-
-	if recorder := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/temporary/roles", "127.0.0.1:5555",
-		bearer(admin), `{"roles":["User"]}`); recorder.Code != http.StatusOK {
-		t.Fatalf("roles status = %d, body = %s", recorder.Code, recorder.Body.String())
 	}
 
 	accessBefore, err := os.ReadFile(env.cfg.SVNAccessFile)
@@ -201,20 +182,6 @@ func TestDeleteUserCascade(t *testing.T) {
 		t.Errorf("unrelated group members were lost:\n%s", accessContent)
 	}
 
-	// roles
-	roleContent, err := os.ReadFile(env.rolesFile())
-	if err != nil {
-		t.Fatalf("ReadFile(roles) error = %v", err)
-	}
-
-	if strings.Contains(string(roleContent), "temporary") {
-		t.Errorf("the role block survived:\n%s", roleContent)
-	}
-
-	if !strings.Contains(string(roleContent), "[testuser]") || !strings.Contains(string(roleContent), "[viewer]") {
-		t.Errorf("unrelated role blocks were lost:\n%s", roleContent)
-	}
-
 	// The account is gone for the API too.
 	if get := env.request(t, http.MethodGet, "/svnadmin/api/v1/users/temporary", "127.0.0.1:5555", bearer(admin), ""); get.Code != http.StatusNotFound {
 		t.Errorf("GET after delete = %d, want 404", get.Code)
@@ -237,16 +204,10 @@ func TestDeleteUserCascade(t *testing.T) {
 		}
 	}
 
-	// A non-privileged token cannot delete.
-	viewer := env.mustToken(t, "viewer", testPassword)
-
-	if forbidden := env.request(t, http.MethodDelete, "/svnadmin/api/v1/users/viewer", "127.0.0.1:5555", bearer(viewer), ""); forbidden.Code != http.StatusForbidden {
-		t.Errorf("viewer delete = %d, want 403", forbidden.Code)
-	}
 }
 
 func TestPasswordChangeRevokesTokens(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 
 	if recorder := env.request(t, http.MethodPost, "/svnadmin/api/v1/users", "127.0.0.1:5555",
@@ -254,22 +215,14 @@ func TestPasswordChangeRevokesTokens(t *testing.T) {
 		t.Fatalf("create status = %d", recorder.Code)
 	}
 
-	// roger has no roles yet: he cannot even rotate his own password. Grant
-	// the plain User role, which is what user:changepass is scoped to.
-	if recorder := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/roger/roles", "127.0.0.1:5555",
-		bearer(admin), `{"roles":["User"]}`); recorder.Code != http.StatusOK {
-		t.Fatalf("grant role status = %d, body = %s", recorder.Code, recorder.Body.String())
-	}
-
 	userToken := env.mustToken(t, "roger", "old-secret")
 
-	// A plain user cannot reset somebody else's password.
-	if forbidden := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/viewer/password", "127.0.0.1:5555",
-		bearer(userToken), `{"password":"hijacked"}`); forbidden.Code != http.StatusForbidden {
-		t.Errorf("cross-user password change = %d, want 403", forbidden.Code)
+	// Any authenticated account can reset somebody else's password.
+	if cross := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/viewer/password", "127.0.0.1:5555",
+		bearer(userToken), `{"password":"hijacked"}`); cross.Code != http.StatusNoContent {
+		t.Errorf("cross-user password change = %d, want 204", cross.Code)
 	}
 
-	// An administrator can.
 	recorder := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/roger/password", "127.0.0.1:5555",
 		bearer(admin), `{"password":"new-secret"}`)
 	if recorder.Code != http.StatusNoContent {
@@ -320,89 +273,8 @@ func TestPasswordChangeRevokesTokens(t *testing.T) {
 	}
 }
 
-func TestSetRolesRoundTrip(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
-	admin := env.mustToken(t, "testuser", testPassword)
-
-	before, err := os.ReadFile(env.rolesFile())
-	if err != nil {
-		t.Fatalf("ReadFile() error = %v", err)
-	}
-
-	recorder := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/viewer/roles", "127.0.0.1:5555",
-		bearer(admin), `{"roles":["User","Repository-Creator"]}`)
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
-	}
-
-	roles := decodeBody[view.UserRoles](t, recorder)
-	if len(roles.Roles) != 2 || roles.Roles[0] != "User" || roles.Roles[1] != "Repository-Creator" {
-		t.Errorf("roles = %v", roles.Roles)
-	}
-
-	// The user detail reflects the change.
-	detail := env.request(t, http.MethodGet, "/svnadmin/api/v1/users/viewer", "127.0.0.1:5555", bearer(admin), "")
-	if detail.Code != http.StatusOK {
-		t.Fatalf("detail status = %d", detail.Code)
-	}
-
-	if user := decodeBody[view.User](t, detail); len(user.Roles) != 2 {
-		t.Errorf("user roles = %v", user.Roles)
-	}
-
-	// Other accounts' lines are byte identical.
-	after, err := os.ReadFile(env.rolesFile())
-	if err != nil {
-		t.Fatalf("ReadFile() error = %v", err)
-	}
-
-	for _, line := range []string{"[testuser]\nAdministrator=", "[viewer]\n"} {
-		if !strings.Contains(string(before), line) || !strings.Contains(string(after), line) {
-			t.Errorf("line %q changed", line)
-		}
-	}
-
-	if !strings.Contains(string(after), "[testuser]\nAdministrator=\n") {
-		t.Errorf("the unrelated block was rewritten:\n%s", after)
-	}
-
-	// Reading it back through the dedicated endpoint.
-	read := env.request(t, http.MethodGet, "/svnadmin/api/v1/users/viewer/roles", "127.0.0.1:5555", bearer(admin), "")
-	if read.Code != http.StatusOK {
-		t.Fatalf("GET roles = %d", read.Code)
-	}
-
-	if got := decodeBody[view.UserRoles](t, read); len(got.Roles) != 2 {
-		t.Errorf("GET roles = %v", got.Roles)
-	}
-
-	// Unknown role and non-assigner are rejected.
-	if invalid := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/viewer/roles", "127.0.0.1:5555",
-		bearer(admin), `{"roles":["Superuser"]}`); invalid.Code != http.StatusUnprocessableEntity {
-		t.Errorf("unknown role = %d, want 422", invalid.Code)
-	}
-
-	viewer := env.mustToken(t, "viewer", testPassword)
-
-	if forbidden := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/viewer/roles", "127.0.0.1:5555",
-		bearer(viewer), `{"roles":["Administrator"]}`); forbidden.Code != http.StatusForbidden {
-		t.Errorf("viewer assigning roles = %d, want 403", forbidden.Code)
-	}
-
-	// An empty list clears the roles but keeps the block.
-	cleared := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/viewer/roles", "127.0.0.1:5555",
-		bearer(admin), `{"roles":[]}`)
-	if cleared.Code != http.StatusOK {
-		t.Fatalf("clear roles = %d, body = %s", cleared.Code, cleared.Body.String())
-	}
-
-	if got := decodeBody[view.UserRoles](t, cleared); len(got.Roles) != 0 {
-		t.Errorf("roles after clear = %v", got.Roles)
-	}
-}
-
 func TestSetGroupsRoundTrip(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 
 	recorder := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/viewer/groups", "127.0.0.1:5555",
@@ -447,13 +319,6 @@ func TestSetGroupsRoundTrip(t *testing.T) {
 		t.Errorf("bad group name = %d, want 422", bad.Code)
 	}
 
-	viewer := env.mustToken(t, "viewer", testPassword)
-
-	if forbidden := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/viewer/groups", "127.0.0.1:5555",
-		bearer(viewer), `{"groups":["devs"]}`); forbidden.Code != http.StatusForbidden {
-		t.Errorf("viewer assigning groups = %d, want 403", forbidden.Code)
-	}
-
 	// Clearing the list removes only that member.
 	if cleared := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/viewer/groups", "127.0.0.1:5555",
 		bearer(admin), `{"groups":[]}`); cleared.Code != http.StatusOK {
@@ -486,7 +351,7 @@ func TestSetGroupsRoundTrip(t *testing.T) {
 
 func TestConcurrentWrites(t *testing.T) {
 	t.Run("different users", func(t *testing.T) {
-		env := newTestEnv(t, defaultRoleFile, nil)
+		env := newTestEnv(t, nil)
 		admin := env.mustToken(t, "testuser", testPassword)
 
 		const count = 10
@@ -551,97 +416,34 @@ func TestConcurrentWrites(t *testing.T) {
 		}
 	})
 
-	t.Run("same user with If-Match", func(t *testing.T) {
-		env := newTestEnv(t, defaultRoleFile, nil)
-		admin := env.mustToken(t, "testuser", testPassword)
-
-		if recorder := env.request(t, http.MethodPost, "/svnadmin/api/v1/users", "127.0.0.1:5555",
-			bearer(admin), `{"username":"sam","password":"sam-secret"}`); recorder.Code != http.StatusCreated {
-			t.Fatalf("create status = %d", recorder.Code)
-		}
-
-		hash := fileHash(t, env.rolesFile())
-		headers := bearer(admin)
-		headers["If-Match"] = hash
-
-		bodies := []string{`{"roles":["User"]}`, `{"roles":["Repository-Creator"]}`}
-
-		var (
-			wait   sync.WaitGroup
-			mu     sync.Mutex
-			codes  []int
-			values []string
-		)
-
-		for _, body := range bodies {
-			wait.Add(1)
-
-			go func(payload string) {
-				defer wait.Done()
-
-				recorder := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/sam/roles", "127.0.0.1:5555", headers, payload)
-
-				mu.Lock()
-				codes = append(codes, recorder.Code)
-				values = append(values, recorder.Body.String())
-				mu.Unlock()
-			}(body)
-		}
-
-		wait.Wait()
-
-		successes := 0
-		conflicts := 0
-
-		for index, code := range codes {
-			switch code {
-			case http.StatusOK:
-				successes++
-			case http.StatusConflict:
-				conflicts++
-			default:
-				t.Errorf("request %d = %d (%s)", index, code, values[index])
-			}
-		}
-
-		if successes != 1 || conflicts != 1 {
-			t.Fatalf("successes/conflicts = %d/%d, want 1/1 (codes %v)", successes, conflicts, codes)
-		}
-	})
 }
 
 func TestIfMatchPrecondition(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 
 	stale := strings.Repeat("0", 64)
 	headers := bearer(admin)
 	headers["If-Match"] = stale
 
-	before, err := os.ReadFile(env.rolesFile())
+	before, err := os.ReadFile(env.cfg.SVNAccessFile)
 	if err != nil {
 		t.Fatalf("ReadFile() error = %v", err)
-	}
-
-	roles := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/viewer/roles", "127.0.0.1:5555",
-		headers, `{"roles":["Administrator"]}`)
-	if roles.Code != http.StatusConflict {
-		t.Errorf("stale If-Match roles = %d, want 409 (body %s)", roles.Code, roles.Body.String())
-	}
-
-	after, err := os.ReadFile(env.rolesFile())
-	if err != nil {
-		t.Fatalf("ReadFile() error = %v", err)
-	}
-
-	if string(after) != string(before) {
-		t.Error("a stale If-Match still modified the role file")
 	}
 
 	groups := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/viewer/groups", "127.0.0.1:5555",
 		headers, `{"groups":["devs"]}`)
 	if groups.Code != http.StatusConflict {
 		t.Errorf("stale If-Match groups = %d, want 409", groups.Code)
+	}
+
+	after, err := os.ReadFile(env.cfg.SVNAccessFile)
+	if err != nil {
+		t.Fatalf("ReadFile() error = %v", err)
+	}
+
+	if string(after) != string(before) {
+		t.Error("a stale If-Match still modified the authz file")
 	}
 
 	password := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/viewer/password", "127.0.0.1:5555",
@@ -654,17 +456,17 @@ func TestIfMatchPrecondition(t *testing.T) {
 	bad := bearer(admin)
 	bad["If-Match"] = "not-a-hash"
 
-	if recorder := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/viewer/roles", "127.0.0.1:5555",
-		bad, `{"roles":["User"]}`); recorder.Code != http.StatusUnprocessableEntity {
+	if recorder := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/viewer/groups", "127.0.0.1:5555",
+		bad, `{"groups":["devs"]}`); recorder.Code != http.StatusUnprocessableEntity {
 		t.Errorf("malformed If-Match = %d, want 422", recorder.Code)
 	}
 
 	// The correct hash is accepted.
 	fresh := bearer(admin)
-	fresh["If-Match"] = fileHash(t, env.rolesFile())
+	fresh["If-Match"] = fileHash(t, env.cfg.SVNAccessFile)
 
-	if recorder := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/viewer/roles", "127.0.0.1:5555",
-		fresh, `{"roles":["User"]}`); recorder.Code != http.StatusOK {
+	if recorder := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/viewer/groups", "127.0.0.1:5555",
+		fresh, `{"groups":["devs"]}`); recorder.Code != http.StatusOK {
 		t.Errorf("matching If-Match = %d, want 200 (body %s)", recorder.Code, recorder.Body.String())
 	}
 }
@@ -672,7 +474,7 @@ func TestIfMatchPrecondition(t *testing.T) {
 func TestWriteAuditLog(t *testing.T) {
 	var logs bytes.Buffer
 
-	env := newTestEnvWithLogs(t, defaultRoleFile, nil, &logs)
+	env := newTestEnvWithLogs(t, nil, &logs)
 
 	admin := env.mustToken(t, "testuser", testPassword)
 

@@ -19,7 +19,6 @@ import (
 	"github.com/mmhk/svn-admin/pkg/presenter"
 	"github.com/mmhk/svn-admin/pkg/store/authz"
 	"github.com/mmhk/svn-admin/pkg/store/htpasswd"
-	"github.com/mmhk/svn-admin/pkg/store/roles"
 	"github.com/mmhk/svn-admin/pkg/store/svnrepos"
 	"github.com/mmhk/svn-admin/pkg/svncli"
 	"github.com/mmhk/svn-admin/pkg/transport/httpapi"
@@ -111,7 +110,6 @@ func serve(stderr io.Writer) int {
 
 	users := htpasswd.New(cfg.SVNAuthFile, htpasswd.WithBackupDir(cfg.BackupDir))
 	groupStore := authz.New(cfg.SVNAccessFile, authz.WithBackupDir(cfg.BackupDir))
-	roleStore := roles.New(cfg.RoleFile, roles.WithBackupDir(cfg.BackupDir))
 
 	svnCommand := svncli.New(svncli.Options{
 		Runner:   svncli.ExecRunner{},
@@ -168,22 +166,18 @@ func serve(stderr io.Writer) int {
 		Logger:    logger,
 		Allowlist: allowlist,
 		Tokens:    tokens,
-		System:    presenter.NewSystem(version, cfg, roleStore),
-		Session:   presenter.NewSession(users, roleStore, tokens, limiter),
+		System:    presenter.NewSystem(version, cfg),
+		Session:   presenter.NewSession(users, tokens, limiter),
 		Setup: presenter.NewSetup(presenter.SetupDeps{
-			Roles:          roleStore,
 			Users:          users,
 			Accounts:       users,
 			AuthFile:       cfg.SVNAuthFile,
 			AccessFile:     cfg.SVNAccessFile,
-			RoleFile:       cfg.RoleFile,
 			BootstrapToken: bootstrapToken,
 		}),
 		User: presenter.NewUser(presenter.UserDeps{
 			Users:       users,
 			Accounts:    users,
-			Roles:       roleStore,
-			RoleWriter:  roleStore,
 			Groups:      groupStore,
 			Authz:       groupStore,
 			AccessPaths: groupStore,
@@ -200,11 +194,8 @@ func serve(stderr io.Writer) int {
 		AccessPath: presenter.NewAccessPath(
 			groupStore,
 			groupStore,
-			roleStore,
-			roleStore,
 		),
-		Role: presenter.NewRole(roleStore),
-		Web:  web,
+		Web: web,
 	})
 	if err != nil {
 		logger.Error("router construction failed", slog.String("error", err.Error()))

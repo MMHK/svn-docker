@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -11,7 +12,7 @@ import (
 )
 
 func TestSetupStatusOnConfiguredDeployment(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 
 	recorder := env.request(t, http.MethodGet, "/svnadmin/api/v1/setup/status", "127.0.0.1:5555", nil, "")
 	if recorder.Code != http.StatusOK {
@@ -28,10 +29,6 @@ func TestSetupStatusOnConfiguredDeployment(t *testing.T) {
 		t.Errorf("authFile = %+v, want 3 accounts", status.AuthFile)
 	}
 
-	if !status.RoleFile.AdministratorPresent {
-		t.Error("administratorPresent = false, want true")
-	}
-
 	if !status.CanCreateAccount {
 		t.Error("canCreateAccount = false for a writable auth file")
 	}
@@ -46,10 +43,9 @@ func TestSetupStatusOnConfiguredDeployment(t *testing.T) {
 }
 
 func TestSetupStatusReportsMissingFiles(t *testing.T) {
-	env := newTestEnv(t, "", func(cfg *config.Config) {
+	env := newTestEnv(t, func(cfg *config.Config) {
 		cfg.SVNAuthFile = filepath.Join(cfg.SVNParentPath, "missing", "svn-auth-file")
 		cfg.SVNAccessFile = filepath.Join(cfg.SVNParentPath, "missing", "svn-access-file")
-		cfg.RoleFile = filepath.Join(cfg.SVNParentPath, "missing", "userroleassignments.ini")
 	})
 
 	recorder := env.request(t, http.MethodGet, "/svnadmin/api/v1/setup/status", "127.0.0.1:5555", nil, "")
@@ -73,7 +69,14 @@ func TestSetupStatusReportsMissingFiles(t *testing.T) {
 }
 
 func TestSetupStatusListsUsersWhileRequired(t *testing.T) {
-	env := newTestEnv(t, "", nil)
+	env := newTestEnv(t, func(cfg *config.Config) {
+		// Create an empty auth file so userCount == 0 → reason = "no_users".
+		emptyAuth := filepath.Join(cfg.SVNParentPath, "empty-auth")
+		if err := os.WriteFile(emptyAuth, nil, 0o600); err != nil {
+			t.Fatalf("write empty auth: %v", err)
+		}
+		cfg.SVNAuthFile = emptyAuth
+	})
 
 	recorder := env.request(t, http.MethodGet, "/svnadmin/api/v1/setup/status", "127.0.0.1:5555", nil, "")
 	if recorder.Code != http.StatusOK {
@@ -82,19 +85,8 @@ func TestSetupStatusListsUsersWhileRequired(t *testing.T) {
 
 	status := decodeBody[view.SetupStatus](t, recorder)
 
-	if !status.SetupRequired || status.Reason != "no_admin" {
-		t.Fatalf("setupRequired/reason = %v/%q, want true/no_admin", status.SetupRequired, status.Reason)
-	}
-
-	want := []string{"norole", "testuser", "viewer"}
-	if len(status.Users) != len(want) {
-		t.Fatalf("users = %v, want %v", status.Users, want)
-	}
-
-	for index, name := range want {
-		if status.Users[index] != name {
-			t.Errorf("users[%d] = %q, want %q", index, status.Users[index], name)
-		}
+	if !status.SetupRequired || status.Reason != "no_users" {
+		t.Fatalf("setupRequired/reason = %v/%q, want true/no_users", status.SetupRequired, status.Reason)
 	}
 
 	if strings.Contains(recorder.Body.String(), "apr1") || strings.Contains(recorder.Body.String(), testHash) {
@@ -103,10 +95,9 @@ func TestSetupStatusListsUsersWhileRequired(t *testing.T) {
 }
 
 func TestSetupAdminCreatesAccountAndFiles(t *testing.T) {
-	env := newTestEnv(t, "", func(cfg *config.Config) {
+	env := newTestEnv(t, func(cfg *config.Config) {
 		cfg.SVNAuthFile = filepath.Join(cfg.SVNParentPath, "svn-auth-file")
 		cfg.SVNAccessFile = filepath.Join(cfg.SVNParentPath, "svn-access-file")
-		cfg.RoleFile = filepath.Join(cfg.SVNParentPath, "userroleassignments.ini")
 	})
 
 	body := `{"username":"admin","password":"Passw0rd!","token":"` + env.bootstrap + `"}`
@@ -117,12 +108,12 @@ func TestSetupAdminCreatesAccountAndFiles(t *testing.T) {
 	}
 
 	result := decodeBody[view.SetupResult](t, recorder)
-	if !result.AccountCreated || result.Role != "Administrator" {
-		t.Errorf("result = %+v", result)
+	if !result.AccountCreated {
+		t.Errorf("result = %+v, want AccountCreated=true", result)
 	}
 
-	if len(result.InitializedFiles) != 3 {
-		t.Errorf("initializedFiles = %v, want authFile, accessFile, roleFile", result.InitializedFiles)
+	if len(result.InitializedFiles) != 2 {
+		t.Errorf("initializedFiles = %v, want authFile, accessFile", result.InitializedFiles)
 	}
 
 	// The new account can sign in and the setup gate is now open.
@@ -144,7 +135,9 @@ func TestSetupAdminCreatesAccountAndFiles(t *testing.T) {
 }
 
 func TestSetupAdminRejectsMissingPassword(t *testing.T) {
-	env := newTestEnv(t, "", nil)
+	env := newTestEnv(t, func(cfg *config.Config) {
+		cfg.SVNAuthFile = filepath.Join(cfg.SVNParentPath, "empty-auth")
+	})
 
 	recorder := env.request(t, http.MethodPost, "/svnadmin/api/v1/setup/admin", "127.0.0.1:5555", nil,
 		`{"username":"newuser","token":"`+env.bootstrap+`"}`)
@@ -163,10 +156,9 @@ func TestSetupAdminRejectsMissingPassword(t *testing.T) {
 }
 
 func TestSetupAdminReportsStorageUnavailable(t *testing.T) {
-	env := newTestEnv(t, "", func(cfg *config.Config) {
+	env := newTestEnv(t, func(cfg *config.Config) {
 		cfg.SVNAuthFile = filepath.Join(cfg.SVNParentPath, "missing", "svn-auth-file")
 		cfg.SVNAccessFile = filepath.Join(cfg.SVNParentPath, "missing", "svn-access-file")
-		cfg.RoleFile = filepath.Join(cfg.SVNParentPath, "missing", "userroleassignments.ini")
 	})
 
 	recorder := env.request(t, http.MethodPost, "/svnadmin/api/v1/setup/admin", "127.0.0.1:5555", nil,

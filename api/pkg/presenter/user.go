@@ -12,13 +12,11 @@ import (
 )
 
 // UserDeps are the ports the user presenter needs. Writes are split into
-// separate interfaces (accounts, role file, authz file) because the delete
-// cascade in plan T2.3 touches all three and must report progress per step.
+// separate interfaces (accounts, authz file) because the delete cascade in
+// plan T2.3 touches both and must report progress per step.
 type UserDeps struct {
 	Users       model.UserStore
 	Accounts    model.AccountWriter
-	Roles       model.RoleStore
-	RoleWriter  model.RoleWriter
 	Groups      model.GroupStore
 	Authz       model.AuthzWriter
 	AccessPaths model.AccessPathStore
@@ -29,8 +27,6 @@ type UserDeps struct {
 type User struct {
 	users       model.UserStore
 	accounts    model.AccountWriter
-	roles       model.RoleStore
-	roleWriter  model.RoleWriter
 	groups      model.GroupStore
 	authz       model.AuthzWriter
 	accessPaths model.AccessPathStore
@@ -42,8 +38,6 @@ func NewUser(deps UserDeps) *User {
 	return &User{
 		users:       deps.Users,
 		accounts:    deps.Accounts,
-		roles:       deps.Roles,
-		roleWriter:  deps.RoleWriter,
 		groups:      deps.Groups,
 		authz:       deps.Authz,
 		accessPaths: deps.AccessPaths,
@@ -51,17 +45,12 @@ func NewUser(deps UserDeps) *User {
 	}
 }
 
-// List returns a page of users enriched with roles and groups. Hashes never
-// leave the store.
+// List returns a page of users enriched with groups. Hashes never leave the
+// store.
 func (p *User) List(ctx context.Context, query model.PageQuery) (view.UserList, error) {
 	query = query.Normalize()
 
 	page, err := p.users.ListUsers(ctx, query)
-	if err != nil {
-		return view.UserList{}, err
-	}
-
-	assignments, err := p.roles.Assignments(ctx)
 	if err != nil {
 		return view.UserList{}, err
 	}
@@ -73,7 +62,7 @@ func (p *User) List(ctx context.Context, query model.PageQuery) (view.UserList, 
 
 	items := make([]view.User, 0, len(page.Items))
 	for _, user := range page.Items {
-		items = append(items, userView(user, assignments.Roles[user.Name], groupsByUser[user.Name]))
+		items = append(items, userView(user, groupsByUser[user.Name]))
 	}
 
 	return view.UserList{
@@ -99,17 +88,12 @@ func (p *User) Get(ctx context.Context, name string) (view.User, error) {
 		return view.User{}, err
 	}
 
-	assignments, err := p.roles.Assignments(ctx)
-	if err != nil {
-		return view.User{}, err
-	}
-
 	groups, err := p.groups.GroupsOfUser(ctx, name)
 	if err != nil {
 		return view.User{}, err
 	}
 
-	return userView(user, assignments.Roles[name], groups), nil
+	return userView(user, groups), nil
 }
 
 // Create adds an htpasswd account. The password is hashed inside the store and
@@ -129,13 +113,13 @@ func (p *User) Create(ctx context.Context, name, password string) (view.User, er
 		return view.User{}, err
 	}
 
-	return view.User{Name: name, Roles: []string{}, Groups: []string{}}, nil
+	return view.User{Name: name, Groups: []string{}}, nil
 }
 
 // Delete removes the account and every trace of it. The steps run in the order
-// the plan fixes (authz groups + ACLs, role file, htpasswd) and the first
-// failure is reported together with the steps that already succeeded. P2 is
-// sequential per-file, not a cross-file two-phase commit.
+// the plan fixes (authz groups + ACLs, htpasswd) and the first failure is
+// reported together with the steps that already succeeded. P2 is sequential
+// per-file, not a cross-file two-phase commit.
 //
 // The If-Match precondition is intentionally not applied here: the delete spans
 // three files, so a single expected hash would be ambiguous. Each store still
@@ -156,7 +140,6 @@ func (p *User) Delete(ctx context.Context, name string) error {
 		run   func() error
 	}{
 		{"authz", func() error { return p.authz.RemoveUser(ctx, name, model.WriteOptions{}) }},
-		{"roles", func() error { return p.roleWriter.RemoveUser(ctx, name, model.WriteOptions{}) }},
 		{"htpasswd", func() error { return p.users.DeleteUser(ctx, name, model.WriteOptions{}) }},
 	}
 
@@ -205,55 +188,6 @@ func (p *User) ChangePassword(ctx context.Context, name, password string, opts m
 	p.revoke(name)
 
 	return nil
-}
-
-// Roles returns the roles assigned to name.
-func (p *User) Roles(ctx context.Context, name string) (view.UserRoles, error) {
-	name = strings.TrimSpace(name)
-
-	if err := (model.User{Name: name}).Validate(); err != nil {
-		return view.UserRoles{}, err
-	}
-
-	if _, err := p.users.GetUser(ctx, name); err != nil {
-		return view.UserRoles{}, err
-	}
-
-	assignments, err := p.roles.Assignments(ctx)
-	if err != nil {
-		return view.UserRoles{}, err
-	}
-
-	return userRolesView(name, assignments.Roles[name]), nil
-}
-
-// SetRoles replaces the role set of name. Changing roles revokes the affected
-// account's tokens: the roles are baked into the session at login time, so a
-// stale session would otherwise keep the old permissions.
-func (p *User) SetRoles(ctx context.Context, name string, roles []model.Role, opts model.WriteOptions) (view.UserRoles, error) {
-	name = strings.TrimSpace(name)
-
-	if err := (model.User{Name: name}).Validate(); err != nil {
-		return view.UserRoles{}, err
-	}
-
-	for _, role := range roles {
-		if !role.Valid() {
-			return view.UserRoles{}, &model.ValidationError{Field: "roles", Reason: "unknown role " + string(role)}
-		}
-	}
-
-	if _, err := p.users.GetUser(ctx, name); err != nil {
-		return view.UserRoles{}, err
-	}
-
-	if err := p.roleWriter.SetRoles(ctx, name, roles, opts); err != nil {
-		return view.UserRoles{}, err
-	}
-
-	p.revoke(name)
-
-	return p.Roles(ctx, name)
 }
 
 // Groups returns the authz group memberships of name.
@@ -403,28 +337,6 @@ func (p *User) revoke(name string) {
 	}
 }
 
-// ParseRoles resolves submitted role names to canonical model roles.
-func ParseRoles(raw []string) ([]model.Role, error) {
-	out := make([]model.Role, 0, len(raw))
-	seen := make(map[model.Role]bool, len(raw))
-
-	for _, value := range raw {
-		role, err := model.ParseRole(value)
-		if err != nil {
-			return nil, err
-		}
-
-		if seen[role] {
-			continue
-		}
-
-		seen[role] = true
-		out = append(out, role)
-	}
-
-	return out, nil
-}
-
 func (p *User) groupsByUser(ctx context.Context) (map[string][]string, error) {
 	page, err := p.groups.ListGroups(ctx, model.PageQuery{Size: model.MaxPageSize})
 	if err != nil {
@@ -442,32 +354,17 @@ func (p *User) groupsByUser(ctx context.Context) (map[string][]string, error) {
 	return out, nil
 }
 
-func userView(user model.User, roles []model.Role, groups []string) view.User {
-	roleNames := make([]string, 0, len(roles))
-	for _, role := range roles {
-		roleNames = append(roleNames, string(role))
-	}
-
+func userView(user model.User, groups []string) view.User {
 	groupNames := make([]string, 0, len(groups))
 	groupNames = append(groupNames, groups...)
 
 	return view.User{
 		Name:      user.Name,
 		Comment:   user.Comment,
-		Roles:     roleNames,
 		Groups:    groupNames,
 		CreatedAt: timePtr(user.CreatedAt),
 		UpdatedAt: timePtr(user.UpdatedAt),
 	}
-}
-
-func userRolesView(name string, roles []model.Role) view.UserRoles {
-	names := make([]string, 0, len(roles))
-	for _, role := range roles {
-		names = append(names, string(role))
-	}
-
-	return view.UserRoles{Name: name, Roles: names}
 }
 
 func userGroupsView(name string, groups []string) view.UserGroups {

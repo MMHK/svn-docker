@@ -72,7 +72,6 @@ services:
       SVN_ADMIN_SVN_AUTH_FILE: "${SVN_ADMIN_SVN_AUTH_FILE:-/var/svnlocal/svn-auth-file}"
       SVN_ADMIN_SVN_ACCESS_FILE: "${SVN_ADMIN_SVN_ACCESS_FILE:-/var/svnlocal/svn-access-file}"
       # 管理資料（可持久化）
-      SVN_ADMIN_ROLE_FILE: "${SVN_ADMIN_ROLE_FILE:-/data/userroleassignments.ini}"
       SVN_ADMIN_BACKUP_DIR: "${SVN_ADMIN_BACKUP_DIR:-/data/backup}"
       SVN_ADMIN_TRASH_DIR: "${SVN_ADMIN_TRASH_DIR:-/data/trash}"
       SVN_ADMIN_UID: "${SVN_ADMIN_UID:-1000}"

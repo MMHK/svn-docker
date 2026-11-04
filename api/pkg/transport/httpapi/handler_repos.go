@@ -3,7 +3,6 @@ package httpapi
 import (
 	"net/http"
 
-	"github.com/mmhk/svn-admin/pkg/auth"
 	"github.com/mmhk/svn-admin/pkg/view"
 )
 
@@ -24,12 +23,6 @@ import (
 //	@Failure		503		{object}	view.ErrorEnvelope	"setup_required"
 //	@Router			/svnadmin/api/v1/repos [get]
 func (a *API) listRepositories(w http.ResponseWriter, r *http.Request) {
-	if err := a.authorize(r, auth.ModuleRepository, auth.ActionView); err != nil {
-		a.writeError(w, r, err)
-
-		return
-	}
-
 	query, err := parsePageQuery(r)
 	if err != nil {
 		a.writeError(w, r, err)

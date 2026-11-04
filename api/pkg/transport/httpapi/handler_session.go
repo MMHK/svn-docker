@@ -43,7 +43,7 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 // currentSession godoc
 //
 //	@Summary		Describe the current session
-//	@Description	Returns the authenticated user, roles and permissions. The token itself is never echoed back.
+//	@Description	Returns the authenticated user. The token itself is never echoed back.
 //	@Tags			session
 //	@Produce		json
 //	@Security		bearerAuth

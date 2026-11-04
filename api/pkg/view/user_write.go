@@ -12,17 +12,6 @@ type ChangePasswordRequest struct {
 	Password string `json:"password" example:"new-passphrase"`
 }
 
-// UserRoles is the GET/PUT /users/{name}/roles payload.
-type UserRoles struct {
-	Name  string   `json:"name" example:"alice"`
-	Roles []string `json:"roles" example:"User,Repository-Creator"`
-}
-
-// UserRolesRequest replaces the whole role set of one account.
-type UserRolesRequest struct {
-	Roles []string `json:"roles" example:"User,Repository-Creator"`
-}
-
 // UserGroups is the GET/PUT /users/{name}/groups payload.
 type UserGroups struct {
 	Name   string   `json:"name" example:"alice"`

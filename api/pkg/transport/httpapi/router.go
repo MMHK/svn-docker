@@ -32,7 +32,6 @@ type Options struct {
 	Group      *presenter.Group
 	Repo       *presenter.Repository
 	AccessPath *presenter.AccessPath
-	Role       *presenter.Role
 	Web        http.Handler
 }
 
@@ -49,7 +48,6 @@ type API struct {
 	group      *presenter.Group
 	repo       *presenter.Repository
 	accessPath *presenter.AccessPath
-	role       *presenter.Role
 	web        http.Handler
 }
 
@@ -79,7 +77,7 @@ func New(opts Options) (http.Handler, error) {
 		return nil, errors.New("httpapi: setup presenter is required")
 	}
 
-	if opts.User == nil || opts.Group == nil || opts.Repo == nil || opts.AccessPath == nil || opts.Role == nil {
+	if opts.User == nil || opts.Group == nil || opts.Repo == nil || opts.AccessPath == nil {
 		return nil, errors.New("httpapi: read presenters are required")
 	}
 
@@ -100,7 +98,6 @@ func New(opts Options) (http.Handler, error) {
 		group:      opts.Group,
 		repo:       opts.Repo,
 		accessPath: opts.AccessPath,
-		role:       opts.Role,
 		web:        web,
 	}
 
@@ -122,8 +119,6 @@ func New(opts Options) (http.Handler, error) {
 	mux.HandleFunc("GET /svnadmin/api/v1/users/{name}", api.getUser)
 	mux.HandleFunc("DELETE /svnadmin/api/v1/users/{name}", api.deleteUser)
 	mux.HandleFunc("PUT /svnadmin/api/v1/users/{name}/password", api.changeUserPassword)
-	mux.HandleFunc("GET /svnadmin/api/v1/users/{name}/roles", api.getUserRoles)
-	mux.HandleFunc("PUT /svnadmin/api/v1/users/{name}/roles", api.setUserRoles)
 	mux.HandleFunc("GET /svnadmin/api/v1/users/{name}/groups", api.getUserGroups)
 	mux.HandleFunc("PUT /svnadmin/api/v1/users/{name}/groups", api.setUserGroups)
 	mux.HandleFunc("GET /svnadmin/api/v1/users/{name}/access-paths", api.getUserAccessPaths)
@@ -148,10 +143,6 @@ func New(opts Options) (http.Handler, error) {
 	mux.HandleFunc("GET /svnadmin/api/v1/access-paths/{path}/acl", api.getAccessPathACL)
 	mux.HandleFunc("PUT /svnadmin/api/v1/access-paths/{path}/acl/{principal}", api.setAccessPathACL)
 	mux.HandleFunc("DELETE /svnadmin/api/v1/access-paths/{path}/acl/{principal}", api.deleteAccessPathACL)
-	mux.HandleFunc("GET /svnadmin/api/v1/access-paths/{path}/managers", api.getAccessPathManagers)
-	mux.HandleFunc("PUT /svnadmin/api/v1/access-paths/{path}/managers", api.setAccessPathManagers)
-
-	mux.HandleFunc("GET /svnadmin/api/v1/roles", api.listRoles)
 
 	if api.cfg.EnableDocs {
 		mux.HandleFunc("GET /svnadmin/api/docs/openapi.json", api.openapiJSON)

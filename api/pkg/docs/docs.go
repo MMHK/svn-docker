@@ -67,7 +67,7 @@ const docTemplate = `{
                         "bearerAuth": []
                     }
                 ],
-                "description": "Every non-groups section of the authz file, with its ACL and project managers. Principals are returned verbatim so $authenticated, $anonymous and \u0026aliases stay visible.",
+                "description": "Every non-groups section of the authz file, with its ACL. Principals are returned verbatim so $authenticated, $anonymous and \u0026aliases stay visible.",
                 "produces": [
                     "application/json"
                 ],
@@ -134,7 +134,7 @@ const docTemplate = `{
                         "bearerAuth": []
                     }
                 ],
-                "description": "Appends a ` + "`" + `\u003crepo\u003e:/\u003cpath\u003e` + "`" + ` section. The path must match ^[A-Za-z0-9_-]{1,64}:/.*$ and must not contain '..', NUL, a control character or a backslash. A Project-Manager may only create paths under a path they manage.",
+                "description": "Appends a ` + "`" + `\u003crepo\u003e:/\u003cpath\u003e` + "`" + ` section. The path must match ^[A-Za-z0-9_-]{1,64}:/.*$ and must not contain '..', NUL, a control character or a backslash.",
                 "consumes": [
                     "application/json"
                 ],
@@ -176,7 +176,7 @@ const docTemplate = `{
                         }
                     },
                     "403": {
-                        "description": "outside the project-manager scope",
+                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
                         }
@@ -209,7 +209,7 @@ const docTemplate = `{
                         "bearerAuth": []
                     }
                 ],
-                "description": "Removes the section and every ACL entry in it, then clears the matching ` + "`" + `[user:AccessPaths]` + "`" + ` project-manager assignments. A Project-Manager may only delete a path they manage or one of its children.",
+                "description": "Removes the section and every ACL entry in it.",
                 "tags": [
                     "access-paths"
                 ],
@@ -252,7 +252,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "the section was removed but a manager assignment could not be",
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
                         }
@@ -469,155 +469,6 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    },
-                    "503": {
-                        "description": "setup_required",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    }
-                }
-            }
-        },
-        "/svnadmin/api/v1/access-paths/{path}/managers": {
-            "get": {
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "access-paths"
-                ],
-                "summary": "List the project managers of an access path",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "URL-safe base64 of \u003crepo\u003e:/\u003cpath\u003e",
-                        "name": "path",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.AccessPathManagers"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    },
-                    "503": {
-                        "description": "setup_required",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ],
-                "description": "Adds and removes ` + "`" + `[user:AccessPaths]` + "`" + ` index entries in the role file. ` + "`" + `/` + "`" + ` cannot be delegated.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "access-paths"
-                ],
-                "summary": "Replace the project managers of an access path",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "URL-safe base64 of \u003crepo\u003e:/\u003cpath\u003e",
-                        "name": "path",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "complete manager list",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.AccessPathManagersRequest"
-                        }
-                    },
-                    {
-                        "type": "string",
-                        "description": "sha256 of the role file the edit is based on",
-                        "name": "If-Match",
-                        "in": "header"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.AccessPathManagers"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
                         }
@@ -1226,7 +1077,7 @@ const docTemplate = `{
                         }
                     },
                     "403": {
-                        "description": "role does not permit repository:add",
+                        "description": "deletion is disabled",
                         "schema": {
                             "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
                         }
@@ -1309,7 +1160,7 @@ const docTemplate = `{
                         }
                     },
                     "403": {
-                        "description": "role does not permit repository:delete, or deletion is disabled",
+                        "description": "deletion is disabled",
                         "schema": {
                             "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
                         }
@@ -1517,49 +1368,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/svnadmin/api/v1/roles": {
-            "get": {
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ],
-                "description": "Returns the role catalogue used by userroleassignments.ini together with a description of each role.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "roles"
-                ],
-                "summary": "List the fixed roles",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.RoleList"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    },
-                    "503": {
-                        "description": "setup_required",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    }
-                }
-            }
-        },
         "/svnadmin/api/v1/session": {
             "get": {
                 "security": [
@@ -1567,7 +1375,7 @@ const docTemplate = `{
                         "bearerAuth": []
                     }
                 ],
-                "description": "Returns the authenticated user, roles and permissions. The token itself is never echoed back.",
+                "description": "Returns the authenticated user. The token itself is never echoed back.",
                 "produces": [
                     "application/json"
                 ],
@@ -1721,7 +1529,7 @@ const docTemplate = `{
         },
         "/svnadmin/api/v1/setup/admin": {
             "post": {
-                "description": "Requires the one-time bootstrap token from SVN_ADMIN_BOOTSTRAP_TOKEN (or the token printed to stderr at startup). When the account does not exist yet a password is required and the account is created; when it exists the password is ignored. Missing auth/access/role files are created. Other API routes answer 503 setup_required until this succeeds.",
+                "description": "Requires the one-time bootstrap token from SVN_ADMIN_BOOTSTRAP_TOKEN (or the token printed to stderr at startup). When the account does not exist yet a password is required and the account is created; when it exists the password is ignored. Missing auth/access files are created. Other API routes answer 503 setup_required until this succeeds.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1769,13 +1577,13 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "the role write failed; a freshly created account is rolled back",
+                        "description": "the write failed; a freshly created account is rolled back",
                         "schema": {
                             "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
                         }
                     },
                     "503": {
-                        "description": "storage_unavailable: the auth/access/role directory is missing or not writable",
+                        "description": "storage_unavailable: the auth/access directory is missing or not writable",
                         "schema": {
                             "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
                         }
@@ -1859,7 +1667,7 @@ const docTemplate = `{
                         "bearerAuth": []
                     }
                 ],
-                "description": "Paged list of htpasswd accounts with their roles and groups. Password hashes are never returned.",
+                "description": "Paged list of htpasswd accounts with their groups. Password hashes are never returned.",
                 "produces": [
                     "application/json"
                 ],
@@ -2056,7 +1864,7 @@ const docTemplate = `{
                         "bearerAuth": []
                     }
                 ],
-                "description": "Removes the account from every authz group, every access-path ACL, the role file (roles and ` + "`" + `[user:AccessPaths]` + "`" + `) and finally the htpasswd file. The steps run in that order; a failure returns 500 with the steps that already completed. ` + "`" + `*` + "`" + ` is rejected.",
+                "description": "Removes the account from every authz group, every access-path ACL and finally the htpasswd file. The steps run in that order; a failure returns 500 with the steps that already completed. ` + "`" + `*` + "`" + ` is rejected.",
                 "tags": [
                     "users"
                 ],
@@ -2321,7 +2129,7 @@ const docTemplate = `{
                         "bearerAuth": []
                     }
                 ],
-                "description": "Rewrites only the target htpasswd line with a fresh APR1 hash and revokes every token of that account, including the caller's own token when they rotate their own password. Changing somebody else's password needs user:changepass-other; changing your own needs user:changepass.",
+                "description": "Rewrites only the target htpasswd line with a fresh APR1 hash and revokes every token of that account, including the caller's own token when they rotate their own password. Every authenticated operator may change any account password.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2398,143 +2206,6 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/svnadmin/api/v1/users/{name}/roles": {
-            "get": {
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Read the roles of an account",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "account name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.UserRoles"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ],
-                "description": "Rewrites only the ` + "`" + `[user]` + "`" + ` block of userroleassignments.ini, preserving comments, ordering, other accounts and the ` + "`" + `[user:AccessPaths]` + "`" + ` block. Unknown roles are rejected with 422. The affected account's tokens are revoked because roles are baked into the session at login.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Replace the roles of an account",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "account name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "complete role set",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.UserRolesRequest"
-                        }
-                    },
-                    {
-                        "type": "string",
-                        "description": "sha256 of the role file the edit is based on",
-                        "name": "If-Match",
-                        "in": "header"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.UserRoles"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
@@ -2565,15 +2236,6 @@ const docTemplate = `{
                         "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ACLEntry"
                     }
                 },
-                "managers": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "alice"
-                    ]
-                },
                 "path": {
                     "type": "string",
                     "example": "project:/trunk"
@@ -2600,38 +2262,6 @@ const docTemplate = `{
                 "total": {
                     "type": "integer",
                     "example": 1
-                }
-            }
-        },
-        "github_com_mmhk_svn-admin_pkg_view.AccessPathManagers": {
-            "type": "object",
-            "properties": {
-                "path": {
-                    "type": "string",
-                    "example": "project:/trunk"
-                },
-                "users": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "alice"
-                    ]
-                }
-            }
-        },
-        "github_com_mmhk_svn-admin_pkg_view.AccessPathManagersRequest": {
-            "type": "object",
-            "properties": {
-                "users": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "alice"
-                    ]
                 }
             }
         },
@@ -3080,30 +2710,6 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_mmhk_svn-admin_pkg_view.Role": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string",
-                    "example": "Full control over the management API."
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Administrator"
-                }
-            }
-        },
-        "github_com_mmhk_svn-admin_pkg_view.RoleList": {
-            "type": "object",
-            "properties": {
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.Role"
-                    }
-                }
-            }
-        },
         "github_com_mmhk_svn-admin_pkg_view.Session": {
             "type": "object",
             "properties": {
@@ -3115,25 +2721,6 @@ const docTemplate = `{
                 },
                 "me": {
                     "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.SessionUser"
-                },
-                "permissions": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "repository:view",
-                        "user:view"
-                    ]
-                },
-                "roles": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "Administrator"
-                    ]
                 },
                 "token": {
                     "type": "string",
@@ -3147,15 +2734,6 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "example": "alice"
-                },
-                "roles": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "Administrator"
-                    ]
                 }
             }
         },
@@ -3242,38 +2820,12 @@ const docTemplate = `{
                     },
                     "example": [
                         "authFile",
-                        "accessFile",
-                        "roleFile"
+                        "accessFile"
                     ]
-                },
-                "role": {
-                    "type": "string",
-                    "example": "Administrator"
                 },
                 "username": {
                     "type": "string",
                     "example": "alice"
-                }
-            }
-        },
-        "github_com_mmhk_svn-admin_pkg_view.SetupRoleFileStatus": {
-            "type": "object",
-            "properties": {
-                "administratorPresent": {
-                    "type": "boolean",
-                    "example": false
-                },
-                "exists": {
-                    "type": "boolean",
-                    "example": false
-                },
-                "readable": {
-                    "type": "boolean",
-                    "example": false
-                },
-                "writable": {
-                    "type": "boolean",
-                    "example": false
                 }
             }
         },
@@ -3292,10 +2844,7 @@ const docTemplate = `{
                 },
                 "reason": {
                     "type": "string",
-                    "example": "no_admin"
-                },
-                "roleFile": {
-                    "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.SetupRoleFileStatus"
+                    "example": "no_users"
                 },
                 "setupRequired": {
                     "type": "boolean",
@@ -3368,16 +2917,6 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "example": "alice"
-                },
-                "roles": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "User",
-                        "Repository-Creator"
-                    ]
                 },
                 "updatedAt": {
                     "type": "string"
@@ -3487,40 +3026,6 @@ const docTemplate = `{
                 "total": {
                     "type": "integer",
                     "example": 1
-                }
-            }
-        },
-        "github_com_mmhk_svn-admin_pkg_view.UserRoles": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "example": "alice"
-                },
-                "roles": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "User",
-                        "Repository-Creator"
-                    ]
-                }
-            }
-        },
-        "github_com_mmhk_svn-admin_pkg_view.UserRolesRequest": {
-            "type": "object",
-            "properties": {
-                "roles": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "User",
-                        "Repository-Creator"
-                    ]
                 }
             }
         }

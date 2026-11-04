@@ -11,24 +11,11 @@ import (
 	"github.com/mmhk/svn-admin/pkg/view"
 )
 
-const p3RoleFile = `[testuser]
-Administrator=
-
-[viewer]
-User=
-
-[pm]
-Project-Manager=
-
-[pm:AccessPaths]
-0=repo1:/
-`
-
 func encodedPath(path string) string {
 	return base64.RawURLEncoding.EncodeToString([]byte(path))
 }
 
-// addAccount appends one htpasswd line so a P3 test can log in as a role that
+// addAccount appends one htpasswd line so a test can log in as an account that
 // is not part of the default fixture.
 func addAccount(t *testing.T, env testEnv, name string) {
 	t.Helper()
@@ -55,19 +42,8 @@ func readAccess(t *testing.T, env testEnv) string {
 	return string(data)
 }
 
-func readRoles(t *testing.T, env testEnv) string {
-	t.Helper()
-
-	data, err := os.ReadFile(env.rolesPath)
-	if err != nil {
-		t.Fatalf("read role file: %v", err)
-	}
-
-	return string(data)
-}
-
 func TestGroupLifecycleAndACL(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 
 	created := env.request(t, http.MethodPost, "/svnadmin/api/v1/groups", "127.0.0.1:5555",
@@ -180,8 +156,8 @@ func hasUserAccess(list view.UserAccessPaths, path, source, group string) bool {
 	return false
 }
 
-func TestGroupValidationAndPermissions(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+func TestGroupValidation(t *testing.T) {
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 
 	for _, body := range []string{
@@ -197,149 +173,14 @@ func TestGroupValidationAndPermissions(t *testing.T) {
 		}
 	}
 
-	viewer := env.mustToken(t, "viewer", testPassword)
-
-	recorder := env.request(t, http.MethodPost, "/svnadmin/api/v1/groups", "127.0.0.1:5555",
-		bearer(viewer), `{"name":"sneaky"}`)
-	if recorder.Code != http.StatusForbidden {
-		t.Errorf("plain user create group status = %d, want 403", recorder.Code)
-	}
-
 	if missing := env.request(t, http.MethodGet, "/svnadmin/api/v1/groups/nope/members", "127.0.0.1:5555",
 		bearer(admin), ""); missing.Code != http.StatusNotFound {
 		t.Errorf("missing group members status = %d, want 404", missing.Code)
 	}
 }
 
-func TestProjectManagerScope(t *testing.T) {
-	env := newTestEnv(t, p3RoleFile, nil)
-	addAccount(t, env, "pm")
-
-	admin := env.mustToken(t, "testuser", testPassword)
-
-	// The manager needs a child path to edit.
-	if created := env.request(t, http.MethodPost, "/svnadmin/api/v1/access-paths", "127.0.0.1:5555",
-		bearer(admin), `{"path":"repo1:/sub"}`); created.Code != http.StatusCreated {
-		t.Fatalf("admin create path status = %d, body = %s", created.Code, created.Body.String())
-	}
-
-	pm := env.mustToken(t, "pm", testPassword)
-	managed := encodedPath("repo1:/")
-	child := encodedPath("repo1:/sub")
-	outside := encodedPath("repo2:/trunk")
-
-	for _, test := range []struct {
-		name   string
-		method string
-		target string
-		body   string
-		want   int
-	}{
-		{"exact managed path", http.MethodPut, "/svnadmin/api/v1/access-paths/" + managed + "/acl/alice", `{"permission":"r"}`, http.StatusOK},
-		{"child path", http.MethodPut, "/svnadmin/api/v1/access-paths/" + child + "/acl/alice", `{"permission":"r"}`, http.StatusOK},
-		{"outside path", http.MethodPut, "/svnadmin/api/v1/access-paths/" + outside + "/acl/alice", `{"permission":"r"}`, http.StatusForbidden},
-		{"outside delete", http.MethodDelete, "/svnadmin/api/v1/access-paths/" + outside + "/acl/viewer", "", http.StatusForbidden},
-		{"add under managed", http.MethodPost, "/svnadmin/api/v1/access-paths", `{"path":"repo1:/deeper"}`, http.StatusCreated},
-		{"add outside", http.MethodPost, "/svnadmin/api/v1/access-paths", `{"path":"repo2:/bad"}`, http.StatusForbidden},
-	} {
-		recorder := env.request(t, test.method, test.target, "127.0.0.1:5555", bearer(pm), test.body)
-		if recorder.Code != test.want {
-			t.Errorf("%s status = %d, want %d (body %s)", test.name, recorder.Code, test.want, recorder.Body.String())
-		}
-	}
-
-	deleted := env.request(t, http.MethodDelete,
-		"/svnadmin/api/v1/access-paths/"+encodedPath("repo1:/deeper"), "127.0.0.1:5555", bearer(pm), "")
-	if deleted.Code != http.StatusNoContent {
-		t.Errorf("delete managed child status = %d, body = %s", deleted.Code, deleted.Body.String())
-	}
-
-	// The deployment administrator is not limited by a manager scope.
-	if recorder := env.request(t, http.MethodPut,
-		"/svnadmin/api/v1/access-paths/"+outside+"/acl/alice", "127.0.0.1:5555",
-		bearer(admin), `{"permission":"r"}`); recorder.Code != http.StatusOK {
-		t.Errorf("admin outside path status = %d, body = %s", recorder.Code, recorder.Body.String())
-	}
-}
-
-func TestDeleteAccessPathClearsManagerAssignment(t *testing.T) {
-	env := newTestEnv(t, p3RoleFile, nil)
-	admin := env.mustToken(t, "testuser", testPassword)
-
-	if !strings.Contains(readRoles(t, env), "repo1:/") {
-		t.Fatal("the fixture is missing the manager assignment")
-	}
-
-	recorder := env.request(t, http.MethodDelete, "/svnadmin/api/v1/access-paths/"+encodedPath("repo1:/"),
-		"127.0.0.1:5555", bearer(admin), "")
-	if recorder.Code != http.StatusNoContent {
-		t.Fatalf("delete path status = %d, body = %s", recorder.Code, recorder.Body.String())
-	}
-
-	if strings.Contains(readRoles(t, env), "repo1:/") {
-		t.Errorf("the project-manager assignment survived:\n%s", readRoles(t, env))
-	}
-
-	if strings.Contains(readAccess(t, env), "[repo1:/]") {
-		t.Errorf("the authz section survived:\n%s", readAccess(t, env))
-	}
-
-	if recorder := env.request(t, http.MethodDelete, "/svnadmin/api/v1/access-paths/"+encodedPath("repo1:/"),
-		"127.0.0.1:5555", bearer(admin), ""); recorder.Code != http.StatusNotFound {
-		t.Errorf("second delete status = %d, want 404", recorder.Code)
-	}
-}
-
-func TestSetAccessPathManagers(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
-	admin := env.mustToken(t, "testuser", testPassword)
-	path := encodedPath("repo1:/")
-
-	recorder := env.request(t, http.MethodPut, "/svnadmin/api/v1/access-paths/"+path+"/managers",
-		"127.0.0.1:5555", bearer(admin), `{"users":["pm","viewer"]}`)
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("set managers status = %d, body = %s", recorder.Code, recorder.Body.String())
-	}
-
-	managers := decodeBody[view.AccessPathManagers](t, recorder)
-	if managers.Path != "repo1:/" || len(managers.Users) != 2 || managers.Users[0] != "pm" {
-		t.Errorf("managers = %+v", managers)
-	}
-
-	roles := readRoles(t, env)
-	if !strings.Contains(roles, "[pm:AccessPaths]") || !strings.Contains(roles, "0=repo1:/") {
-		t.Errorf("the manager assignment was not written with index keys:\n%s", roles)
-	}
-
-	acl := env.request(t, http.MethodGet, "/svnadmin/api/v1/access-paths/"+path+"/acl", "127.0.0.1:5555",
-		bearer(admin), "")
-	if acl.Code != http.StatusOK {
-		t.Fatalf("acl status = %d", acl.Code)
-	}
-
-	if body := decodeBody[view.AccessPath](t, acl); len(body.Managers) != 2 {
-		t.Errorf("acl managers = %v", body.Managers)
-	}
-
-	shrink := env.request(t, http.MethodPut, "/svnadmin/api/v1/access-paths/"+path+"/managers",
-		"127.0.0.1:5555", bearer(admin), `{"users":["pm"]}`)
-	if shrink.Code != http.StatusOK {
-		t.Fatalf("shrink managers status = %d, body = %s", shrink.Code, shrink.Body.String())
-	}
-
-	if strings.Count(readRoles(t, env), "repo1:/") != 1 {
-		t.Errorf("the removed manager is still assigned:\n%s", readRoles(t, env))
-	}
-
-	root := env.request(t, http.MethodPut, "/svnadmin/api/v1/access-paths/"+encodedPath("/")+"/managers",
-		"127.0.0.1:5555", bearer(admin), `{"users":["pm"]}`)
-	if root.Code != http.StatusUnprocessableEntity {
-		t.Errorf("root manager status = %d, want 422", root.Code)
-	}
-}
-
 func TestAccessPathValidationAndReadOnlyPrincipals(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 
 	for _, body := range []string{
@@ -388,7 +229,7 @@ func TestAccessPathValidationAndReadOnlyPrincipals(t *testing.T) {
 }
 
 func TestUserAccessPathsThreeSources(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 	repo2 := encodedPath("repo2:/trunk")
 
@@ -440,7 +281,7 @@ func TestUserAccessPathsThreeSources(t *testing.T) {
 }
 
 func TestAuthzFileStaysLosslessThroughAPI(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 
 	// Re-write the fixture with CRLF so the API test also covers line endings.
 	crlf := strings.ReplaceAll(defaultAccessFile, "\n", "\r\n")
@@ -471,7 +312,7 @@ func TestAuthzFileStaysLosslessThroughAPI(t *testing.T) {
 
 // TestConcurrentACLWritesOverHTTP checks plan section 7.2 check 9 end to end.
 func TestConcurrentACLWritesOverHTTP(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 	path := encodedPath("repo2:/trunk")
 

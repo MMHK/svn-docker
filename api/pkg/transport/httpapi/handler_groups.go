@@ -3,7 +3,6 @@ package httpapi
 import (
 	"net/http"
 
-	"github.com/mmhk/svn-admin/pkg/auth"
 	"github.com/mmhk/svn-admin/pkg/model"
 	"github.com/mmhk/svn-admin/pkg/view"
 )
@@ -24,12 +23,6 @@ import (
 //	@Failure		503		{object}	view.ErrorEnvelope	"setup_required"
 //	@Router			/svnadmin/api/v1/groups [get]
 func (a *API) listGroups(w http.ResponseWriter, r *http.Request) {
-	if err := a.authorize(r, auth.ModuleGroup, auth.ActionView); err != nil {
-		a.writeError(w, r, err)
-
-		return
-	}
-
 	query, err := parsePageQuery(r)
 	if err != nil {
 		a.writeError(w, r, err)
@@ -64,12 +57,6 @@ func (a *API) listGroups(w http.ResponseWriter, r *http.Request) {
 //	@Failure		503		{object}	view.ErrorEnvelope	"setup_required"
 //	@Router			/svnadmin/api/v1/groups/{name} [get]
 func (a *API) getGroup(w http.ResponseWriter, r *http.Request) {
-	if err := a.authorize(r, auth.ModuleGroup, auth.ActionView); err != nil {
-		a.writeError(w, r, err)
-
-		return
-	}
-
 	group, err := a.group.Get(r.Context(), r.PathValue("name"))
 	if err != nil {
 		a.writeError(w, r, err)
@@ -99,12 +86,6 @@ func (a *API) getGroup(w http.ResponseWriter, r *http.Request) {
 //	@Failure		503			{object}	view.ErrorEnvelope	"setup_required"
 //	@Router			/svnadmin/api/v1/groups [post]
 func (a *API) createGroup(w http.ResponseWriter, r *http.Request) {
-	if err := a.authorize(r, auth.ModuleGroup, auth.ActionAdd); err != nil {
-		a.writeError(w, r, err)
-
-		return
-	}
-
 	opts, err := ifMatchOptions(r)
 	if err != nil {
 		a.auditWrite(r, actionGroupCreate, "", err)
@@ -150,12 +131,6 @@ func (a *API) createGroup(w http.ResponseWriter, r *http.Request) {
 //	@Failure		503		{object}	view.ErrorEnvelope	"setup_required"
 //	@Router			/svnadmin/api/v1/groups/{name} [delete]
 func (a *API) deleteGroup(w http.ResponseWriter, r *http.Request) {
-	if err := a.authorize(r, auth.ModuleGroup, auth.ActionDelete); err != nil {
-		a.writeError(w, r, err)
-
-		return
-	}
-
 	target := r.PathValue("name")
 
 	if err := a.group.Delete(r.Context(), target, model.WriteOptions{}); err != nil {
@@ -185,12 +160,6 @@ func (a *API) deleteGroup(w http.ResponseWriter, r *http.Request) {
 //	@Failure		503		{object}	view.ErrorEnvelope	"setup_required"
 //	@Router			/svnadmin/api/v1/groups/{name}/members [get]
 func (a *API) getGroupMembers(w http.ResponseWriter, r *http.Request) {
-	if err := a.authorize(r, auth.ModuleGroup, auth.ActionView); err != nil {
-		a.writeError(w, r, err)
-
-		return
-	}
-
 	members, err := a.group.Members(r.Context(), r.PathValue("name"))
 	if err != nil {
 		a.writeError(w, r, err)
@@ -221,12 +190,6 @@ func (a *API) getGroupMembers(w http.ResponseWriter, r *http.Request) {
 //	@Failure		503			{object}	view.ErrorEnvelope	"setup_required"
 //	@Router			/svnadmin/api/v1/groups/{name}/members [put]
 func (a *API) setGroupMembers(w http.ResponseWriter, r *http.Request) {
-	if err := a.authorize(r, auth.ModuleGroup, auth.ActionAssign); err != nil {
-		a.writeError(w, r, err)
-
-		return
-	}
-
 	target := r.PathValue("name")
 
 	opts, err := ifMatchOptions(r)
@@ -272,12 +235,6 @@ func (a *API) setGroupMembers(w http.ResponseWriter, r *http.Request) {
 //	@Failure		503		{object}	view.ErrorEnvelope	"setup_required"
 //	@Router			/svnadmin/api/v1/groups/{name}/access-paths [get]
 func (a *API) getGroupAccessPaths(w http.ResponseWriter, r *http.Request) {
-	if err := a.authorize(r, auth.ModuleGroup, auth.ActionView); err != nil {
-		a.writeError(w, r, err)
-
-		return
-	}
-
 	paths, err := a.group.AccessPaths(r.Context(), r.PathValue("name"))
 	if err != nil {
 		a.writeError(w, r, err)

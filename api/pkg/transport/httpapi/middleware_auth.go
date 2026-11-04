@@ -118,20 +118,6 @@ func bearerToken(r *http.Request) (string, error) {
 	return value, nil
 }
 
-// authorize applies the static RBAC matrix to the validated session.
-func (a *API) authorize(r *http.Request, module auth.Module, action auth.Action) error {
-	session, ok := sessionFromContext(r.Context())
-	if !ok {
-		return &model.UnauthorizedError{Reason: "authentication required"}
-	}
-
-	if !auth.Allowed(session.Roles, module, action) {
-		return &model.ForbiddenError{Reason: "role does not permit this operation"}
-	}
-
-	return nil
-}
-
 // sessionToken returns the raw bearer token for refresh/logout.
 func sessionToken(r *http.Request) (string, error) {
 	return bearerToken(r)

@@ -19,12 +19,6 @@ definitions:
         items:
           $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ACLEntry'
         type: array
-      managers:
-        example:
-        - alice
-        items:
-          type: string
-        type: array
       path:
         example: project:/trunk
         type: string
@@ -44,27 +38,6 @@ definitions:
       total:
         example: 1
         type: integer
-    type: object
-  github_com_mmhk_svn-admin_pkg_view.AccessPathManagers:
-    properties:
-      path:
-        example: project:/trunk
-        type: string
-      users:
-        example:
-        - alice
-        items:
-          type: string
-        type: array
-    type: object
-  github_com_mmhk_svn-admin_pkg_view.AccessPathManagersRequest:
-    properties:
-      users:
-        example:
-        - alice
-        items:
-          type: string
-        type: array
     type: object
   github_com_mmhk_svn-admin_pkg_view.ChangePasswordRequest:
     properties:
@@ -376,22 +349,6 @@ definitions:
         example: 1
         type: integer
     type: object
-  github_com_mmhk_svn-admin_pkg_view.Role:
-    properties:
-      description:
-        example: Full control over the management API.
-        type: string
-      name:
-        example: Administrator
-        type: string
-    type: object
-  github_com_mmhk_svn-admin_pkg_view.RoleList:
-    properties:
-      items:
-        items:
-          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.Role'
-        type: array
-    type: object
   github_com_mmhk_svn-admin_pkg_view.Session:
     properties:
       expiresAt:
@@ -400,19 +357,6 @@ definitions:
         type: string
       me:
         $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.SessionUser'
-      permissions:
-        example:
-        - repository:view
-        - user:view
-        items:
-          type: string
-        type: array
-      roles:
-        example:
-        - Administrator
-        items:
-          type: string
-        type: array
       token:
         example: svna_...
         type: string
@@ -422,12 +366,6 @@ definitions:
       name:
         example: alice
         type: string
-      roles:
-        example:
-        - Administrator
-        items:
-          type: string
-        type: array
     type: object
   github_com_mmhk_svn-admin_pkg_view.SetACLPermissionRequest:
     properties:
@@ -487,31 +425,12 @@ definitions:
         example:
         - authFile
         - accessFile
-        - roleFile
         items:
           type: string
         type: array
-      role:
-        example: Administrator
-        type: string
       username:
         example: alice
         type: string
-    type: object
-  github_com_mmhk_svn-admin_pkg_view.SetupRoleFileStatus:
-    properties:
-      administratorPresent:
-        example: false
-        type: boolean
-      exists:
-        example: false
-        type: boolean
-      readable:
-        example: false
-        type: boolean
-      writable:
-        example: false
-        type: boolean
     type: object
   github_com_mmhk_svn-admin_pkg_view.SetupStatus:
     properties:
@@ -523,10 +442,8 @@ definitions:
         example: true
         type: boolean
       reason:
-        example: no_admin
+        example: no_users
         type: string
-      roleFile:
-        $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.SetupRoleFileStatus'
       setupRequired:
         example: true
         type: boolean
@@ -577,13 +494,6 @@ definitions:
       name:
         example: alice
         type: string
-      roles:
-        example:
-        - User
-        - Repository-Creator
-        items:
-          type: string
-        type: array
       updatedAt:
         type: string
     type: object
@@ -661,29 +571,6 @@ definitions:
         example: 1
         type: integer
     type: object
-  github_com_mmhk_svn-admin_pkg_view.UserRoles:
-    properties:
-      name:
-        example: alice
-        type: string
-      roles:
-        example:
-        - User
-        - Repository-Creator
-        items:
-          type: string
-        type: array
-    type: object
-  github_com_mmhk_svn-admin_pkg_view.UserRolesRequest:
-    properties:
-      roles:
-        example:
-        - User
-        - Repository-Creator
-        items:
-          type: string
-        type: array
-    type: object
 info:
   contact: {}
   description: |-
@@ -724,9 +611,8 @@ paths:
       - system
   /svnadmin/api/v1/access-paths:
     get:
-      description: Every non-groups section of the authz file, with its ACL and project
-        managers. Principals are returned verbatim so $authenticated, $anonymous and
-        &aliases stay visible.
+      description: Every non-groups section of the authz file, with its ACL. Principals
+        are returned verbatim so $authenticated, $anonymous and &aliases stay visible.
       parameters:
       - description: case-insensitive path filter
         in: query
@@ -772,8 +658,7 @@ paths:
       consumes:
       - application/json
       description: Appends a `<repo>:/<path>` section. The path must match ^[A-Za-z0-9_-]{1,64}:/.*$
-        and must not contain '..', NUL, a control character or a backslash. A Project-Manager
-        may only create paths under a path they manage.
+        and must not contain '..', NUL, a control character or a backslash.
       parameters:
       - description: new access path
         in: body
@@ -797,7 +682,7 @@ paths:
           schema:
             $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
         "403":
-          description: outside the project-manager scope
+          description: Forbidden
           schema:
             $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
         "409":
@@ -819,9 +704,7 @@ paths:
       - access-paths
   /svnadmin/api/v1/access-paths/{path}:
     delete:
-      description: Removes the section and every ACL entry in it, then clears the
-        matching `[user:AccessPaths]` project-manager assignments. A Project-Manager
-        may only delete a path they manage or one of its children.
+      description: Removes the section and every ACL entry in it.
       parameters:
       - description: URL-safe base64 of <repo>:/<path>
         in: path
@@ -848,8 +731,7 @@ paths:
           schema:
             $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
         "500":
-          description: the section was removed but a manager assignment could not
-            be
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
         "503":
@@ -1007,103 +889,6 @@ paths:
       security:
       - bearerAuth: []
       summary: Set one ACL entry
-      tags:
-      - access-paths
-  /svnadmin/api/v1/access-paths/{path}/managers:
-    get:
-      parameters:
-      - description: URL-safe base64 of <repo>:/<path>
-        in: path
-        name: path
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.AccessPathManagers'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-        "503":
-          description: setup_required
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-      security:
-      - bearerAuth: []
-      summary: List the project managers of an access path
-      tags:
-      - access-paths
-    put:
-      consumes:
-      - application/json
-      description: Adds and removes `[user:AccessPaths]` index entries in the role
-        file. `/` cannot be delegated.
-      parameters:
-      - description: URL-safe base64 of <repo>:/<path>
-        in: path
-        name: path
-        required: true
-        type: string
-      - description: complete manager list
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.AccessPathManagersRequest'
-      - description: sha256 of the role file the edit is based on
-        in: header
-        name: If-Match
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.AccessPathManagers'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-        "503":
-          description: setup_required
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-      security:
-      - bearerAuth: []
-      summary: Replace the project managers of an access path
       tags:
       - access-paths
   /svnadmin/api/v1/groups:
@@ -1489,7 +1274,7 @@ paths:
           schema:
             $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
         "403":
-          description: role does not permit repository:add
+          description: deletion is disabled
           schema:
             $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
         "409":
@@ -1547,7 +1332,7 @@ paths:
           schema:
             $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
         "403":
-          description: role does not permit repository:delete, or deletion is disabled
+          description: deletion is disabled
           schema:
             $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
         "404":
@@ -1691,34 +1476,6 @@ paths:
       summary: Browse a repository directory
       tags:
       - repositories
-  /svnadmin/api/v1/roles:
-    get:
-      description: Returns the role catalogue used by userroleassignments.ini together
-        with a description of each role.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.RoleList'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-        "503":
-          description: setup_required
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-      security:
-      - bearerAuth: []
-      summary: List the fixed roles
-      tags:
-      - roles
   /svnadmin/api/v1/session:
     delete:
       description: Revokes the bearer token. The call is idempotent and returns 204
@@ -1740,8 +1497,8 @@ paths:
       tags:
       - session
     get:
-      description: Returns the authenticated user, roles and permissions. The token
-        itself is never echoed back.
+      description: Returns the authenticated user. The token itself is never echoed
+        back.
       produces:
       - application/json
       responses:
@@ -1832,8 +1589,8 @@ paths:
       description: Requires the one-time bootstrap token from SVN_ADMIN_BOOTSTRAP_TOKEN
         (or the token printed to stderr at startup). When the account does not exist
         yet a password is required and the account is created; when it exists the
-        password is ignored. Missing auth/access/role files are created. Other API
-        routes answer 503 setup_required until this succeeds.
+        password is ignored. Missing auth/access files are created. Other API routes
+        answer 503 setup_required until this succeeds.
       parameters:
       - description: account name, optional password and bootstrap token
         in: body
@@ -1861,12 +1618,11 @@ paths:
           schema:
             $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
         "500":
-          description: the role write failed; a freshly created account is rolled
-            back
+          description: the write failed; a freshly created account is rolled back
           schema:
             $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
         "503":
-          description: 'storage_unavailable: the auth/access/role directory is missing
+          description: 'storage_unavailable: the auth/access directory is missing
             or not writable'
           schema:
             $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
@@ -1923,8 +1679,8 @@ paths:
       - system
   /svnadmin/api/v1/users:
     get:
-      description: Paged list of htpasswd accounts with their roles and groups. Password
-        hashes are never returned.
+      description: Paged list of htpasswd accounts with their groups. Password hashes
+        are never returned.
       parameters:
       - description: case-insensitive name filter
         in: query
@@ -2013,10 +1769,9 @@ paths:
       - users
   /svnadmin/api/v1/users/{name}:
     delete:
-      description: Removes the account from every authz group, every access-path ACL,
-        the role file (roles and `[user:AccessPaths]`) and finally the htpasswd file.
-        The steps run in that order; a failure returns 500 with the steps that already
-        completed. `*` is rejected.
+      description: Removes the account from every authz group, every access-path ACL
+        and finally the htpasswd file. The steps run in that order; a failure returns
+        500 with the steps that already completed. `*` is rejected.
       parameters:
       - description: account name
         in: path
@@ -2232,8 +1987,8 @@ paths:
       - application/json
       description: Rewrites only the target htpasswd line with a fresh APR1 hash and
         revokes every token of that account, including the caller's own token when
-        they rotate their own password. Changing somebody else's password needs user:changepass-other;
-        changing your own needs user:changepass.
+        they rotate their own password. Every authenticated operator may change any
+        account password.
       parameters:
       - description: account name
         in: path
@@ -2282,97 +2037,6 @@ paths:
       security:
       - bearerAuth: []
       summary: Change an account password
-      tags:
-      - users
-  /svnadmin/api/v1/users/{name}/roles:
-    get:
-      parameters:
-      - description: account name
-        in: path
-        name: name
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.UserRoles'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-      security:
-      - bearerAuth: []
-      summary: Read the roles of an account
-      tags:
-      - users
-    put:
-      consumes:
-      - application/json
-      description: Rewrites only the `[user]` block of userroleassignments.ini, preserving
-        comments, ordering, other accounts and the `[user:AccessPaths]` block. Unknown
-        roles are rejected with 422. The affected account's tokens are revoked because
-        roles are baked into the session at login.
-      parameters:
-      - description: account name
-        in: path
-        name: name
-        required: true
-        type: string
-      - description: complete role set
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.UserRolesRequest'
-      - description: sha256 of the role file the edit is based on
-        in: header
-        name: If-Match
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.UserRoles'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
-      security:
-      - bearerAuth: []
-      summary: Replace the roles of an account
       tags:
       - users
 securityDefinitions:

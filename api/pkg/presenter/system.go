@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/mmhk/svn-admin/pkg/config"
-	"github.com/mmhk/svn-admin/pkg/model"
 	"github.com/mmhk/svn-admin/pkg/view"
 )
 
@@ -18,21 +17,12 @@ import (
 type System struct {
 	version string
 	cfg     config.Config
-	roles   model.RoleStore
 	now     func() time.Time
 }
 
-// NewSystem builds the system presenter. The optional role store enables the
-// administrator readiness probe; without it the probe reports the bootstrap
-// state as unknown.
-func NewSystem(version string, cfg config.Config, roles ...model.RoleStore) *System {
-	system := &System{version: version, cfg: cfg, now: time.Now}
-
-	if len(roles) > 0 {
-		system.roles = roles[0]
-	}
-
-	return system
+// NewSystem builds the system presenter.
+func NewSystem(version string, cfg config.Config) *System {
+	return &System{version: version, cfg: cfg, now: time.Now}
 }
 
 // Info reports the service version, runtime and the state of the configured
@@ -53,13 +43,11 @@ func (p *System) Info(_ context.Context) view.SystemInfo {
 
 // Ready checks that the SVN data mount is usable. Messages intentionally do
 // not contain absolute paths; only /system/info reveals them.
-func (p *System) Ready(ctx context.Context) view.Readiness {
+func (p *System) Ready(_ context.Context) view.Readiness {
 	checks := []view.ReadinessCheck{
 		checkDirectory("svnParentPath", p.cfg.SVNParentPath),
 		checkFile("svnAuthFile", p.cfg.SVNAuthFile),
 		checkFile("svnAccessFile", p.cfg.SVNAccessFile),
-		checkSetupFile("roleFile", p.cfg.RoleFile),
-		p.checkAdministrator(ctx),
 	}
 
 	status := "ok"
@@ -72,56 +60,6 @@ func (p *System) Ready(ctx context.Context) view.Readiness {
 	}
 
 	return view.Readiness{Status: status, Checks: checks}
-}
-
-// checkSetupFile reports a file the bootstrap flow may create. A missing file
-// is not a readiness failure; an unreadable one is.
-func checkSetupFile(name, path string) view.ReadinessCheck {
-	info := inspectPath(path)
-	check := view.ReadinessCheck{Name: name, OK: true}
-
-	switch {
-	case !info.Exists:
-		check.Message = "missing (setup will create it)"
-	case info.IsDir:
-		check.OK, check.Message = false, "is a directory"
-	case !info.Readable:
-		check.OK, check.Message = false, "not readable"
-	}
-
-	return check
-}
-
-// checkAdministrator reports whether an administrator exists. Missing is a
-// normal first-run state, so it stays OK with a hint; an unreadable role file
-// is a real failure.
-func (p *System) checkAdministrator(ctx context.Context) view.ReadinessCheck {
-	check := view.ReadinessCheck{Name: "administrator", OK: true}
-
-	if p.roles == nil {
-		check.Message = "missing (bootstrap required)"
-
-		return check
-	}
-
-	assignments, err := p.roles.Assignments(ctx)
-	if err != nil {
-		check.OK, check.Message = false, "not readable"
-
-		return check
-	}
-
-	for _, roles := range assignments.Roles {
-		for _, role := range roles {
-			if role == model.RoleAdministrator {
-				return check
-			}
-		}
-	}
-
-	check.Message = "missing (bootstrap required)"
-
-	return check
 }
 
 func checkDirectory(name, path string) view.ReadinessCheck {

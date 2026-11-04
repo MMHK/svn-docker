@@ -6,7 +6,6 @@ import "time"
 type User struct {
 	Name      string     `json:"name" example:"alice"`
 	Comment   string     `json:"comment,omitempty" example:"Frontend team"`
-	Roles     []string   `json:"roles" example:"User,Repository-Creator"`
 	Groups    []string   `json:"groups" example:"devs"`
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`

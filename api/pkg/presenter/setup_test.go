@@ -9,7 +9,6 @@ import (
 
 	"github.com/mmhk/svn-admin/pkg/model"
 	"github.com/mmhk/svn-admin/pkg/store/htpasswd"
-	"github.com/mmhk/svn-admin/pkg/store/roles"
 )
 
 const setupTestToken = "test-bootstrap-token"
@@ -18,9 +17,7 @@ type setupFixture struct {
 	dir        string
 	authFile   string
 	accessFile string
-	roleFile   string
 	accounts   *htpasswd.Store
-	roles      *roles.Store
 }
 
 // newSetupFixture points every bootstrap path into a fresh directory; with
@@ -34,16 +31,14 @@ func newSetupFixture(t *testing.T, create bool) setupFixture {
 		dir:        dir,
 		authFile:   filepath.Join(dir, "svn-auth-file"),
 		accessFile: filepath.Join(dir, "svn-access-file"),
-		roleFile:   filepath.Join(dir, "userroleassignments.ini"),
 		accounts:   htpasswd.New(filepath.Join(dir, "svn-auth-file")),
-		roles:      roles.New(filepath.Join(dir, "userroleassignments.ini")),
 	}
 
 	if !create {
 		return fixture
 	}
 
-	for _, file := range []string{fixture.authFile, fixture.accessFile, fixture.roleFile} {
+	for _, file := range []string{fixture.authFile, fixture.accessFile} {
 		if err := os.WriteFile(file, nil, 0o640); err != nil {
 			t.Fatalf("create %s: %v", file, err)
 		}
@@ -52,14 +47,12 @@ func newSetupFixture(t *testing.T, create bool) setupFixture {
 	return fixture
 }
 
-func (f setupFixture) presenter(roleStore model.RoleStore) *Setup {
+func (f setupFixture) presenter() *Setup {
 	return NewSetup(SetupDeps{
-		Roles:          roleStore,
 		Users:          f.accounts,
 		Accounts:       f.accounts,
 		AuthFile:       f.authFile,
 		AccessFile:     f.accessFile,
-		RoleFile:       f.roleFile,
 		BootstrapToken: setupTestToken,
 	})
 }
@@ -72,17 +65,9 @@ func (f setupFixture) writeAuth(t *testing.T, content string) {
 	}
 }
 
-func (f setupFixture) writeRoles(t *testing.T, content string) {
-	t.Helper()
-
-	if err := os.WriteFile(f.roleFile, []byte(content), 0o640); err != nil {
-		t.Fatalf("write role file: %v", err)
-	}
-}
-
-func TestSetupCreatesFirstAdministratorFromEmptyDeployment(t *testing.T) {
+func TestSetupCreatesFirstUserFromEmptyDeployment(t *testing.T) {
 	fixture := newSetupFixture(t, false)
-	setup := fixture.presenter(fixture.roles)
+	setup := fixture.presenter()
 	ctx := context.Background()
 
 	result, err := setup.Admin(ctx, "alice", "Passw0rd!", setupTestToken)
@@ -94,11 +79,7 @@ func TestSetupCreatesFirstAdministratorFromEmptyDeployment(t *testing.T) {
 		t.Error("AccountCreated = false, want true")
 	}
 
-	if result.Role != string(model.RoleAdministrator) {
-		t.Errorf("Role = %q", result.Role)
-	}
-
-	want := []string{"authFile", "accessFile", "roleFile"}
+	want := []string{"authFile", "accessFile"}
 	if len(result.InitializedFiles) != len(want) {
 		t.Fatalf("InitializedFiles = %v, want %v", result.InitializedFiles, want)
 	}
@@ -109,7 +90,7 @@ func TestSetupCreatesFirstAdministratorFromEmptyDeployment(t *testing.T) {
 		}
 	}
 
-	for _, path := range []string{fixture.authFile, fixture.accessFile, fixture.roleFile} {
+	for _, path := range []string{fixture.authFile, fixture.accessFile} {
 		info, err := os.Stat(path)
 		if err != nil {
 			t.Fatalf("stat %s: %v", path, err)
@@ -128,23 +109,6 @@ func TestSetupCreatesFirstAdministratorFromEmptyDeployment(t *testing.T) {
 		t.Errorf("VerifyPassword() error = %v", err)
 	}
 
-	assignments, err := fixture.roles.Assignments(ctx)
-	if err != nil {
-		t.Fatalf("Assignments() error = %v", err)
-	}
-
-	found := false
-
-	for _, role := range assignments.Roles["alice"] {
-		if role == model.RoleAdministrator {
-			found = true
-		}
-	}
-
-	if !found {
-		t.Errorf("alice roles = %v, want Administrator", assignments.Roles["alice"])
-	}
-
 	status := setup.Status(ctx)
 	if status.SetupRequired || status.Reason != "" {
 		t.Errorf("status after setup = %+v, want setup complete", status)
@@ -157,7 +121,7 @@ func TestSetupCreatesFirstAdministratorFromEmptyDeployment(t *testing.T) {
 
 func TestSetupRequiresPasswordForNewAccount(t *testing.T) {
 	fixture := newSetupFixture(t, true)
-	setup := fixture.presenter(fixture.roles)
+	setup := fixture.presenter()
 
 	_, err := setup.Admin(context.Background(), "alice", "", setupTestToken)
 	if err == nil {
@@ -174,7 +138,7 @@ func TestSetupRequiresPasswordForNewAccount(t *testing.T) {
 	}
 }
 
-func TestSetupReusesExistingAccountWithoutChangingPassword(t *testing.T) {
+func TestSetupRejectsSecondUser(t *testing.T) {
 	fixture := newSetupFixture(t, true)
 
 	hash, err := htpasswd.HashAPR1("original-password")
@@ -182,35 +146,11 @@ func TestSetupReusesExistingAccountWithoutChangingPassword(t *testing.T) {
 		t.Fatalf("HashAPR1() error = %v", err)
 	}
 
-	fixture.writeAuth(t, "alice:"+hash+"\n")
+	fixture.writeAuth(t, "bob:"+hash+"\n")
 
-	setup := fixture.presenter(fixture.roles)
+	setup := fixture.presenter()
 
-	result, err := setup.Admin(context.Background(), "alice", "", setupTestToken)
-	if err != nil {
-		t.Fatalf("Admin() error = %v", err)
-	}
-
-	if result.AccountCreated {
-		t.Error("AccountCreated = true for an existing account")
-	}
-
-	if len(result.InitializedFiles) != 0 {
-		t.Errorf("InitializedFiles = %v, want none", result.InitializedFiles)
-	}
-
-	if err := fixture.accounts.VerifyPassword(context.Background(), "alice", "original-password"); err != nil {
-		t.Errorf("existing password no longer verifies: %v", err)
-	}
-}
-
-func TestSetupRejectsSecondAdministrator(t *testing.T) {
-	fixture := newSetupFixture(t, true)
-	fixture.writeRoles(t, "[bob]\nAdministrator=\n")
-
-	setup := fixture.presenter(fixture.roles)
-
-	_, err := setup.Admin(context.Background(), "alice", "Passw0rd!", setupTestToken)
+	_, err = setup.Admin(context.Background(), "alice", "Passw0rd!", setupTestToken)
 	if err == nil {
 		t.Fatal("Admin() error = nil, want a conflict")
 	}
@@ -223,7 +163,7 @@ func TestSetupRejectsSecondAdministrator(t *testing.T) {
 
 func TestSetupRejectsBadBootstrapToken(t *testing.T) {
 	fixture := newSetupFixture(t, false)
-	setup := fixture.presenter(fixture.roles)
+	setup := fixture.presenter()
 
 	_, err := setup.Admin(context.Background(), "alice", "Passw0rd!", "wrong-token")
 	if err == nil {
@@ -245,12 +185,10 @@ func TestSetupReportsStorageUnavailableWhenDirectoryIsMissing(t *testing.T) {
 	missing := filepath.Join(dir, "does-not-exist")
 
 	setup := NewSetup(SetupDeps{
-		Roles:          roles.New(filepath.Join(missing, "userroleassignments.ini")),
 		Users:          htpasswd.New(filepath.Join(missing, "svn-auth-file")),
 		Accounts:       htpasswd.New(filepath.Join(missing, "svn-auth-file")),
 		AuthFile:       filepath.Join(missing, "svn-auth-file"),
 		AccessFile:     filepath.Join(missing, "svn-access-file"),
-		RoleFile:       filepath.Join(missing, "userroleassignments.ini"),
 		BootstrapToken: setupTestToken,
 	})
 
@@ -261,41 +199,5 @@ func TestSetupReportsStorageUnavailableWhenDirectoryIsMissing(t *testing.T) {
 
 	if !model.IsStorageUnavailable(err) {
 		t.Fatalf("error = %v, want *model.StorageUnavailableError", err)
-	}
-}
-
-// failingRoleStore lets Assignments succeed while AssignRole fails, so the
-// rollback path can be exercised.
-type failingRoleStore struct {
-	model.RoleStore
-	err error
-}
-
-func (f failingRoleStore) AssignRole(context.Context, string, model.Role) error {
-	return f.err
-}
-
-func TestSetupRollsBackAccountWhenRoleWriteFails(t *testing.T) {
-	fixture := newSetupFixture(t, false)
-	cause := errors.New("role file is on fire")
-	setup := fixture.presenter(failingRoleStore{RoleStore: fixture.roles, err: cause})
-	ctx := context.Background()
-
-	_, err := setup.Admin(ctx, "alice", "Passw0rd!", setupTestToken)
-	if err == nil {
-		t.Fatal("Admin() error = nil, want an operation error")
-	}
-
-	var operation *model.OperationError
-	if !errors.As(err, &operation) {
-		t.Fatalf("error = %v, want *model.OperationError", err)
-	}
-
-	if !errors.Is(err, cause) {
-		t.Errorf("error = %v, want it to wrap the role failure", err)
-	}
-
-	if _, getErr := fixture.accounts.GetUser(ctx, "alice"); !model.IsNotFound(getErr) {
-		t.Errorf("GetUser() error = %v, want the account to be deleted", getErr)
 	}
 }

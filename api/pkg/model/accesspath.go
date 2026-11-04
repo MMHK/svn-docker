@@ -17,9 +17,8 @@ type ACLEntry struct {
 
 // AccessPath is one authz section such as `project:/trunk`.
 type AccessPath struct {
-	Path     string
-	ACL      []ACLEntry
-	Managers []string
+	Path string
+	ACL  []ACLEntry
 }
 
 // Validate checks the access-path contract from the rewrite plan (section 5.4).

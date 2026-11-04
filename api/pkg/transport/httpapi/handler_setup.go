@@ -21,7 +21,7 @@ func (a *API) setupStatus(w http.ResponseWriter, r *http.Request) {
 // setupAdmin godoc
 //
 //	@Summary		Create the first administrator
-//	@Description	Requires the one-time bootstrap token from SVN_ADMIN_BOOTSTRAP_TOKEN (or the token printed to stderr at startup). When the account does not exist yet a password is required and the account is created; when it exists the password is ignored. Missing auth/access/role files are created. Other API routes answer 503 setup_required until this succeeds.
+//	@Description	Requires the one-time bootstrap token from SVN_ADMIN_BOOTSTRAP_TOKEN (or the token printed to stderr at startup). When the account does not exist yet a password is required and the account is created; when it exists the password is ignored. Missing auth/access files are created. Other API routes answer 503 setup_required until this succeeds.
 //	@Tags			setup
 //	@Accept			json
 //	@Produce		json
@@ -30,8 +30,8 @@ func (a *API) setupStatus(w http.ResponseWriter, r *http.Request) {
 //	@Failure		403		{object}	view.ErrorEnvelope	"invalid bootstrap token"
 //	@Failure		409		{object}	view.ErrorEnvelope	"an administrator already exists"
 //	@Failure		422		{object}	view.ErrorEnvelope	"invalid account name or missing/invalid password"
-//	@Failure		500		{object}	view.ErrorEnvelope	"the role write failed; a freshly created account is rolled back"
-//	@Failure		503		{object}	view.ErrorEnvelope	"storage_unavailable: the auth/access/role directory is missing or not writable"
+//	@Failure		500		{object}	view.ErrorEnvelope	"the write failed; a freshly created account is rolled back"
+//	@Failure		503		{object}	view.ErrorEnvelope	"storage_unavailable: the auth/access directory is missing or not writable"
 //	@Router			/svnadmin/api/v1/setup/admin [post]
 func (a *API) setupAdmin(w http.ResponseWriter, r *http.Request) {
 	var request view.SetupRequest

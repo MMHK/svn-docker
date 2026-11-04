@@ -1,5 +1,5 @@
-// Package auth implements opaque bearer session tokens, the static RBAC
-// matrix and the login rate limiter. Tokens are never persisted: only their
+// Package auth implements opaque bearer session tokens and the login rate
+// limiter. Tokens are never persisted: only their
 // SHA-256 digest is kept in memory, which is what plan section 5.7 requires.
 package auth
 
@@ -34,7 +34,6 @@ const tokenBytes = 32
 // Session is the server-side view of one issued token.
 type Session struct {
 	Username      string
-	Roles         []model.Role
 	CreatedAt     time.Time
 	ExpiresAt     time.Time
 	IdleExpiresAt time.Time
@@ -103,14 +102,14 @@ func NewManager(opts Options) *Manager {
 
 // Issue creates a new token for username. When the per-user limit is reached
 // the oldest token is revoked first.
-func (m *Manager) Issue(username string, roles []model.Role) (string, Session, error) {
+func (m *Manager) Issue(username string) (string, Session, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	return m.issueLocked(username, roles, m.now())
+	return m.issueLocked(username, m.now())
 }
 
-func (m *Manager) issueLocked(username string, roles []model.Role, now time.Time) (string, Session, error) {
+func (m *Manager) issueLocked(username string, now time.Time) (string, Session, error) {
 	m.pruneLocked(now)
 
 	token, err := m.newToken()
@@ -122,7 +121,6 @@ func (m *Manager) issueLocked(username string, roles []model.Role, now time.Time
 
 	session := Session{
 		Username:      username,
-		Roles:         append([]model.Role(nil), roles...),
 		CreatedAt:     now,
 		ExpiresAt:     now.Add(m.ttl),
 		IdleExpiresAt: now.Add(m.idle),
@@ -182,11 +180,9 @@ func (m *Manager) Refresh(token string) (string, Session, error) {
 
 	previous := m.records[index]
 	username := previous.session.Username
-	roles := append([]model.Role(nil), previous.session.Roles...)
-
 	m.records = append(m.records[:index], m.records[index+1:]...)
 
-	return m.issueLocked(username, roles, now)
+	return m.issueLocked(username, now)
 }
 
 // Revoke removes token. Revoking an unknown token is a no-op.
@@ -310,10 +306,7 @@ func tokenDigest(token string) ([sha256.Size]byte, bool) {
 }
 
 func copySession(session Session) Session {
-	out := session
-	out.Roles = append([]model.Role(nil), session.Roles...)
-
-	return out
+	return session
 }
 
 // NewBootstrapToken returns a fresh one-time setup secret.

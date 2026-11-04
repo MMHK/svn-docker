@@ -1,6 +1,6 @@
 // Package memory is an in-memory implementation of the model store ports.
 // It exists so P0 can exercise the presenter layer end to end; the real
-// htpasswd/authz/role stores arrive in P1-P3.
+// htpasswd/authz stores arrive in P1-P3.
 package memory
 
 import (
@@ -32,8 +32,6 @@ var (
 	_ model.RepositoryStore  = (*Store)(nil)
 	_ model.AccessPathStore  = (*Store)(nil)
 	_ model.AccessPathWriter = (*Store)(nil)
-	_ model.RoleStore        = (*Store)(nil)
-	_ model.RoleWriter       = (*Store)(nil)
 	_ model.AuthzWriter      = (*Store)(nil)
 )
 
@@ -52,14 +50,12 @@ func New() *Store {
 	store.users["admin"] = model.User{
 		Name:      "admin",
 		Comment:   "Bootstrap administrator (no password in P0)",
-		Roles:     []model.Role{model.RoleAdministrator, model.RoleUser},
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
 	store.users["alice"] = model.User{
 		Name:      "alice",
 		Comment:   "Example developer",
-		Roles:     []model.Role{model.RoleUser},
 		Groups:    []string{"devs"},
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -83,7 +79,6 @@ func New() *Store {
 		ACL: []model.ACLEntry{
 			{Principal: "@devs", Permission: model.PermissionReadWrite},
 		},
-		Managers: []string{"alice"},
 	}
 	store.accessPaths["project:/trunk"] = model.AccessPath{
 		Path: "project:/trunk",
@@ -546,54 +541,6 @@ func (s *Store) AccessPathsOfGroup(_ context.Context, group string) ([]string, e
 	return out, nil
 }
 
-// ListRoles implements model.RoleStore.
-func (s *Store) ListRoles(_ context.Context) ([]model.Role, error) {
-	return model.AllRoles(), nil
-}
-
-// Assignments implements model.RoleStore for the in-memory fake.
-func (s *Store) Assignments(_ context.Context) (model.RoleAssignments, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	out := model.RoleAssignments{
-		Roles:       make(map[string][]model.Role, len(s.users)),
-		AccessPaths: make(map[string][]string, len(s.accessPaths)),
-	}
-
-	for name, user := range s.users {
-		out.Roles[name] = append([]model.Role(nil), user.Roles...)
-	}
-
-	for path, accessPath := range s.accessPaths {
-		for _, manager := range accessPath.Managers {
-			out.AccessPaths[manager] = append(out.AccessPaths[manager], path)
-		}
-	}
-
-	return out, nil
-}
-
-// AssignRole implements model.RoleStore for the in-memory fake.
-func (s *Store) AssignRole(_ context.Context, username string, role model.Role) error {
-	if !role.Valid() {
-		return &model.ValidationError{Field: "role", Reason: "unknown role " + string(role)}
-	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	user, ok := s.users[username]
-	if !ok {
-		return &model.NotFoundError{Kind: model.KindUser, Name: username}
-	}
-
-	user.Roles = append(user.Roles, role)
-	s.users[username] = user
-
-	return nil
-}
-
 // VerifyPassword implements model.CredentialStore. The fake accepts a single
 // fixed password so auth flows can be tested without a hash file.
 func (s *Store) VerifyPassword(_ context.Context, username, password string) error {
@@ -621,83 +568,11 @@ func (s *Store) VerifyPassword(_ context.Context, username, password string) err
 	return nil
 }
 
-// SetRoles implements model.RoleWriter.
-func (s *Store) SetRoles(_ context.Context, username string, roles []model.Role, _ model.WriteOptions) error {
-	for _, role := range roles {
-		if !role.Valid() {
-			return &model.ValidationError{Field: "roles", Reason: "unknown role " + string(role)}
-		}
-	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	user, ok := s.users[username]
-	if !ok {
-		return &model.NotFoundError{Kind: model.KindUser, Name: username}
-	}
-
-	user.Roles = append([]model.Role(nil), roles...)
-	s.users[username] = user
-
-	return nil
-}
-
-// AddAccessPaths implements model.RoleWriter.
-func (s *Store) AddAccessPaths(_ context.Context, username string, paths []string, _ model.WriteOptions) error {
-	for _, path := range paths {
-		if err := (model.AccessPath{Path: path}).Validate(); err != nil {
-			return err
-		}
-	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	accessPath, ok := s.accessPaths[paths[0]]
-	if !ok || len(paths) == 0 {
-		return nil
-	}
-
-	accessPath.Managers = appendUnique(accessPath.Managers, username)
-	s.accessPaths[paths[0]] = accessPath
-
-	return nil
-}
-
-// RemoveAccessPaths implements model.RoleWriter.
-func (s *Store) RemoveAccessPaths(_ context.Context, username string, paths []string, _ model.WriteOptions) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	for _, path := range paths {
-		accessPath, ok := s.accessPaths[path]
-		if !ok {
-			continue
-		}
-
-		accessPath.Managers = removeValue(accessPath.Managers, username)
-		s.accessPaths[path] = accessPath
-	}
-
-	return nil
-}
-
-// RemoveUser implements both model.RoleWriter and model.AuthzWriter for the
-// fake: it drops the roles, the project-manager scope and the group memberships.
+// RemoveUser implements model.AuthzWriter for the fake: it drops the group
+// memberships.
 func (s *Store) RemoveUser(_ context.Context, username string, _ model.WriteOptions) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	if user, ok := s.users[username]; ok {
-		user.Roles = nil
-		s.users[username] = user
-	}
-
-	for name, accessPath := range s.accessPaths {
-		accessPath.Managers = removeValue(accessPath.Managers, username)
-		s.accessPaths[name] = accessPath
-	}
 
 	for name, group := range s.groups {
 		group.Members = removeValue(group.Members, username)

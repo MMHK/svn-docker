@@ -1,9 +1,9 @@
 package view
 
 // SetupRequest is the POST /setup/admin body. Password is only used when the
-// account does not exist yet: the first administrator is created with it.
-// When the account already exists the password is ignored and the existing
-// credential is left untouched.
+// account does not exist yet: the first user is created with it. When the
+// account already exists the password is ignored and the existing credential
+// is left untouched.
 type SetupRequest struct {
 	Username string `json:"username" example:"alice"`
 	Password string `json:"password" example:"Passw0rd!"`
@@ -11,12 +11,11 @@ type SetupRequest struct {
 }
 
 // SetupResult is the POST /setup/admin success payload. InitializedFiles lists
-// the files this call actually created (authFile, accessFile, roleFile).
+// the files this call actually created (authFile, accessFile).
 type SetupResult struct {
 	Username         string   `json:"username" example:"alice"`
-	Role             string   `json:"role" example:"Administrator"`
 	AccountCreated   bool     `json:"accountCreated" example:"true"`
-	InitializedFiles []string `json:"initializedFiles" example:"authFile,accessFile,roleFile"`
+	InitializedFiles []string `json:"initializedFiles" example:"authFile,accessFile"`
 }
 
 // SetupFileStatus is the state of one bootstrap-related file. It never carries
@@ -35,22 +34,13 @@ type SetupAuthFileStatus struct {
 	UserCount int  `json:"userCount" example:"3"`
 }
 
-// SetupRoleFileStatus adds the administrator flag to the role file state.
-type SetupRoleFileStatus struct {
-	Exists               bool `json:"exists" example:"false"`
-	Readable             bool `json:"readable" example:"false"`
-	Writable             bool `json:"writable" example:"false"`
-	AdministratorPresent bool `json:"administratorPresent" example:"false"`
-}
-
 // SetupStatus is the GET /setup/status payload. Reason is one of
-// "missing_auth_file", "missing_access_file", "no_admin" or "" (setup done).
+// "missing_auth_file", "missing_access_file", "no_users" or "" (setup done).
 type SetupStatus struct {
 	SetupRequired    bool                `json:"setupRequired" example:"true"`
-	Reason           string              `json:"reason" example:"no_admin"`
+	Reason           string              `json:"reason" example:"no_users"`
 	AuthFile         SetupAuthFileStatus `json:"authFile"`
 	AccessFile       SetupFileStatus     `json:"accessFile"`
-	RoleFile         SetupRoleFileStatus `json:"roleFile"`
 	Users            []string            `json:"users"`
 	CanCreateAccount bool                `json:"canCreateAccount" example:"true"`
 }

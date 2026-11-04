@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/mmhk/svn-admin/pkg/auth"
 	"github.com/mmhk/svn-admin/pkg/model"
 	"github.com/mmhk/svn-admin/pkg/view"
 )
@@ -28,7 +27,7 @@ const (
 //	@Success		201		{object}	view.RepositoryCreated
 //	@Failure		400		{object}	view.ErrorEnvelope
 //	@Failure		401		{object}	view.ErrorEnvelope
-//	@Failure		403		{object}	view.ErrorEnvelope	"role does not permit repository:add"
+//	@Failure		403		{object}	view.ErrorEnvelope	"deletion is disabled"
 //	@Failure		409		{object}	view.ErrorEnvelope	"a repository with this name already exists"
 //	@Failure		422		{object}	view.ErrorEnvelope	"invalid name, structure or projectName"
 //	@Failure		500		{object}	view.ErrorEnvelope	"svnadmin failed; the failed step is reported"
@@ -36,12 +35,6 @@ const (
 //	@Failure		503		{object}	view.ErrorEnvelope	"setup_required"
 //	@Router			/svnadmin/api/v1/repos [post]
 func (a *API) createRepository(w http.ResponseWriter, r *http.Request) {
-	if err := a.authorize(r, auth.ModuleRepository, auth.ActionAdd); err != nil {
-		a.writeError(w, r, err)
-
-		return
-	}
-
 	var request view.CreateRepositoryRequest
 	if err := decodeJSON(w, r, &request); err != nil {
 		a.auditWrite(r, actionRepositoryCreate, request.Name, err)
@@ -75,19 +68,13 @@ func (a *API) createRepository(w http.ResponseWriter, r *http.Request) {
 //	@Success		204
 //	@Failure		400		{object}	view.ErrorEnvelope
 //	@Failure		401		{object}	view.ErrorEnvelope
-//	@Failure		403		{object}	view.ErrorEnvelope	"role does not permit repository:delete, or deletion is disabled"
+//	@Failure		403		{object}	view.ErrorEnvelope	"deletion is disabled"
 //	@Failure		404		{object}	view.ErrorEnvelope
 //	@Failure		409		{object}	view.ErrorEnvelope	"the repository is on another filesystem than the trash directory"
 //	@Failure		422		{object}	view.ErrorEnvelope	"confirm does not match the repository name"
 //	@Failure		503		{object}	view.ErrorEnvelope	"setup_required"
 //	@Router			/svnadmin/api/v1/repos/{repo} [delete]
 func (a *API) deleteRepository(w http.ResponseWriter, r *http.Request) {
-	if err := a.authorize(r, auth.ModuleRepository, auth.ActionDelete); err != nil {
-		a.writeError(w, r, err)
-
-		return
-	}
-
 	name := r.PathValue("repo")
 	confirm := r.URL.Query().Get("confirm")
 
@@ -125,12 +112,6 @@ func (a *API) deleteRepository(w http.ResponseWriter, r *http.Request) {
 //	@Failure		503		{object}	view.ErrorEnvelope	"setup_required"
 //	@Router			/svnadmin/api/v1/repos/{repo}/tree [get]
 func (a *API) getRepositoryTree(w http.ResponseWriter, r *http.Request) {
-	if err := a.authorize(r, auth.ModuleRepository, auth.ActionView); err != nil {
-		a.writeError(w, r, err)
-
-		return
-	}
-
 	revision, err := parseRevision(r.URL.Query().Get("rev"))
 	if err != nil {
 		a.writeError(w, r, err)
@@ -179,12 +160,6 @@ func (a *API) getRepositoryTree(w http.ResponseWriter, r *http.Request) {
 //	@Failure		503		{object}	view.ErrorEnvelope	"setup_required"
 //	@Router			/svnadmin/api/v1/repos/{repo}/info [get]
 func (a *API) getRepositoryInfo(w http.ResponseWriter, r *http.Request) {
-	if err := a.authorize(r, auth.ModuleRepository, auth.ActionView); err != nil {
-		a.writeError(w, r, err)
-
-		return
-	}
-
 	info, err := a.repo.Info(r.Context(), r.PathValue("repo"))
 	if err != nil {
 		a.writeError(w, r, err)

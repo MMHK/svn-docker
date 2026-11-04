@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/subtle"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -24,52 +23,50 @@ const setupFileMode os.FileMode = 0o640
 const setupUserListLimit = 100
 
 // SetupDeps are the ports and paths the bootstrap flow needs. It may create
-// the auth, access and role files when a fresh deployment has none.
+// the auth and access files when a fresh deployment has none.
 type SetupDeps struct {
-	Roles          model.RoleStore
 	Users          model.UserStore
 	Accounts       model.AccountWriter
 	AuthFile       string
 	AccessFile     string
-	RoleFile       string
 	BootstrapToken string
 }
 
-// Setup serves the first-administrator bootstrap flow (plan D6, task T1.6).
-// It replaces the v2 admin/admin backdoor: a one-time token, printed to stderr
-// at startup when SVN_ADMIN_BOOTSTRAP_TOKEN is not set, is required.
+// Setup serves the first-user bootstrap flow (plan D6, task T1.6). It replaces
+// the v2 admin/admin backdoor: a one-time token, printed to stderr at startup
+// when SVN_ADMIN_BOOTSTRAP_TOKEN is not set, is required.
 type Setup struct {
-	roles      model.RoleStore
 	users      model.UserStore
 	accounts   model.AccountWriter
 	authFile   string
 	accessFile string
-	roleFile   string
 	bootstrap  string
 }
 
 // NewSetup builds the setup presenter.
 func NewSetup(deps SetupDeps) *Setup {
 	return &Setup{
-		roles:      deps.Roles,
 		users:      deps.Users,
 		accounts:   deps.Accounts,
 		authFile:   deps.AuthFile,
 		accessFile: deps.AccessFile,
-		roleFile:   deps.RoleFile,
 		bootstrap:  deps.BootstrapToken,
 	}
 }
 
-// Required reports whether the deployment still needs its first administrator.
-// It is used by the auth middleware to gate the rest of the API.
+// Required reports whether the deployment still needs its first account. It
+// is used by the auth middleware to gate the rest of the API.
 func (p *Setup) Required(ctx context.Context) (bool, error) {
-	present, err := p.administratorPresent(ctx)
+	if p.users == nil {
+		return true, nil
+	}
+
+	page, err := p.users.ListUsers(ctx, model.PageQuery{Page: 1, Size: 1})
 	if err != nil {
 		return false, err
 	}
 
-	return !present, nil
+	return page.Total == 0, nil
 }
 
 // Status is the unauthenticated diagnostic behind GET /setup/status. It never
@@ -77,9 +74,6 @@ func (p *Setup) Required(ctx context.Context) (bool, error) {
 func (p *Setup) Status(ctx context.Context) view.SetupStatus {
 	authFile := inspectPath(p.authFile)
 	accessFile := inspectPath(p.accessFile)
-	roleFile := inspectPath(p.roleFile)
-
-	present, _ := p.administratorPresent(ctx)
 
 	status := view.SetupStatus{
 		AuthFile: view.SetupAuthFileStatus{
@@ -91,12 +85,6 @@ func (p *Setup) Status(ctx context.Context) view.SetupStatus {
 			Exists:   accessFile.Exists,
 			Readable: accessFile.Readable,
 			Writable: accessFile.Writable,
-		},
-		RoleFile: view.SetupRoleFileStatus{
-			Exists:               roleFile.Exists,
-			Readable:             roleFile.Readable,
-			Writable:             roleFile.Writable,
-			AdministratorPresent: present,
 		},
 		Users: []string{},
 	}
@@ -128,8 +116,8 @@ func (p *Setup) Status(ctx context.Context) view.SetupStatus {
 		status.Reason = "missing_auth_file"
 	case !accessFile.Exists:
 		status.Reason = "missing_access_file"
-	case !present:
-		status.Reason = "no_admin"
+	case status.AuthFile.UserCount == 0:
+		status.Reason = "no_users"
 	default:
 		status.Reason = ""
 	}
@@ -137,8 +125,8 @@ func (p *Setup) Status(ctx context.Context) view.SetupStatus {
 	status.SetupRequired = status.Reason != ""
 	status.CanCreateAccount = p.canCreateAccount(authFile)
 
-	// Account names are only useful while setup is pending; once an
-	// administrator exists the unauthenticated endpoint stays minimal.
+	// Account names are only useful while setup is pending; once an account
+	// exists the unauthenticated endpoint stays minimal.
 	if !status.SetupRequired {
 		status.Users = []string{}
 	}
@@ -146,8 +134,8 @@ func (p *Setup) Status(ctx context.Context) view.SetupStatus {
 	return status
 }
 
-// Admin creates (or reuses) an account and grants it the Administrator role,
-// provided the bootstrap token matches and no administrator exists yet.
+// Admin creates (or reuses) an account, provided the bootstrap token matches
+// and no account exists yet.
 func (p *Setup) Admin(ctx context.Context, username, password, token string) (view.SetupResult, error) {
 	username = strings.TrimSpace(username)
 
@@ -169,7 +157,7 @@ func (p *Setup) Admin(ctx context.Context, username, password, token string) (vi
 		return view.SetupResult{}, &model.ConflictError{
 			Kind:   model.KindUser,
 			Name:   username,
-			Reason: "an administrator already exists",
+			Reason: "a user already exists",
 		}
 	}
 
@@ -191,7 +179,7 @@ func (p *Setup) Admin(ctx context.Context, username, password, token string) (vi
 		if strings.TrimSpace(password) == "" {
 			return view.SetupResult{}, &model.ValidationError{
 				Field:  "password",
-				Reason: "password is required to create the first administrator",
+				Reason: "password is required to create the first user",
 			}
 		}
 
@@ -206,58 +194,15 @@ func (p *Setup) Admin(ctx context.Context, username, password, token string) (vi
 		created = true
 	}
 
-	if err := p.roles.AssignRole(ctx, username, model.RoleAdministrator); err != nil {
-		completed := make([]string, 0, 2)
-
-		if len(initialized) > 0 {
-			completed = append(completed, "files.create")
-		}
-
-		if created {
-			completed = append(completed, "account.create")
-		}
-
-		return view.SetupResult{}, p.compensate(ctx, username, created, completed, err)
-	}
-
 	return view.SetupResult{
 		Username:         username,
-		Role:             string(model.RoleAdministrator),
 		AccountCreated:   created,
 		InitializedFiles: initialized,
 	}, nil
 }
 
-// compensate removes the account this call created when the role write fails,
-// so a failed bootstrap never leaves a credential behind without a role.
-func (p *Setup) compensate(
-	ctx context.Context,
-	username string,
-	created bool,
-	completed []string,
-	cause error,
-) error {
-	if created {
-		if err := p.users.DeleteUser(ctx, username, model.WriteOptions{}); err != nil {
-			return &model.OperationError{
-				Operation: "setup.admin",
-				Step:      "role.assign and account.delete",
-				Completed: completed,
-				Err:       fmt.Errorf("%w; the new account could not be removed: %v", cause, err),
-			}
-		}
-	}
-
-	return &model.OperationError{
-		Operation: "setup.admin",
-		Step:      "role.assign",
-		Completed: completed,
-		Err:       cause,
-	}
-}
-
-// ensureFiles creates the auth, access and role files when they are missing.
-// It returns the names of the files it actually created.
+// ensureFiles creates the auth and access files when they are missing. It
+// returns the names of the files it actually created.
 func (p *Setup) ensureFiles() ([]string, error) {
 	targets := []struct {
 		name string
@@ -265,7 +210,6 @@ func (p *Setup) ensureFiles() ([]string, error) {
 	}{
 		{name: "authFile", path: p.authFile},
 		{name: "accessFile", path: p.accessFile},
-		{name: "roleFile", path: p.roleFile},
 	}
 
 	created := make([]string, 0, len(targets))
@@ -302,28 +246,6 @@ func storageReason(name string, err error) string {
 	}
 
 	return resource + " directory is not writable"
-}
-
-// administratorPresent reports whether any user holds the Administrator role.
-func (p *Setup) administratorPresent(ctx context.Context) (bool, error) {
-	if p.roles == nil {
-		return false, nil
-	}
-
-	assignments, err := p.roles.Assignments(ctx)
-	if err != nil {
-		return false, err
-	}
-
-	for _, roles := range assignments.Roles {
-		for _, role := range roles {
-			if role == model.RoleAdministrator {
-				return true, nil
-			}
-		}
-	}
-
-	return false, nil
 }
 
 // canCreateAccount reports whether the bootstrap flow can create the

@@ -4,8 +4,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/mmhk/svn-admin/pkg/model"
 )
 
 type fakeClock struct {
@@ -37,7 +35,7 @@ func newTestManager(t *testing.T) (*Manager, *fakeClock) {
 func TestIssueAndValidate(t *testing.T) {
 	manager, _ := newTestManager(t)
 
-	token, session, err := manager.Issue("alice", []model.Role{model.RoleAdministrator})
+	token, session, err := manager.Issue("alice")
 	if err != nil {
 		t.Fatalf("Issue() error = %v", err)
 	}
@@ -50,7 +48,7 @@ func TestIssueAndValidate(t *testing.T) {
 		t.Errorf("token length = %d, want %d", len(token), len(TokenPrefix)+43)
 	}
 
-	if session.Username != "alice" || len(session.Roles) != 1 {
+	if session.Username != "alice" {
 		t.Errorf("session = %+v", session)
 	}
 
@@ -87,7 +85,7 @@ func TestValidateRejectsMalformedTokens(t *testing.T) {
 func TestAbsoluteExpiry(t *testing.T) {
 	manager, clock := newTestManager(t)
 
-	token, _, err := manager.Issue("alice", nil)
+	token, _, err := manager.Issue("alice")
 	if err != nil {
 		t.Fatalf("Issue() error = %v", err)
 	}
@@ -110,7 +108,7 @@ func TestAbsoluteExpiry(t *testing.T) {
 func TestIdleExpiry(t *testing.T) {
 	manager, clock := newTestManager(t)
 
-	token, _, err := manager.Issue("alice", nil)
+	token, _, err := manager.Issue("alice")
 	if err != nil {
 		t.Fatalf("Issue() error = %v", err)
 	}
@@ -138,7 +136,7 @@ func TestIdleExpiry(t *testing.T) {
 func TestRevoke(t *testing.T) {
 	manager, _ := newTestManager(t)
 
-	token, _, err := manager.Issue("alice", nil)
+	token, _, err := manager.Issue("alice")
 	if err != nil {
 		t.Fatalf("Issue() error = %v", err)
 	}
@@ -159,7 +157,7 @@ func TestRevoke(t *testing.T) {
 func TestRefreshRotatesToken(t *testing.T) {
 	manager, _ := newTestManager(t)
 
-	token, _, err := manager.Issue("alice", []model.Role{model.RoleAdministrator})
+	token, _, err := manager.Issue("alice")
 	if err != nil {
 		t.Fatalf("Issue() error = %v", err)
 	}
@@ -173,7 +171,7 @@ func TestRefreshRotatesToken(t *testing.T) {
 		t.Fatal("Refresh() returned the same token")
 	}
 
-	if session.Username != "alice" || len(session.Roles) != 1 || session.Roles[0] != model.RoleAdministrator {
+	if session.Username != "alice" {
 		t.Errorf("refreshed session = %+v", session)
 	}
 
@@ -196,7 +194,7 @@ func TestMaxFiveTokensPerUser(t *testing.T) {
 	tokens := make([]string, 0, 6)
 
 	for i := 0; i < 6; i++ {
-		token, _, err := manager.Issue("alice", nil)
+		token, _, err := manager.Issue("alice")
 		if err != nil {
 			t.Fatalf("Issue() error = %v", err)
 		}
@@ -219,7 +217,7 @@ func TestMaxFiveTokensPerUser(t *testing.T) {
 	}
 
 	// Another user has an independent budget.
-	if _, _, err := manager.Issue("bob", nil); err != nil {
+	if _, _, err := manager.Issue("bob"); err != nil {
 		t.Fatalf("Issue(bob) error = %v", err)
 	}
 
@@ -232,12 +230,12 @@ func TestRevokeUser(t *testing.T) {
 	manager, _ := newTestManager(t)
 
 	for i := 0; i < 3; i++ {
-		if _, _, err := manager.Issue("alice", nil); err != nil {
+		if _, _, err := manager.Issue("alice"); err != nil {
 			t.Fatalf("Issue() error = %v", err)
 		}
 	}
 
-	if _, _, err := manager.Issue("bob", nil); err != nil {
+	if _, _, err := manager.Issue("bob"); err != nil {
 		t.Fatalf("Issue() error = %v", err)
 	}
 

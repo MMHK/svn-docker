@@ -4,8 +4,7 @@ import "time"
 
 // SessionUser is the `me` object embedded in the session response.
 type SessionUser struct {
-	Name  string   `json:"name" example:"alice"`
-	Roles []string `json:"roles" example:"Administrator"`
+	Name string `json:"name" example:"alice"`
 }
 
 // Session is the POST /session, GET /session and POST /session/refresh
@@ -15,8 +14,6 @@ type Session struct {
 	ExpiresAt     time.Time   `json:"expiresAt"`
 	IdleExpiresAt time.Time   `json:"idleExpiresAt"`
 	Me            SessionUser `json:"me"`
-	Roles         []string    `json:"roles" example:"Administrator"`
-	Permissions   []string    `json:"permissions" example:"repository:view,user:view"`
 }
 
 // LoginRequest is the POST /session body.

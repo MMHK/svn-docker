@@ -20,7 +20,6 @@ import (
 	"github.com/mmhk/svn-admin/pkg/presenter"
 	"github.com/mmhk/svn-admin/pkg/store/authz"
 	"github.com/mmhk/svn-admin/pkg/store/htpasswd"
-	"github.com/mmhk/svn-admin/pkg/store/roles"
 	"github.com/mmhk/svn-admin/pkg/store/svnrepos"
 	"github.com/mmhk/svn-admin/pkg/svncli"
 	"github.com/mmhk/svn-admin/pkg/view"
@@ -46,18 +45,10 @@ testuser = r
 viewer = r
 `
 
-const defaultRoleFile = `[testuser]
-Administrator=
-
-[viewer]
-User=
-`
-
 type testEnv struct {
 	handler    http.Handler
 	cfg        config.Config
 	dir        string
-	rolesPath  string
 	tokens     *auth.Manager
 	bootstrap  string
 	accessFile string
@@ -65,14 +56,14 @@ type testEnv struct {
 	trashDir   string
 }
 
-func newTestEnv(t *testing.T, rolesContent string, mutate func(*config.Config)) testEnv {
+func newTestEnv(t *testing.T, mutate func(*config.Config)) testEnv {
 	t.Helper()
 
-	return newTestEnvWithLogs(t, rolesContent, mutate, io.Discard)
+	return newTestEnvWithLogs(t, mutate, io.Discard)
 }
 
 // newTestEnvWithLogs is newTestEnv with a caller supplied log sink.
-func newTestEnvWithLogs(t *testing.T, rolesContent string, mutate func(*config.Config), logs io.Writer) testEnv {
+func newTestEnvWithLogs(t *testing.T, mutate func(*config.Config), logs io.Writer) testEnv {
 	t.Helper()
 
 	dir := t.TempDir()
@@ -103,17 +94,11 @@ func newTestEnvWithLogs(t *testing.T, rolesContent string, mutate func(*config.C
 		t.Fatalf("write access file: %v", err)
 	}
 
-	rolesPath := filepath.Join(dir, "userroleassignments.ini")
-	if err := os.WriteFile(rolesPath, []byte(rolesContent), 0o640); err != nil {
-		t.Fatalf("write role file: %v", err)
-	}
-
 	cfg := config.Config{
 		Addr:            ":0",
 		SVNParentPath:   parent,
 		SVNAuthFile:     authFile,
 		SVNAccessFile:   accessFile,
-		RoleFile:        rolesPath,
 		BackupDir:       filepath.Join(dir, "backup"),
 		TrashDir:        filepath.Join(dir, "trash"),
 		SVNBinary:       "svn",
@@ -147,8 +132,6 @@ func newTestEnvWithLogs(t *testing.T, rolesContent string, mutate func(*config.C
 
 	users := htpasswd.New(cfg.SVNAuthFile)
 	groups := authz.New(cfg.SVNAccessFile)
-	roleStore := roles.New(cfg.RoleFile)
-
 	runner := newFakeSvnRunner()
 	repoStore := svnrepos.NewStore(svnrepos.Options{
 		Parents:  []string{cfg.SVNParentPath},
@@ -165,22 +148,18 @@ func newTestEnvWithLogs(t *testing.T, rolesContent string, mutate func(*config.C
 		Logger:    slog.New(slog.NewJSONHandler(logs, nil)),
 		Allowlist: allowlist,
 		Tokens:    tokens,
-		System:    presenter.NewSystem("3.0.0-test", cfg, roleStore),
-		Session:   presenter.NewSession(users, roleStore, tokens, limiter),
+		System:    presenter.NewSystem("3.0.0-test", cfg),
+		Session:   presenter.NewSession(users, tokens, limiter),
 		Setup: presenter.NewSetup(presenter.SetupDeps{
-			Roles:          roleStore,
 			Users:          users,
 			Accounts:       users,
 			AuthFile:       cfg.SVNAuthFile,
 			AccessFile:     cfg.SVNAccessFile,
-			RoleFile:       cfg.RoleFile,
 			BootstrapToken: bootstrap,
 		}),
 		User: presenter.NewUser(presenter.UserDeps{
 			Users:       users,
 			Accounts:    users,
-			Roles:       roleStore,
-			RoleWriter:  roleStore,
 			Groups:      groups,
 			Authz:       groups,
 			AccessPaths: groups,
@@ -197,10 +176,7 @@ func newTestEnvWithLogs(t *testing.T, rolesContent string, mutate func(*config.C
 		AccessPath: presenter.NewAccessPath(
 			groups,
 			groups,
-			roleStore,
-			roleStore,
 		),
-		Role: presenter.NewRole(roleStore),
 		Web:  web,
 	})
 	if err != nil {
@@ -211,7 +187,6 @@ func newTestEnvWithLogs(t *testing.T, rolesContent string, mutate func(*config.C
 		handler:    handler,
 		cfg:        cfg,
 		dir:        dir,
-		rolesPath:  rolesPath,
 		tokens:     tokens,
 		bootstrap:  bootstrap,
 		accessFile: cfg.SVNAccessFile,
@@ -305,7 +280,7 @@ func assertNoSetCookie(t *testing.T, recorder *httptest.ResponseRecorder) {
 }
 
 func TestLoginIssuesTokenWithoutCookie(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 
 	recorder := env.login(t, "testuser", testPassword)
 	if recorder.Code != http.StatusOK {
@@ -324,14 +299,6 @@ func TestLoginIssuesTokenWithoutCookie(t *testing.T) {
 		t.Errorf("me = %+v", session.Me)
 	}
 
-	if len(session.Roles) != 1 || session.Roles[0] != string(modelRoleAdministrator) {
-		t.Errorf("roles = %v", session.Roles)
-	}
-
-	if len(session.Permissions) == 0 {
-		t.Error("permissions are empty for an administrator")
-	}
-
 	if session.ExpiresAt.IsZero() || session.IdleExpiresAt.IsZero() {
 		t.Errorf("expiry fields = %+v", session)
 	}
@@ -341,10 +308,8 @@ func TestLoginIssuesTokenWithoutCookie(t *testing.T) {
 	}
 }
 
-const modelRoleAdministrator = "Administrator"
-
 func TestLoginRejectsWrongPassword(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 
 	recorder := env.login(t, "testuser", "wrong")
 	if recorder.Code != http.StatusUnauthorized {
@@ -364,7 +329,7 @@ func TestLoginRejectsWrongPassword(t *testing.T) {
 }
 
 func TestLoginRateLimit(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 
 	for i := 0; i < 5; i++ {
 		if recorder := env.login(t, "testuser", "wrong"); recorder.Code != http.StatusUnauthorized {
@@ -388,7 +353,7 @@ func TestLoginRateLimit(t *testing.T) {
 }
 
 func TestUsersRequiresToken(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 
 	recorder := env.request(t, http.MethodGet, "/svnadmin/api/v1/users", "127.0.0.1:5555", nil, "")
 	if recorder.Code != http.StatusUnauthorized {
@@ -402,7 +367,7 @@ func TestUsersRequiresToken(t *testing.T) {
 }
 
 func TestUsersWithToken(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	token := env.mustToken(t, "testuser", testPassword)
 
 	recorder := env.request(t, http.MethodGet, "/svnadmin/api/v1/users", "127.0.0.1:5555", bearer(token), "")
@@ -419,15 +384,10 @@ func TestUsersWithToken(t *testing.T) {
 		t.Error("user list leaks a password hash")
 	}
 
-	for _, item := range list.Items {
-		if item.Name == "testuser" && (len(item.Roles) != 1 || item.Roles[0] != modelRoleAdministrator) {
-			t.Errorf("testuser roles = %v", item.Roles)
-		}
-	}
 }
 
 func TestUsersPagingAndFilter(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	token := env.mustToken(t, "testuser", testPassword)
 
 	paged := env.request(t, http.MethodGet, "/svnadmin/api/v1/users?size=1&page=2", "127.0.0.1:5555", bearer(token), "")
@@ -456,23 +416,8 @@ func TestUsersPagingAndFilter(t *testing.T) {
 	}
 }
 
-func TestForbiddenWithoutRole(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
-	token := env.mustToken(t, "norole", testPassword)
-
-	recorder := env.request(t, http.MethodGet, "/svnadmin/api/v1/users", "127.0.0.1:5555", bearer(token), "")
-	if recorder.Code != http.StatusForbidden {
-		t.Fatalf("status = %d, want 403 (body %s)", recorder.Code, recorder.Body.String())
-	}
-
-	envelope := decodeBody[view.ErrorEnvelope](t, recorder)
-	if envelope.Error.Code != "forbidden" {
-		t.Errorf("error code = %q", envelope.Error.Code)
-	}
-}
-
 func TestSessionEndpoints(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	token := env.mustToken(t, "testuser", testPassword)
 
 	current := env.request(t, http.MethodGet, "/svnadmin/api/v1/session", "127.0.0.1:5555", bearer(token), "")
@@ -521,7 +466,10 @@ func TestSessionEndpoints(t *testing.T) {
 }
 
 func TestSetupRequiredAndBootstrap(t *testing.T) {
-	env := newTestEnv(t, "", nil)
+	env := newTestEnv(t, func(cfg *config.Config) {
+		// Point to an empty auth file so the setup gate stays closed.
+		cfg.SVNAuthFile = filepath.Join(cfg.SVNParentPath, "empty-auth")
+	})
 
 	blocked := env.request(t, http.MethodGet, "/svnadmin/api/v1/users", "127.0.0.1:5555", nil, "")
 	if blocked.Code != http.StatusServiceUnavailable {
@@ -533,25 +481,15 @@ func TestSetupRequiredAndBootstrap(t *testing.T) {
 		t.Errorf("error code = %q", envelope.Error.Code)
 	}
 
-	// Login is still available so the operator can see the setup state.
-	if recorder := env.login(t, "testuser", testPassword); recorder.Code != http.StatusOK {
-		t.Fatalf("login during setup status = %d", recorder.Code)
-	}
-
-	wrong := env.request(t, http.MethodPost, "/svnadmin/api/v1/setup/admin", "127.0.0.1:5555", nil,
-		`{"username":"testuser","token":"wrong"}`)
-	if wrong.Code != http.StatusForbidden {
-		t.Fatalf("wrong bootstrap token status = %d, want 403", wrong.Code)
-	}
-
+	// Bootstrap creates the first account.
 	ok := env.request(t, http.MethodPost, "/svnadmin/api/v1/setup/admin", "127.0.0.1:5555", nil,
-		`{"username":"testuser","token":"`+env.bootstrap+`"}`)
+		`{"username":"admin","password":"Passw0rd!","token":"`+env.bootstrap+`"}`)
 	if ok.Code != http.StatusCreated {
 		t.Fatalf("setup status = %d, body = %s", ok.Code, ok.Body.String())
 	}
 
-	// The token issued before setup carries no roles, so it must be rejected.
-	token := env.mustToken(t, "testuser", testPassword)
+	// Now login and verify the setup gate is open.
+	token := env.mustToken(t, "admin", "Passw0rd!")
 
 	if recorder := env.request(t, http.MethodGet, "/svnadmin/api/v1/users", "127.0.0.1:5555", bearer(token), ""); recorder.Code != http.StatusOK {
 		t.Fatalf("after setup status = %d, body = %s", recorder.Code, recorder.Body.String())
@@ -565,7 +503,7 @@ func TestSetupRequiredAndBootstrap(t *testing.T) {
 }
 
 func TestReadEndpoints(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	token := env.mustToken(t, "testuser", testPassword)
 	headers := bearer(token)
 
@@ -680,33 +618,16 @@ func TestReadEndpoints(t *testing.T) {
 		}
 	})
 
-	t.Run("roles", func(t *testing.T) {
+	t.Run("roles removed", func(t *testing.T) {
 		recorder := env.request(t, http.MethodGet, "/svnadmin/api/v1/roles", "127.0.0.1:5555", headers, "")
-		if recorder.Code != http.StatusOK {
-			t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
-		}
-
-		list := decodeBody[view.RoleList](t, recorder)
-		if len(list.Items) != 8 {
-			t.Fatalf("roles = %+v", list)
-		}
-
-		found := false
-
-		for _, item := range list.Items {
-			if item.Name == modelRoleAdministrator {
-				found = item.Description != ""
-			}
-		}
-
-		if !found {
-			t.Errorf("Administrator role is missing or has no description: %+v", list.Items)
+		if recorder.Code != http.StatusNotImplemented {
+			t.Errorf("GET /roles = %d, want 501", recorder.Code)
 		}
 	})
 }
 
 func TestUnknownAPIPathIsNotImplemented(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	token := env.mustToken(t, "testuser", testPassword)
 
 	// Unknown /svnadmin/api paths must stay an honest 501 rather than falling
@@ -718,7 +639,7 @@ func TestUnknownAPIPathIsNotImplemented(t *testing.T) {
 }
 
 func TestDocsServedWithoutToken(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 
 	index := env.request(t, http.MethodGet, "/svnadmin/api/docs/index.html", "127.0.0.1:5555", nil, "")
 	if index.Code != http.StatusOK {
@@ -755,7 +676,6 @@ func TestDocsServedWithoutToken(t *testing.T) {
 		"/svnadmin/api/v1/users",
 		"/svnadmin/api/v1/users/{name}",
 		"/svnadmin/api/v1/users/{name}/password",
-		"/svnadmin/api/v1/users/{name}/roles",
 		"/svnadmin/api/v1/users/{name}/groups",
 		"/svnadmin/api/v1/users/{name}/access-paths",
 		"/svnadmin/api/v1/groups",
@@ -770,8 +690,6 @@ func TestDocsServedWithoutToken(t *testing.T) {
 		"/svnadmin/api/v1/access-paths/{path}",
 		"/svnadmin/api/v1/access-paths/{path}/acl",
 		"/svnadmin/api/v1/access-paths/{path}/acl/{principal}",
-		"/svnadmin/api/v1/access-paths/{path}/managers",
-		"/svnadmin/api/v1/roles",
 	} {
 		if _, ok := paths[path]; !ok {
 			t.Errorf("openapi.json is missing %s", path)
@@ -780,7 +698,7 @@ func TestDocsServedWithoutToken(t *testing.T) {
 }
 
 func TestDocsDisabled(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, func(cfg *config.Config) {
+	env := newTestEnv(t, func(cfg *config.Config) {
 		cfg.EnableDocs = false
 	})
 
@@ -798,7 +716,7 @@ func TestDocsDisabled(t *testing.T) {
 }
 
 func TestHealthzAndReadyzStayPublic(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 
 	health := env.request(t, http.MethodGet, "/healthz", "127.0.0.1:5555", nil, "")
 	if health.Code != http.StatusOK {
@@ -829,7 +747,7 @@ func TestHealthzAndReadyzStayPublic(t *testing.T) {
 }
 
 func TestAllowlistRejectsBeforeAuth(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 
 	// The peer is outside the allowlist and is not a trusted proxy, so the
 	// forged X-Forwarded-For header must be ignored.
@@ -848,7 +766,7 @@ func TestAllowlistRejectsBeforeAuth(t *testing.T) {
 }
 
 func TestAllowlistTrustedProxy(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 
 	allowed := env.request(t, http.MethodGet, "/svnadmin/api/v1/users", "10.0.0.2:1234", map[string]string{
 		"X-Forwarded-For": "10.5.5.5",
@@ -866,7 +784,7 @@ func TestAllowlistTrustedProxy(t *testing.T) {
 }
 
 func TestSPAFallback(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 
 	for _, path := range []string{"/", "/repos", "/users/alice"} {
 		recorder := env.request(t, http.MethodGet, path, "127.0.0.1:5555", nil, "")
@@ -883,7 +801,7 @@ func TestSPAFallback(t *testing.T) {
 var generatedRequestID = regexp.MustCompile(`^[0-9a-f]{16}$`)
 
 func TestRequestID(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 
 	reused := env.request(t, http.MethodGet, "/healthz", "127.0.0.1:5555", map[string]string{
 		"X-Request-Id": "abcdefgh",
@@ -919,16 +837,10 @@ func TestAccessLogShapeAndNoSecrets(t *testing.T) {
 		t.Fatalf("write access file: %v", err)
 	}
 
-	rolesPath := filepath.Join(dir, "userroleassignments.ini")
-	if err := os.WriteFile(rolesPath, []byte("[testuser]\nAdministrator=\n"), 0o640); err != nil {
-		t.Fatalf("write role file: %v", err)
-	}
-
 	cfg := config.Config{
 		SVNParentPath:   parent,
 		SVNAuthFile:     authFile,
 		SVNAccessFile:   accessFile,
-		RoleFile:        rolesPath,
 		TrashDir:        filepath.Join(dir, "trash"),
 		SVNBinary:       "svn",
 		SVNAdminBinary:  "svnadmin",
@@ -949,7 +861,6 @@ func TestAccessLogShapeAndNoSecrets(t *testing.T) {
 
 	users := htpasswd.New(cfg.SVNAuthFile)
 	groups := authz.New(cfg.SVNAccessFile)
-	roleStore := roles.New(cfg.RoleFile)
 	repoStore := svnrepos.NewStore(svnrepos.Options{
 		Parents:  []string{cfg.SVNParentPath},
 		CLI:      svncli.New(svncli.Options{Runner: newFakeSvnRunner()}),
@@ -963,22 +874,18 @@ func TestAccessLogShapeAndNoSecrets(t *testing.T) {
 		Logger:    slog.New(slog.NewJSONHandler(&logs, nil)),
 		Allowlist: allowlist,
 		Tokens:    tokens,
-		System:    presenter.NewSystem("3.0.0-test", cfg, roleStore),
-		Session:   presenter.NewSession(users, roleStore, tokens, auth.NewRateLimiter(5, time.Minute)),
+		System:    presenter.NewSystem("3.0.0-test", cfg),
+		Session:   presenter.NewSession(users, tokens, auth.NewRateLimiter(5, time.Minute)),
 		Setup: presenter.NewSetup(presenter.SetupDeps{
-			Roles:          roleStore,
 			Users:          users,
 			Accounts:       users,
 			AuthFile:       cfg.SVNAuthFile,
 			AccessFile:     cfg.SVNAccessFile,
-			RoleFile:       cfg.RoleFile,
 			BootstrapToken: bootstrap,
 		}),
 		User: presenter.NewUser(presenter.UserDeps{
 			Users:       users,
 			Accounts:    users,
-			Roles:       roleStore,
-			RoleWriter:  roleStore,
 			Groups:      groups,
 			Authz:       groups,
 			AccessPaths: groups,
@@ -995,10 +902,7 @@ func TestAccessLogShapeAndNoSecrets(t *testing.T) {
 		AccessPath: presenter.NewAccessPath(
 			groups,
 			groups,
-			roleStore,
-			roleStore,
 		),
-		Role: presenter.NewRole(roleStore),
 	})
 	if err != nil {
 		t.Fatalf("New() error = %v", err)

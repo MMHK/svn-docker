@@ -169,7 +169,7 @@ func (f *fakeSvnRunner) set(fn func(*fakeSvnRunner)) {
 }
 
 func TestRepositoryNameInjectionIsRejected(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 
 	names := []string{
@@ -208,7 +208,7 @@ func TestRepositoryNameInjectionIsRejected(t *testing.T) {
 }
 
 func TestRepositoryPathInjectionIsRejected(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 
 	paths := []string{
@@ -247,7 +247,7 @@ func TestRepositoryPathInjectionIsRejected(t *testing.T) {
 }
 
 func TestCreateRepository(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 
 	recorder := env.request(t, http.MethodPost, "/svnadmin/api/v1/repos", "127.0.0.1:5555",
@@ -343,7 +343,7 @@ func TestCreateRepository(t *testing.T) {
 }
 
 func TestCreateRepositoryStructureRules(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 
 	cases := []struct {
@@ -385,7 +385,7 @@ func TestCreateRepositoryStructureRules(t *testing.T) {
 }
 
 func TestDeleteRepository(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 
 	makeRepository(t, env.cfg.SVNParentPath, "gone")
@@ -428,7 +428,7 @@ func TestDeleteRepository(t *testing.T) {
 }
 
 func TestDeleteRepositoryDisabled(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, func(cfg *config.Config) {
+	env := newTestEnv(t, func(cfg *config.Config) {
 		cfg.RepoDelete = false
 	})
 	admin := env.mustToken(t, "testuser", testPassword)
@@ -444,7 +444,7 @@ func TestDeleteRepositoryDisabled(t *testing.T) {
 }
 
 func TestRepositoryTree(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 
 	recorder := env.request(t, http.MethodGet, "/svnadmin/api/v1/repos/repo1/tree", "127.0.0.1:5555", bearer(admin), "")
@@ -517,7 +517,7 @@ func TestRepositoryTree(t *testing.T) {
 }
 
 func TestRepositoryTreeEmptyDirectory(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 
 	env.runner.set(func(r *fakeSvnRunner) {
@@ -536,7 +536,7 @@ func TestRepositoryTreeEmptyDirectory(t *testing.T) {
 }
 
 func TestRepositoryTreeNotFound(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 
 	env.runner.set(func(r *fakeSvnRunner) {
@@ -560,7 +560,7 @@ func TestRepositoryTreeNotFound(t *testing.T) {
 }
 
 func TestRepositoryInfo(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
+	env := newTestEnv(t, nil)
 	admin := env.mustToken(t, "testuser", testPassword)
 
 	recorder := env.request(t, http.MethodGet, "/svnadmin/api/v1/repos/repo1/info", "127.0.0.1:5555", bearer(admin), "")
@@ -584,28 +584,6 @@ func TestRepositoryInfo(t *testing.T) {
 	missing := env.request(t, http.MethodGet, "/svnadmin/api/v1/repos/nope/info", "127.0.0.1:5555", bearer(admin), "")
 	if missing.Code != http.StatusNotFound {
 		t.Errorf("missing repo status = %d, want 404", missing.Code)
-	}
-}
-
-func TestRepositoryPermissions(t *testing.T) {
-	env := newTestEnv(t, defaultRoleFile, nil)
-	// viewer holds the plain User role: repository:view only.
-	viewer := env.mustToken(t, "viewer", testPassword)
-
-	view := env.request(t, http.MethodGet, "/svnadmin/api/v1/repos/repo1/tree", "127.0.0.1:5555", bearer(viewer), "")
-	if view.Code != http.StatusOK {
-		t.Fatalf("view status = %d, body = %s", view.Code, view.Body.String())
-	}
-
-	create := env.request(t, http.MethodPost, "/svnadmin/api/v1/repos", "127.0.0.1:5555",
-		bearer(viewer), `{"name":"sneaky"}`)
-	if create.Code != http.StatusForbidden {
-		t.Errorf("create status = %d, want 403", create.Code)
-	}
-
-	del := env.request(t, http.MethodDelete, "/svnadmin/api/v1/repos/repo1?confirm=repo1", "127.0.0.1:5555", bearer(viewer), "")
-	if del.Code != http.StatusForbidden {
-		t.Errorf("delete status = %d, want 403", del.Code)
 	}
 }
 

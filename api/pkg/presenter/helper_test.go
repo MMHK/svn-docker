@@ -14,8 +14,6 @@ func newUserPresenter() *User {
 	return NewUser(UserDeps{
 		Users:      store,
 		Accounts:   store,
-		Roles:      store,
-		RoleWriter: store,
 		Groups:     store,
 		Authz:      store,
 		Tokens:     auth.NewManager(auth.Options{TTL: time.Hour, Idle: time.Hour}),

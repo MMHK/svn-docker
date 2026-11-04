@@ -31,7 +31,6 @@ type Config struct {
 	SVNParentPath      string
 	SVNAuthFile        string
 	SVNAccessFile      string
-	RoleFile           string
 	ConfigINI          string
 	BackupDir          string
 	TrashDir           string
@@ -109,7 +108,6 @@ func LoadFrom(lookup func(string) (string, bool)) (Config, error) {
 
 	// Backups go to data/backup and deleted repositories to data/trash, which
 	// is what the v2 tree already uses (plan section 5.1, D7).
-	cfg.RoleFile = l.str("ROLE_FILE", filepath.Join(filepath.Dir(cfg.ConfigINI), "userroleassignments.ini"))
 	cfg.BackupDir = l.str("BACKUP_DIR", filepath.Join(filepath.Dir(cfg.ConfigINI), "backup"))
 	cfg.TrashDir = l.str("TRASH_DIR", filepath.Join(filepath.Dir(cfg.ConfigINI), "trash"))
 	cfg.SVNBinary = l.str("SVN_BINARY", "svn")
@@ -183,10 +181,6 @@ func (c *Config) Validate() error {
 
 	if c.SVNAccessFile == "" {
 		return fmt.Errorf("config: %sSVN_ACCESS_FILE must not be empty", EnvPrefix)
-	}
-
-	if c.RoleFile == "" {
-		return fmt.Errorf("config: %sROLE_FILE must not be empty", EnvPrefix)
 	}
 
 	if c.BackupDir == "" {

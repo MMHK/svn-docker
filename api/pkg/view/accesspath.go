@@ -8,9 +8,8 @@ type ACLEntry struct {
 
 // AccessPath is the public access-path representation.
 type AccessPath struct {
-	Path     string     `json:"path" example:"project:/trunk"`
-	ACL      []ACLEntry `json:"acl"`
-	Managers []string   `json:"managers" example:"alice"`
+	Path string     `json:"path" example:"project:/trunk"`
+	ACL  []ACLEntry `json:"acl"`
 }
 
 // AccessPathList is the GET /access-paths payload.
@@ -27,17 +26,6 @@ type CreateAccessPathRequest struct {
 // SetACLPermissionRequest is the PUT /access-paths/{path}/acl/{principal} body.
 type SetACLPermissionRequest struct {
 	Permission string `json:"permission" example:"rw" enums:"none,r,rw"`
-}
-
-// AccessPathManagers is the GET/PUT /access-paths/{path}/managers payload.
-type AccessPathManagers struct {
-	Path  string   `json:"path" example:"project:/trunk"`
-	Users []string `json:"users" example:"alice"`
-}
-
-// AccessPathManagersRequest replaces the project-manager list of one path.
-type AccessPathManagersRequest struct {
-	Users []string `json:"users" example:"alice"`
 }
 
 // UserAccessPath is one effective access source of an account. inherited is

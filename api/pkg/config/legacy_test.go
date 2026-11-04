@@ -40,7 +40,6 @@ func TestLoadFallsBackToLegacyINI(t *testing.T) {
 	t.Setenv("SVN_PARENT_PATH", "")
 	t.Setenv("SVN_AUTH_FILE", "")
 	t.Setenv("SVN_ACCESS_FILE", "")
-	t.Setenv("SVN_ADMIN_ROLE_FILE", "")
 
 	before, err := os.ReadFile(path)
 	if err != nil {
@@ -66,10 +65,6 @@ func TestLoadFallsBackToLegacyINI(t *testing.T) {
 		t.Errorf("SVNAuthFile = %q", cfg.SVNAuthFile)
 	}
 
-	if cfg.RoleFile != filepath.Join(filepath.Dir(path), "userroleassignments.ini") {
-		t.Errorf("RoleFile = %q", cfg.RoleFile)
-	}
-
 	after, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("ReadFile() error = %v", err)
@@ -87,7 +82,6 @@ func TestLoadEnvironmentWinsOverLegacyINI(t *testing.T) {
 	t.Setenv("SVN_ADMIN_SVN_PARENT_PATH", "/env/svnlocal")
 	t.Setenv("SVN_ADMIN_SVN_AUTH_FILE", "/env/svn-auth-file")
 	t.Setenv("SVN_ADMIN_SVN_ACCESS_FILE", "/env/svn-access-file")
-	t.Setenv("SVN_ADMIN_ROLE_FILE", "/env/userroleassignments.ini")
 
 	cfg, err := Load()
 	if err != nil {
@@ -100,10 +94,6 @@ func TestLoadEnvironmentWinsOverLegacyINI(t *testing.T) {
 
 	if cfg.SVNAuthFile != "/env/svn-auth-file" || cfg.SVNAccessFile != "/env/svn-access-file" {
 		t.Errorf("SVN files = %q/%q", cfg.SVNAuthFile, cfg.SVNAccessFile)
-	}
-
-	if cfg.RoleFile != "/env/userroleassignments.ini" {
-		t.Errorf("RoleFile = %q", cfg.RoleFile)
 	}
 }
 

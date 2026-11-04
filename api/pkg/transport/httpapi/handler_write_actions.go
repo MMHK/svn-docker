@@ -9,5 +9,4 @@ const (
 	actionAccessPathCreate  = "access-path.create"
 	actionAccessPathDelete  = "access-path.delete"
 	actionAccessPathACL     = "access-path.acl"
-	actionAccessPathManager = "access-path.managers"
 )
