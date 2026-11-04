@@ -1,9 +1,17 @@
+# 測試產物（verify-v2.sh / fixtures.sh 產生）
 test/data/
 test/real/
 *.log
-data/backup/
-app/vendor/
 
-# Tailwind 建置管線（yarn V4）：依賴與快取不入庫，package.json / yarn.lock / 產物入庫
+# 執行期資料（掛載用；config.ini 與 userroleassignments.ini 仍入庫當範本/相容讀取）
+data/backup/
+data/trash/
+
+# 依賴與快取
 node_modules/
 .yarn/
+web/node_modules/
+web/.yarn/
+
+# 註：api/pkg/webui/dist 是 rspack 建置產物，但目前刻意入庫，
+#     讓沒有 Node 的環境也能 go build / 跑測試；不要加進忽略清單。

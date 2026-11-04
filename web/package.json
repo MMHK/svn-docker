@@ -1,0 +1,30 @@
+{
+  "name": "svn-admin-web",
+  "version": "3.0.0-dev",
+  "private": true,
+  "type": "module",
+  "packageManager": "yarn@4.18.0",
+  "scripts": {
+    "dev": "rspack serve",
+    "build": "rspack build",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "pinia": "^3.0.4",
+    "vue": "^3.5.44",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@rspack/cli": "^2.3.0",
+    "@rspack/core": "^2.3.0",
+    "@rspack/dev-server": "^2.2.2",
+    "@tailwindcss/postcss": "^4.3.4",
+    "@vue/compiler-sfc": "^3.5.44",
+    "postcss": "^8.5.32",
+    "postcss-loader": "^8.2.1",
+    "rspack-vue-loader": "^17.7.2",
+    "tailwindcss": "^4.3.4",
+    "typescript": "^5.9.3",
+    "vue-tsc": "^3.3.14"
+  }
+}

@@ -1,426 +1,309 @@
-# svn-docker 2.0.0 (Apache + mod_dav_svn + iF.SVNAdmin)
+# svn-docker 3.0.0（Apache + mod_dav_svn ｜ Go svn-admin + Vue 3 SPA）
 
-把 `/var/svnlocal` 的 SVN 服務（原本是主機上的 `apache2` + `libapache2-mod-svn` + `iF.SVNAdmin`）
-整包成一個 Docker 映像：**PHP 8.3 + Apache 2.4 + subversion 1.14 + iF.SVNAdmin 2.0.0**。
+`svn-docker` 打包一套可自架的 Subversion 服務：
 
-- 倉庫與授權檔維持原本的路徑與格式：`/var/svnlocal`、`svn-auth-file`、`svn-access-file`
-- iF.SVNAdmin 直接打進映像，只有 `data/`（設定與角色指派）留在 host
-- 不需要資料庫，完全靠 SVN 的 auth / authz 檔
-- 上游基底是 iF.SVNAdmin 1.6.2，本 stack 的現代化版本號為 **2.0.0**（Composer 化、前端控制器路由、
-  Tailwind v4 UI、PHPUnit/PHPStan、多階段建置）
+- **`svn`**（`mmhk/svn:3.0`）：Apache 2.4 + `mod_dav_svn`，提供 `/svn`（Basic + authz），
+  並把 `/svnadmin` 以 `mod_proxy` 轉給管理服務。
+- **`svn-admin`**（`mmhk/svn-admin:3.0`）：**Go REST API**，內嵌 **rspack + Vue 3 + Tailwind CSS**
+  的 SPA，只 `expose: 8080`、永不 publish。
 
-## 目錄（TOC）
+**沒有 PHP**：v3 不再包含 iF.SVNAdmin、Composer、模板引擎或 PHP Apache 模組。runtime 也不含
+Node / Go（SPA 與 Go binary 在建置階段產生並內嵌）。
 
-- [快速開始](#快速開始)
-- [首次啟動：建立管理員並登入](#首次啟動建立管理員並登入)
-- [路由表（新 → 舊）](#路由表新--舊)
-- [前端建置（Tailwind v4 + yarn 4）](#前端建置tailwind-v4--yarn-4)
-- [測試與靜態分析](#測試與靜態分析)
-- [功能裁剪](#功能裁剪)
-- [設定](#設定)
-- [升級與回滾](#升級與回滾)
-- [映像與多階段建置](#映像與多階段建置)
-- [PHP 8 相容性](#php-8-相容性)
-- [CI](#ci)
-- [注意事項](#注意事項)
-- [License](#license)
+不變的部分（回滾 2.0.0 的基礎）：
 
-## 專案結構
+- 倉庫與授權檔路徑格式：`/var/svnlocal`、`svn-auth-file`（htpasswd）、`svn-access-file`（authz INI）
+- 角色指派檔：`data/userroleassignments.ini`
+- `/svn` 的 DAV + Basic + `AuthzSVNAccessFile` 行為
 
+## 架構
+
+```text
+LAN ──► nginx :80 ──┬─ /svn      → svn:80 (mod_dav_svn)                        [Basic + authz]
+                    └─ /svnadmin → svn:80 (mod_remoteip → Require ip RFC1918) ─► mod_proxy ─► svn-admin:8080
+                                                          │
+                                                          ├─ /var/svnlocal  (RW, uid 1000:1000)
+                                                          └─ /data          (RW, 角色/備份/trash)
 ```
-.
-├── Dockerfile                 三階段建置：assets → vendor → php:8.3-apache
-├── docker-compose.yml         service: svn / image: mmhk/svn-docker:2.0 / 80:80
-├── .env                       COMPOSE_PROJECT_NAME=svn
-├── build.sh                   建置（可選推 registry）
-├── app/                       iF.SVNAdmin（PHP 8.3 現代化版）
-│   ├── composer.json          PSR-4 autoload；scripts: test / stan
-│   ├── composer.lock
-│   ├── phpunit.xml            PHPUnit 11 設定（bootstrap vendor/autoload.php）
-│   ├── phpstan.neon           PHPStan level 5 + baseline
-│   ├── phpstan-baseline.neon  只收歷史遺留問題（新碼不得進 baseline）
-│   ├── public/                前端控制器 index.php、.htaccess、建置後 assets
-│   ├── src/                   PSR-4 原始碼
-│   │   ├── Http/              Request / Response / Router / Kernel / Session
-│   │   ├── Controllers/       頁面控制器（18 頁）
-│   │   ├── Actions/           寫入操作（建使用者、改密碼、建倉庫…）
-│   │   ├── Core/              Engine / ProviderFactory / 例外
-│   │   ├── Config/            Config / ConfigFactory / IniFile
-│   │   ├── Acl/ Entities/ Contracts/ Providers/ I18n/ View/ Support/
-│   │   └── Legacy/compat.php  舊 FQCN → 新類別的過渡別名
-│   ├── tests/                 PHPUnit 純邏輯測試（不需 Docker/Apache/SVN）
-│   ├── views/                 18 個頁面模板 + 共用 header/navigation/footer
-│   ├── templates/             圖示、圖片等靜態資源（`/svnadmin/templates`）
-│   └── translations/          介面翻譯（en_US、zh_CN）
-├── assets/app.css             Tailwind v4 輸入檔（`@source "../app/views"`）
-├── build-assets.mjs           把 assets/app.js 複製到 app/public/assets
-├── package.json / yarn.lock   yarn 4 + `@tailwindcss/cli` v4
-├── data/                      config.ini / userroleassignments.ini（掛載給容器）
-├── conf/
-│   ├── svn.conf               Apache vhost（DAV svn + Basic + AuthzSVNAccessFile + /svnadmin）
-│   ├── svn-real.conf          唯讀煙霧測試 vhost
-│   └── php-svnadmin.ini       display_errors=Off、時區、session
-├── readme.md
-└── test/
-    ├── fixtures.sh            造小倉庫 + 測試帳號 + 可寫的 data/
-    ├── verify.sh              端到端驗證（共 50 項：37 項既有 + 13 項現代化檢查）
-    ├── verify-real.sh         對真實 /var/svnlocal 唯讀煙霧測試
-    └── probe-real-repos.sh    用 1.14 工具掃真實 repo
-```
+
+- nginx 只轉發 `/svn`、`/svnadmin` 給 `svn:80`，並**覆寫** `X-Forwarded-For`；不做 IP 判定。
+- `svn` 啟用 **`mod_remoteip`**：信任 nginx 來源、還原真實 client，再以
+  `<Location /svnadmin>` 的 `Require ip` 限制在 RFC1918 / `::1`，最後 `ProxyPass` 到 `svn-admin:8080`。
+- `svn-admin` 不 publish 埠；Go 端用 `SVN_ADMIN_ALLOW_CIDRS` + `SVN_ADMIN_TRUSTED_PROXIES`
+  再做一次 CIDR 檢查（第二層防線）。
+- 兩容器都以 `PUID`/`PGID`（預設 `1000:1000`）執行，對齊 host 上 `/var/svnlocal` 的 owner，
+  不需要 777。
+
+## 檔案佈局
+
+| 路徑 | 說明 |
+| --- | --- |
+| `Dockerfile.svn` | `debian:bookworm-slim` + apache2 + libapache2-mod-svn + subversion + curl |
+| `Dockerfile.admin` | 三階段：node:22-alpine（SPA）→ golang:1.24-alpine（靜態 binary）→ debian slim |
+| `docker-entrypoint.sh` | 兩映像共用：依 `PUID`/`PGID` 對齊 uid/gid |
+| `conf/svn.conf` | vhost：`/svn` + `/svnadmin`（含 `mod_remoteip`） |
+| `docker-compose.yml` | `svn` + `svn-admin`，接外部網路 `demo2-net` |
+| `docker-compose.dev.yml` | 本機測試才把 `svn:80` 發佈到 `127.0.0.1` |
+| `.env.example` | 全部 `SVN_ADMIN_*` / `SVN_ROOT` / `PUID` 等範本 |
+| `api/` | Go module（`cmd/`、`pkg/` MVP 分層、Swagger docs） |
+| `web/` | rspack + Vue 3 + TypeScript + Tailwind v4，產物輸出到 `api/pkg/webui/dist` |
+| `test/verify-v2.sh` | 端到端驗證（91 項）；`test/fixtures.sh` 產生隔離測資 |
+| `data/` | `userroleassignments.ini`、`backup/`、`trash/`（掛到 `/data`） |
+| `NOTICE` | iF.SVNAdmin（GPL v2）的歷史 attribution |
+
+`api/pkg/webui/dist` 是 rspack 的建置產物，目前**入庫**，讓沒有 Node 的環境也能
+`go build` 與跑測試；`yarn build` 會覆寫它。
 
 ## 快速開始
 
 ```sh
-./build.sh                     # 產生 mmhk/svn-docker:2.0（內含 Tailwind / Composer 產物）
-docker compose up -d           # 預設 80:80
-docker compose logs -f --tail 50
+cp .env.example .env            # 調整 SVN_ROOT / PUID / PGID / SVN_NETWORK
+docker network create demo2-net # 既有 nginx 網路已存在時可略過
+docker compose build
+docker compose up -d
+docker compose ps               # 兩個 service 應為 healthy
 ```
 
-先不搶 80 埠：
+`svn` 的 healthcheck 打 `/svn/`（期待 401/403），`svn-admin` 打 `/readyz`。
+`svn-admin` 永遠不 publish；要從本機直接開瀏覽器時疊加 dev 檔：
 
 ```sh
-SVN_HTTP_PORT=18080 docker compose up -d
-SVN_HTTP_PORT=18080 bash test/verify.sh
+SVN_HTTP_PORT=18080 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# http://127.0.0.1:18080/svnadmin/
 ```
 
-推內網 registry：
+生產環境由既有 nginx 轉發：
 
-```sh
-REGISTRY=docker-registry.demo2.mixmedia.com/mmhk ./build.sh
+```nginx
+location /svn/ {
+    proxy_pass http://svn:80;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Real-IP $remote_addr;
+}
+
+location /svnadmin/ {
+    proxy_pass http://svn:80;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Real-IP $remote_addr;
+}
 ```
 
-### 最小可用流程
+## 首次啟動：bootstrap token
 
-```text
-build → up → 建使用者（或讓系統自動建 admin/admin）
-      → 指派管理員 → 登入 → 建倉庫
-```
+2.0.0 的 `admin`/`admin` 預設後門已移除。第一次建立管理員的流程：
 
-1. `./build.sh`（或直接 `docker compose up -d` 使用現成 image）
-2. 準備至少一個 `svn-auth-file` 使用者（GUI「建立使用者」或 `htpasswd -b`）
-3. 開 `http://<host>/svnadmin/`，依下方「首次啟動」完成管理員指派
-4. 用該帳號登入，到 `/svnadmin/repositories/new` 建倉庫
-
-## 首次啟動：建立管理員並登入
-
-> 本節描述的是目前程式（2.0.0）的實際行為，包含 `SettingsController`、
-> `bootstrap.php`、`FSAclManager` 與 `LoginController` 的判定順序。
-
-### 1. 前置條件：使用者必須先存在
-
-GUI 的帳號來自 `svn-auth-file`（htpasswd 格式，APR1 hash），**不是** Apache Basic
-認證那一組密碼。先建立使用者，例如：
-
-```sh
-docker compose exec -T svn htpasswd -b /var/svnlocal/svn-auth-file testuser testpass
-```
-
-若 `svn-auth-file` 裡**完全沒有使用者**，第一次打開 setadmin 頁面時，系統會自動建立
-預設帳號 **`admin` / `admin`** 並直接指派 Administrator。**登入後請立刻改密碼。**
-
-### 2. 判定邏輯（照程式實際行為）
-
-- 每個請求在 `bootstrap.php` 檢查：認證開啟、且 `data/userroleassignments.ini`
-  裡**沒有任何 `Administrator=`** 時，除了設定頁以外的路徑都會 `302` 到
-  `/svnadmin/settings`。
-- 進入 `/svnadmin/settings` 後：
-  - `[Common] FirstStart=0` 且尚未定義管理員 → 顯示「Define administrator」選單
-    （`settings/setadmin.html.php`）。
-  - `[Common] FirstStart=1` → 跳過登入檢查，直接顯示唯讀的系統資訊頁（backend），
-    **不會**顯示 setadmin 選單；這個模式是給你修 `data/config.ini` 的維護入口。
-- 也就是說：**真正觸發「導向 settings / 出現 setadmin」的條件是「沒有管理員」**；
-  `FirstStart=1` 只影響 settings 頁是否免登入、以及是否顯示 setadmin，本身不會把
-  `/svnadmin/` 導向 settings。
-- 在 settings 頁帶 `?firststart=1` 會把 `FirstStart` 寫回 `1` 並重新導向 settings。
-
-### 3. 操作步驟（GUI）
-
-1. 瀏覽 `http://<host>/svnadmin/`
-2. 沒有管理員時會自動 `302` 到 `/svnadmin/settings` 的「Define administrator」頁
-3. 從下拉選單選擇要成為管理員的帳號
-   （表單欄位：`name="selected_users[]"`，另有隱藏欄位 `setadmin=1`）
-4. 按 **Save**（送出 `saveadmin=Save`）→ 寫入 `data/userroleassignments.ini`，
-   格式為：
-   ```ini
-   [username]
-   Administrator=
+1. 帳號必須先存在於 `svn-auth-file`（htpasswd）。容器內有 `htpasswd`：
+   ```sh
+   docker compose exec -T svn htpasswd -b /var/svnlocal/svn-auth-file admin '你的密碼'
    ```
-5. 導回 `/svnadmin/`，用該帳號 + 它的 htpasswd 密碼登入
-6. 登入後可在 `/svnadmin/roles` 再指派其他角色（`Repository-Creator` 等）
+2. 取得一次性 token：
+   - `.env` 設了 `SVN_ADMIN_BOOTSTRAP_TOKEN` 就用該值；
+   - 留空時，服務啟動會隨機產生並印在 log：
+     ```sh
+     docker compose logs svn-admin | grep bootstrap_token
+     ```
+3. 呼叫 setup（需從內網存取）：
+   ```sh
+   curl -sS -X POST http://<host>/svnadmin/api/v1/setup/admin \
+     -H 'Content-Type: application/json' \
+     -d '{"username":"admin","token":"<bootstrap-token>"}'
+   ```
+   成功回 `201 {"username":"admin","role":"Administrator"}`。
+4. 開 `/svnadmin/`，用該帳號 + htpasswd 密碼登入。session token 存在瀏覽器
+   `localStorage['svnadmin.token']`，**不使用 cookie**。
+5. 之後可在 GUI 指派其他角色；已存在管理員時 `setup/admin` 回 `409`。
 
-### 4. 手動等價做法（自動化 / 容器重建）
+## 內網限制與 mod_remoteip（上線前必做）
 
-```sh
-# 直接寫角色指派檔（容器內 www-data uid 33 需可寫）
-docker compose exec -T svn sh -c 'printf "\n[username]\nAdministrator=\n" >> /var/www-tools/svnadmin/data/userroleassignments.ini'
-```
+管理介面**只允許內網**。`nginx → Apache` 之後，Apache 看到的 TCP peer 是 nginx；
+若不還原真實 client，`Require ip RFC1918` 會拿 nginx 的 `172.x` 比對，結果全部放行。
 
-`data/` 是 host bind mount，也可以直接在 host 編輯 `./data/userroleassignments.ini`。
+1. nginx 轉發時**覆寫**來源標頭（見上方範例）。
+2. `conf/svn.conf` 用 `mod_remoteip` 還原真實 client：
+   ```apache
+   RemoteIPHeader X-Forwarded-For
+   RemoteIPTrustedProxy ${SVN_REMOTEIP_TRUSTED_PROXY}
+   ```
+   `SVN_REMOTEIP_TRUSTED_PROXY` 由 `docker-entrypoint.sh` 注入；
+   **只可收窄成 nginx 的實際位址/網段，不可放寬到 `0.0.0.0/0`、整個 RFC1918 或公網**，
+   否則任何人都能偽造 `X-Forwarded-For` 繞過 `Require ip`。
+   `RemoteIPTrustedProxy` 不吃主機名；docker 動態 IP 會漂移時，請在 nginx 的 compose
+   給它固定 `ipv4_address`，並同步這裡的設定。
+3. `/svnadmin` 只放行 `10/8`、`172.16/12`、`192.168/16`、`::1`；Go 端再用
+   `SVN_ADMIN_ALLOW_CIDRS` + `SVN_ADMIN_TRUSTED_PROXIES=svn` 檢查一次。
+4. 驗證：
+   ```sh
+   docker compose logs svn | tail -n 20
+   ```
+   - 內網來源打 `/svnadmin/` → `200`
+   - 公網來源 → `403`
+   - 從內網偽造 `curl -H 'X-Forwarded-For: 8.8.8.8'` → `403`
+   - 直打 `svn-admin:8080`（容器內）→ Go 層 `403`
 
-### 5. 重跑首次啟動流程
+**直連風險**：若 `svn:80` 被 publish 到 LAN，直連仍會經過同一組 `Require ip`（XFF 不被信任、
+以 TCP peer 判定），但會繞過 nginx 的日誌與限流；因此預設不 publish，僅 dev 檔綁 loopback。
+禁止 `--network host`。
 
-```sh
-# 方法 A：把 FirstStart 設回 1（之後 /svnadmin/settings 免登入，顯示系統資訊）
-curl -b cookie.txt 'http://localhost:8080/svnadmin/settings?firststart=1'
+**`mod_remoteip` 的實際語意（實測）**：`RemoteIPTrustedProxy` 只把**公網**位址當成 useragent，
+XFF 裡的私有位址不會被採信，`%a` 會顯示 nginx 的容器 IP；存取判定仍正確（公網一律 `403`）。
+若需要在 log 看到內網 client IP，把該行改成 `RemoteIPInternalProxy`（前提是 nginx 覆寫 XFF），
+變更前請重跑上面的驗證。
 
-# 方法 B：直接改 data/config.ini
-#   [Common]
-#   FirstStart=1
-```
+IPv4 loopback（`127.0.0.1`）不在 `/svnadmin` allowlist（只有 `::1` 與 RFC1918），這是刻意的；
+容器內自我測試請用 `http://svn/svnadmin/...`。
 
-- 程式**不會**自動把 `FirstStart` 歸零；修完設定記得手動改回 `FirstStart=0`。
-- 想再看一次「Define administrator」選單：清空 `data/userroleassignments.ini`
-  （或移除所有 `Administrator=` 行），保持 `FirstStart=0`，再訪問 `/svnadmin/`。
+## 設定（環境變數）
 
-### 6. 登入 / 登出
+v3 以環境變數為權威（`SVN_ADMIN_*`），完整範本見 `.env.example`。
+`data/config.ini` 只在三個 SVN 路徑未設定時作為唯讀 fallback（方便沿用 v2 的資料夾）。
 
-- 登入頁：`GET /svnadmin/login`；送出 `POST /svnadmin/login`
-  （欄位 `loginname`、`loginpass`、`login`，按鈕值 `Login`）
-- 登入成功 → `302` 到 `/svnadmin/index.php`
-- 登出：`/svnadmin/logout`（路由同時接受 GET 與 POST）→ `302` 到
-  `/svnadmin/login.php?loggedout=1`
-- 登入狀態存在 PHP session，key 為 `svnadmin_username`
-- 帳密來源是 `svn-auth-file` 的 htpasswd hash（APR1）
-- GUI 權限由 `data/userroleassignments.ini` 的角色決定（`Administrator=`、
-  `Repository-Creator=` 等）
-
-登入 curl 範例：
-
-```sh
-curl -c cookie.txt -d 'loginname=testuser&loginpass=testpass&login=Login' \
-  http://localhost:8080/svnadmin/login
-curl -b cookie.txt http://localhost:8080/svnadmin/
-```
-
-### 7. 常見卡點（FAQ）
-
-| 現象 | 原因 | 解法 |
+| 變數 | 預設 | 說明 |
 | --- | --- | --- |
-| 一直跳回登入頁 | 密碼錯誤，或該使用者不在 `svn-auth-file` | 用 `htpasswd -b` 補使用者 |
-| 登入成功但什麼都不能做 | `userroleassignments.ini` 沒有該使用者的角色 | 依上面步驟指派 Administrator |
-| `/svnadmin/` 一直導到 settings | `userroleassignments.ini` 沒有任何 `Administrator=` | 完成 setadmin，或手動寫入角色檔 |
-| 進了 settings 卻沒有帳號可選 | `svn-auth-file` 沒有任何使用者，或 `FirstStart=1` | 先建使用者；把 `FirstStart` 改回 `0` |
-| 設定頁出現唯讀系統資訊、沒有 setadmin | `FirstStart=1` | 改回 `FirstStart=0` 後重新訪問 |
-| Save 之後沒生效 | `data/` 對容器不可寫（uid 33） | `chown -R 33:33 data` 或 `chmod -R a+rwX data` |
-| 容器重建後又要重新設定 | `./data` 沒掛載或指向別的目錄 | 確認 compose 的 `SVN_DATA_ROOT` |
+| `SVN_ROOT` | `/var/svnlocal` | host 端 SVN 根目錄，兩容器同時掛載 |
+| `SVN_DATA_ROOT` | `./data` | host 端管理資料，掛到 `svn-admin` 的 `/data` |
+| `PUID` / `PGID` | `1000` / `1000` | 進程 uid/gid，**必須等於 `SVN_ROOT` owner** |
+| `SVN_NETWORK` | `demo2-net` | 外部 docker 網路名稱 |
+| `SVN_HTTP_PORT` | `18080` | 只有疊 `docker-compose.dev.yml` 才生效（綁 127.0.0.1） |
+| `SVN_REMOTEIP_TRUSTED_PROXY` | `172.16.0.0/12 192.168.0.0/16` | Apache 信任的代理來源；只可收窄 |
+| `SVN_ADMIN_ADDR` | `:8080` | Go 監聽位址 |
+| `SVN_ADMIN_SVN_PARENT_PATH` | `/var/svnlocal` | `SVNParentPath` |
+| `SVN_ADMIN_SVN_AUTH_FILE` | `/var/svnlocal/svn-auth-file` | htpasswd |
+| `SVN_ADMIN_SVN_ACCESS_FILE` | `/var/svnlocal/svn-access-file` | authz INI |
+| `SVN_ADMIN_ROLE_FILE` | `/data/userroleassignments.ini` | 角色指派 |
+| `SVN_ADMIN_BACKUP_DIR` | `/data/backup` | 寫入前備份 |
+| `SVN_ADMIN_TRASH_DIR` | `/data/trash` | 刪倉庫的回收區 |
+| `SVN_ADMIN_TRASH_RETENTION` | `720h`（30 天） | trash 保留期 |
+| `SVN_ADMIN_TRASH_PURGE_INTERVAL` | `24h` | trash 清除器間隔（啟動先跑一次） |
+| `SVN_ADMIN_REPO_DELETE_ENABLED` | `true` | 刪倉庫開關（仍需輸入倉庫名確認） |
+| `SVN_ADMIN_UID` / `SVN_ADMIN_GID` | `1000` / `1000` | 服務層記錄的進程身份 |
+| `SVN_ADMIN_ENABLE_DOCS` | `true` | Swagger UI 開關（仍僅管理員 + 內網） |
+| `SVN_ADMIN_DEFAULT_LOCALE` | `zh_CN` | 預設語系（`zh_CN` / `en_US`） |
+| `SVN_ADMIN_BOOTSTRAP_TOKEN` | 空 | 空＝啟動時隨機產生並印 log |
+| `SVN_ADMIN_ALLOW_CIDRS` | `10/8,172.16/12,192.168/16` | Go 層來源限制 |
+| `SVN_ADMIN_TRUSTED_PROXIES` | `svn` | 只信任 Apache 送來的 XFF |
+| `SVN_ADMIN_TOKEN_TTL` | `12h` | session token 絕對上限 |
+| `SVN_ADMIN_TOKEN_IDLE` | `2h` | 閒置上限 |
+| `SVN_ADMIN_LOGIN_RATE_PER_MIN` | `5` | 登入限流（次/分/IP） |
 
-## 路由表（新 → 舊）
-
-所有請求都從 `app/public/index.php` 進入，由 `SvnAdmin\Http\Router` 比對「相對於應用根」的路徑
-（應用掛在 `/svnadmin`）。舊 `.php` 路徑目前是**別名**，與新路徑回同一個 handler（都是 200）；
-`Router::legacy()` 的 301 能力保留給下一個版本切換。
-
-| 新路由 | 舊路徑 | 用途 |
-| --- | --- | --- |
-| `/svnadmin/` | `index.php` | 首頁 |
-| `/svnadmin/login` | `login.php` | 登入（GET/POST） |
-| `/svnadmin/logout` | `logout.php` | 登出 |
-| `/svnadmin/users` | `userlist.php` | 使用者列表 |
-| `/svnadmin/users/new` | `usercreate.php` | 建立使用者 |
-| `/svnadmin/users/view` | `userview.php` | 使用者詳情 |
-| `/svnadmin/users/change-password` | `userchangepass.php` | 改密碼 |
-| `/svnadmin/users/group-assign` | `usergroupassign.php` | 指派群組 |
-| `/svnadmin/groups` | `grouplist.php` | 群組列表 |
-| `/svnadmin/groups/new` | `groupcreate.php` | 建立群組 |
-| `/svnadmin/groups/view` | `groupview.php` | 群組詳情 |
-| `/svnadmin/repositories` | `repositorylist.php` | 倉庫列表 |
-| `/svnadmin/repositories/new` | `repositorycreate.php` | 建立倉庫 |
-| `/svnadmin/repositories/view` | `repositoryview.php` | 倉庫詳情 |
-| `/svnadmin/access-paths` | `accesspathslist.php` | 授權路徑列表 |
-| `/svnadmin/access-paths/new` | `accesspathcreate.php` | 建立授權路徑 |
-| `/svnadmin/access-paths/view` | `accesspathview.php` | 授權路徑詳情 |
-| `/svnadmin/permissions` | `permissionassign.php` | 權限指派 |
-| `/svnadmin/roles` | `rolelist.php` | 角色列表 |
-| `/svnadmin/settings` | `settings.php` | 設定 |
-| `/svnadmin/error` | `error.php` | 錯誤頁 |
-
-查詢參數沿用舊介面：`?username=`、`?groupname=`、`?r=`、`?accesspath=test1%3A%2F`。
-靜態資源是 `/svnadmin/assets/app.css`、`/svnadmin/assets/app.js`（`app/public/assets/`），
-圖示與圖片仍在 `/svnadmin/templates/`。
-
-## 前端建置（Tailwind v4 + yarn 4）
-
-前端只依賴 Tailwind v4 CLI，不用 npm：
+權限（重要）：`SVN_ROOT` 與 `SVN_DATA_ROOT` 的 owner 必須是 `PUID:PGID`。
+entrypoint **不會** chown 這兩個目錄，部署前請自行確認：
 
 ```sh
-corepack enable
-corepack prepare yarn@4.18.0 --activate   # 或依 package.json 的 packageManager
-yarn install
-yarn build                                # build:css + build:js
+sudo chown -R 1000:1000 /var/svnlocal ./data
 ```
 
-- `yarn build:css`：`tailwindcss -i ./assets/app.css -o ./app/public/assets/app.css --minify`
-- `yarn build:js`：`node build-assets.mjs`（把 `assets/app.js` 複製到 `app/public/assets/`）
-- 開發時用 `yarn watch:css` 持續重建
-- Tailwind 以 `@source "../app/views"` 掃描模板；改 view 的 class 後要重新 build
-- 深色模式：`<html data-color-mode="auto|light|dark">`，cookie `color_mode` 記住選擇，
-  CSS 以 `@custom-variant dark` 產生 `dark:` 變體
+## API 文件
 
-映像建置時由 Node stage 重新產生上述兩份產物，**不使用** repo 裡提交的舊檔。
+Swagger UI：`/svnadmin/api/docs/index.html`（`SVN_ADMIN_ENABLE_DOCS=true` 時）。
+規格：`/svnadmin/api/docs/openapi.json`、`openapi.yaml`。
+與其他管理端點同一組保護：必須登入且具 `settings:view`（管理員），並受 RFC1918 限制。
+`swag` 產物在 `api/pkg/docs/`，CI 會執行 `make swag` 後比對 `git diff` 檢查漂移。
 
-## 測試與靜態分析
+## 開發
 
 ```sh
-# 1) PHPUnit（純邏輯：HtPasswd / IniFile / Router / Template / Config）
-cd app && composer test          # 或 composer --working-dir=app test
+# Go（Windows 需關掉 buildvcs：本 repo 位於 SVN working copy 內）
+cd api
+GOFLAGS=-buildvcs=false go build ./...
+GOFLAGS=-buildvcs=false go test -race ./...
+make layers     # presenter 不得 import net/http
+make swag       # 重新產生 pkg/docs
 
-# 2) PHPStan level 5（歷史問題收在 baseline，新碼不得加進去）
-cd app && composer stan
-
-# 3) 端到端（需要 Docker；先造測資）
-bash test/fixtures.sh
-SVN_HTTP_PORT=18080 docker compose up -d
-SVN_HTTP_PORT=18080 bash test/verify.sh
-
-# 4) 真實資料唯讀煙霧測試（臨時容器 127.0.0.1:18081，跑完自動刪）
-bash test/verify-real.sh
-
-# 5) 只掃 repo 相容性
-sh test/probe-real-repos.sh
+# 前端（yarn 4；不要用 npm）
+cd web
+yarn install --immutable
+yarn dev        # :5173，proxy /svnadmin/api → :8080
+yarn build      # 輸出到 ../api/pkg/webui/dist
+yarn typecheck
 ```
 
-`test/verify.sh` 目前涵蓋：
+## 驗證
 
-- `svnadmin` 是否真的內嵌在映像（只有 `data` 是掛載）
-- Basic 認證 401/200、authz 權限差異（testuser 讀不到 test2）
-- `svn cat`（容器內 svn client 對自己）
-- GUI 登入、**18 個舊頁面全爬**並檢查沒有 `Fatal error` / `Warning` / `Deprecated`
-- GUI 寫入操作：建使用者（寫 htpasswd）、改密碼（hash 變更）、建倉庫（`svnadmin create` + 寫 authz）
-- 現代化路徑：`/svnadmin/`、`users`、`repositories`、`access-paths`、`groups`、`settings` 皆 200
-- 前端資源：`assets/app.css`、`assets/app.js` 皆 200；頁面不含 `jquery` 字樣
-- 深色模式：帶 `Cookie: color_mode=dark` 時 HTML 有 `data-color-mode="dark"`
-- 舊 `.php` 路徑（別名）仍 200
-
-目前是 **50 項檢查、0 FAIL**；新增檢查不會移除任何既有項目。
-
-## 功能裁剪
-
-現代化時只保留實際部署用得到的 provider，以下功能已移除（不再有對應的類別與設定）：
-
-| 功能 | 說明 |
-| --- | --- |
-| LDAP 認證 / 目錄查詢 | 只留 `passwd`（htpasswd）與 `basic` 認證 |
-| Digest 認證 | 只支援 Apache Basic Auth |
-| BDB 倉庫格式 | GUI 建倉庫固定 `fsfs` |
-| Repository Update / 升級 | 移除 `svnadmin upgrade`、hotcopy 等維護操作 |
-| `cli/` 命令列工具 | 只留 Web GUI |
-| Repository dump / load | 不做匯出匯入 |
-| `de_ES` / `es_ES` 翻譯 | 只留 `en_US`、`zh_CN` |
-
-對應地，`data/config.ini` 的 `[Engine:Providers]` 只接受：
-
-```ini
-[Engine:Providers]
-AuthenticationStatus=basic       # off | basic
-UserViewProviderType=passwd
-UserEditProviderType=passwd
-GroupViewProviderType=svnauthfile
-GroupEditProviderType=svnauthfile
-AccessPathViewProviderType=svnauthfile
-AccessPathEditProviderType=svnauthfile
-RepositoryViewProviderType=svnclient
-RepositoryEditProviderType=svnclient
-```
-
-## 設定
-
-`data/config.ini` 是唯一需要調整的檔案，路徑刻意與舊主機一致：
-
-```ini
-[Subversion]
-SVNAuthFile=/var/svnlocal/svn-access-file
-
-[Repositories:svnclient]
-SVNParentPath=/var/svnlocal
-SvnExecutable=/usr/bin/svn
-SvnAdminExecutable=/usr/bin/svnadmin
-
-[Users:passwd]
-SVNUserFile=/var/svnlocal/svn-auth-file
-```
-
-容器內會掛載：
-
-| host | container | 說明 |
-| --- | --- | --- |
-| `/var/svnlocal` | `/var/svnlocal` | 倉庫 + `svn-auth-file` + `svn-access-file` |
-| `./data` | `/var/www-tools/svnadmin/data` | 設定、角色指派、backup（可持久化） |
-| `./conf/svn.conf` | `/etc/apache2/sites-enabled/000-default.conf` | vhost |
-| `./conf/php-svnadmin.ini` | `/usr/local/etc/php/conf.d/zz-svnadmin.ini` | php.ini 覆寫 |
-
-`/var/www` 的靜態站台不在這個 stack 範圍。
-
-## 升級與回滾
+端到端驗證需要 Docker，會建立臨時 compose project、跑 `test/fixtures.sh`，
+最後自動 `docker compose down -v`：
 
 ```sh
-# 升級：抓新版 → 重建映像 → 重啟容器
-git pull
+bash test/verify-v2.sh          # 91 項，必須 0 FAIL
+```
+
+Windows 請用 Git Bash：
+
+```powershell
+& 'C:\Program Files\Git\bin\bash.exe' test/verify-v2.sh
+```
+
+涵蓋：映像內容（無 php/node/go/composer）、published port、uid/gid、`/readyz`、
+SVN Basic/authz、session token、唯讀端點、使用者/群組/ACL/倉庫生命週期、
+注入向量、舊 `.php` 404、Swagger、偽造 XFF 403、authz lossless、SPA/CSP、備份。
+
+## 映像與建置
+
+```sh
+docker build -f Dockerfile.svn   -t mmhk/svn:3.0 .
+docker build -f Dockerfile.admin -t mmhk/svn-admin:3.0 .
+# 或一次建兩個（可選 REGISTRY=... 推送）
 ./build.sh
+```
+
+| 映像 | 內容 | 大小目標 |
+| --- | --- | --- |
+| `mmhk/svn:3.0` | apache2 + libapache2-mod-svn + subversion + curl | ≤ 300 MB |
+| `mmhk/svn-admin:3.0` | subversion CLI + Go 靜態 binary（SPA 已 embed） | ≤ 150 MB |
+
+runtime 不含 PHP / Node / Go / Composer；`svn-admin` 以非 root 執行。
+
+## 備份與回滾 2.0.0
+
+資料格式未變（`svn-auth-file`、`svn-access-file`、`userroleassignments.ini`），
+v3 只會寫合法的 INI 行，2.0.0 會忽略未知行；每次寫入前另有 `data/backup/` 備份。
+
+回滾前先停 v3 stack 並備份 `/var/svnlocal` 與 `data/`：
+
+```sh
+docker compose down
+tar czf svn-backup-$(date +%F).tgz -C /var/svnlocal . -C "$PWD/data" .
+```
+
+方式 A：改用舊映像（若 registry 仍保留 `mmhk/svn-docker:2.0`）：
+
+```sh
+docker run -d --name svn-v2 -p 18080:80 \
+  -v /var/svnlocal:/var/svnlocal -v "$PWD/data:/var/www-tools/svnadmin/data" \
+  -v "$PWD/old-conf/svn.conf:/etc/apache2/sites-enabled/000-default.conf:ro" \
+  mmhk/svn-docker:2.0
+```
+
+方式 B：用 tag 開 worktree（推薦，conf/compose 一起回到 v2）：
+
+```sh
+git worktree add ../svn-docker-rollback v2.0.0
+cd ../svn-docker-rollback
 docker compose up -d
 ```
 
-- **回滾映像**：把 `docker-compose.yml` 的 `image:` 指回舊 tag，例如
-  `mmhk/svn-docker:8.3` 或 `mmhk/svn-docker:8.3-phase4`，再 `docker compose up -d`。
-- **回滾程式**：`git reset --hard pre-modernization`（回到現代化前的版本）。
-- **資料不受影響**：`/var/svnlocal`（倉庫、`svn-auth-file`、`svn-access-file`）與
-  `./data`（`config.ini`、`userroleassignments.ini`）的格式全程未變，映像與程式版本
-  可前後切換。切換前仍建議先備份這兩個目錄。
+- v2 容器以 `www-data`(33) 執行；v3 期間新建的檔案 owner 是 1000，寫入失敗時可
+  `chown -R 33:33 /var/svnlocal ./data`（僅回滾期間）。
+- v3 的 `/svnadmin` 不再有 PHP，舊 `.php` 書籤在 v3 是 404（2.0.0 仍可用）。
+- 回滾後如需再回 v3，記得把 owner 改回 `1000:1000`。
 
-## 映像與多階段建置
+## 授權
 
-`Dockerfile` 分三階段，runtime 不含建置工具與 dev 依賴：
+v3 的程式碼（`api/`、`web/`、Dockerfile、entrypoint、`conf/`、`test/`、文件）為本專案自有實作。
 
-1. **assets**（`node:22-alpine`）：`corepack` 啟用 yarn 4 → `yarn install --immutable` → `yarn build`，
-   只帶走 `app/public/assets/app.css`、`app.js`
-2. **vendor**（`composer:2`）：`composer install --no-dev --optimize-autoloader`，
-   只帶走 `vendor/`（不含 phpunit / phpstan）
-3. **runtime**（`php:8.3-apache`）：apt 安裝 `libapache2-mod-svn` / `subversion` / mbstring，
-   複製 `app/`、生產 `vendor/` 與建置後前端產物；`data/` 由 compose 掛載覆蓋
+`app/`（iF.SVNAdmin，GPL v2，原作者 Manuel Freiholz）在 v2.0.0 之前存在，已於 v3 移除；
+v3 是行為重寫，**不含**其原始碼。GPL 授權條文與 attribution 保留在 git tag `v2.0.0`
+（原 `app/license.txt`），摘要見 `NOTICE`。
 
-目前映像大小約 **726 MB**（`docker images mmhk/svn-docker:2.0`）。第二次建置可完整吃到 layer cache。
-`mmhk/svn-docker:8.3` 保留為回滾點。
+---
 
-## PHP 8 相容性
+# 附錄：v2.0.0 歷史（PHP 8.3 + iF.SVNAdmin）
 
-iF.SVNAdmin 上游是 2013 年、以 PHP 5.3 寫的程式碼。升到 PHP 8.3 保留三處最小修補：
+2.0.0 是 iF.SVNAdmin 的現代化版本：Composer / PSR-4、前端控制器路由、Tailwind v4 + Primer UI、
+多階段 `Dockerfile`、PHPUnit / PHPStan / CI，並裁剪掉 LDAP、Digest、BDB、dump/load 等功能。
+它是一個 `php:8.3-apache` 單容器（`mmhk/svn-docker:2.0`），`/svn` 與 `/svnadmin` 同 vhost，
+管理介面由 PHP 直接 `exec()` 呼叫 `svn` / `svnadmin`，以 `www-data`(33) 寫入 `1000:1000` 的資料，
+實務上要靠 777 放寬權限。
 
-| 檔案 | 修改 | 原因 |
-| --- | --- | --- |
-| `app/src/Support/HtPasswd.php` | `$plainpasswd{0}` → `$plainpasswd[0]` | 大括號字串位移 PHP 8.0 移除，會直接 parse error |
-| `app/src/Support/globals.php` | `utf8_encode/decode()` → `mb_convert_encoding()` | UTF-8 函式 PHP 8.2 起 deprecated |
-| `app/src/bootstrap.php` | `error_reporting(E_ALL)` → `E_ALL & ~E_DEPRECATED` | PHP 8 的 dynamic property 等 deprecation 太吵 |
-
-另外，`Template` 在命名空間化後原本寫成 `new ReflectionObject`（會被解析成
-`SvnAdmin\View\ReflectionObject`），已改為全域 `\ReflectionObject`，物件迴圈才不會 fatal。
-
-程式碼裡**沒有** `each()`、`create_function()`、`ereg*`、`split()`、`mysql_*`、
-`$HTTP_RAW_POST_DATA`、`preg_replace /e` 這些 PHP 8 移除的用法，也沒有 `eval()`。
-
-## CI
-
-`.github/workflows/ci.yml` 在 push / PR 時跑（**不跑 Docker**）：
-
-1. `php -l` 掃 `app/**/*.php`（排除 `app/vendor`）
-2. `composer validate --strict`
-3. `composer install`（含 dev）
-4. `composer test`（PHPUnit）
-5. `composer stan`（PHPStan level 5 + baseline）
-
-映像建置留給手動 workflow / `build.sh`，CI 不需要 secrets。
-
-## 注意事項
-
-- 容器內 Apache 是 `www-data`(uid 33)，`/var/svnlocal` 下的 auth 檔需可被它寫入（原主機是 777）。
-- `data/`（掛到容器 `/var/www-tools/svnadmin/data`）也必須可被 uid 33 寫入，
-  否則 setadmin 指派、建立使用者、建立倉庫都會失敗（寫入 INI / htpasswd / authz 時被拒）。
-- `/svn/` 目錄列表維持原行為（沒有 `SVNListParentPath`，所以 403）。
-- `app/data/.htaccess` 用的是 Apache 2.2 的 `deny from all`，映像已啟用 `access_compat`。
-- 443 未開放，對外 HTTPS 交給上層的 nginx/letsencrypt。
-- `test/data/` 是本機測試產物，已在 `.gitignore` 排除。
-- `app/vendor/`、`node_modules/`、`.yarn/` 不入庫；`app/public/assets/` 的建置產物入庫，
-  方便不裝 Node 的環境直接跑 PHPUnit。
-
-## License
-
-`app/` 為 iF.SVNAdmin（GPL v2，見 `app/license.txt`，原作者 Manuel Freiholz）。
-本目錄其餘 Docker/compose/test 檔案沿用同一授權。
+v3 針對這些問題改成雙容器、Go API + SPA、uid 1000 對齊、內網 `mod_remoteip`；
+完整的 v2 說明（含 `admin/admin` 首次啟動流程、路由表、PHP 8 相容性修補）請見
+`git show v2.0.0:readme.md`。需要對照或回滾時使用該 tag，不要沿用本文件的 v3 設定。

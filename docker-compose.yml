@@ -1,33 +1,112 @@
-version: "3"
-
+# =============================================================================
+# svn-docker 3.0 — svn（Apache + mod_dav_svn）+ svn-admin（Go API + SPA）
+#
+# - 兩個 service 都接上外部網路 demo2-net（既有 nginx 也在上面）
+# - svn-admin 只 expose 8080，永不 publish
+# - svn 預設也不 publish；本機要直接開瀏覽器時疊 docker-compose.dev.yml
+#
+#   docker compose up -d
+#   SVN_HTTP_PORT=18080 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# =============================================================================
 services:
   svn:
-    build: .
-    image: "mmhk/svn-docker:2.0"
-    container_name: svn
-    restart: always
-    ports:
-      - "${SVN_HTTP_PORT:-80}:80"
+    build:
+      context: .
+      dockerfile: Dockerfile.svn
+    image: "mmhk/svn:3.0"
+    restart: unless-stopped
+    expose:
+      - "80"
     environment:
-      - TZ=Asia/Hong_Kong
-    dns_search:
-      - 192.168.33.7
+      # 進程 uid/gid 對齊 host 的 /var/svnlocal owner（遠端實測 1000:1000）
+      PUID: "${PUID:-1000}"
+      PGID: "${PGID:-1000}"
+      TZ: "${TZ:-Asia/Hong_Kong}"
+      # mod_remoteip 信任的代理來源；只可收窄，不可放寬
+      SVN_REMOTEIP_TRUSTED_PROXY: "${SVN_REMOTEIP_TRUSTED_PROXY:-172.16.0.0/12 192.168.0.0/16}"
     volumes:
-      # 倉庫與授權檔：直接 bind mount，不複製 77G 資料
+      # 倉庫與授權檔：直接 bind mount，不複製資料
       - "${SVN_ROOT:-/var/svnlocal}:/var/svnlocal"
-      # iF.SVNAdmin 已內建在映像，只把 data/（config.ini、角色指派、備份）留在 host
-      - "${SVN_DATA_ROOT:-./data}:/var/www-tools/svnadmin/data"
-      # 設定檔留在 host，改完 restart 即可
+      # vhost 留在 host，改完 restart 即可
       - "./conf/svn.conf:/etc/apache2/sites-enabled/000-default.conf:ro"
-      - "./conf/php-svnadmin.ini:/usr/local/etc/php/conf.d/zz-svnadmin.ini:ro"
+    networks:
+      - demo2
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://127.0.0.1/svnadmin/ || exit 1"]
+      # 不帶帳密打 /svn/：401（有 Basic 挑戰）或 403 都算健康
+      test:
+        [
+          "CMD-SHELL",
+          "code=$$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1/svn/); [ \"$$code\" = 401 ] || [ \"$$code\" = 403 ]",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  svn-admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.admin
+    image: "mmhk/svn-admin:3.0"
+    restart: unless-stopped
+    # 直接以目標 uid/gid 執行（Go 服務不需要 root）；entrypoint 也會再驗一次
+    user: "${PUID:-1000}:${PGID:-1000}"
+    expose:
+      - "8080"
+    environment:
+      PUID: "${PUID:-1000}"
+      PGID: "${PGID:-1000}"
+      TZ: "${TZ:-Asia/Hong_Kong}"
+      SVN_ADMIN_ADDR: "${SVN_ADMIN_ADDR:-:8080}"
+      # SVN 資料（與 svn 容器同一個 bind mount）
+      SVN_ADMIN_SVN_PARENT_PATH: "${SVN_ADMIN_SVN_PARENT_PATH:-/var/svnlocal}"
+      SVN_ADMIN_SVN_AUTH_FILE: "${SVN_ADMIN_SVN_AUTH_FILE:-/var/svnlocal/svn-auth-file}"
+      SVN_ADMIN_SVN_ACCESS_FILE: "${SVN_ADMIN_SVN_ACCESS_FILE:-/var/svnlocal/svn-access-file}"
+      # 管理資料（可持久化）
+      SVN_ADMIN_ROLE_FILE: "${SVN_ADMIN_ROLE_FILE:-/data/userroleassignments.ini}"
+      SVN_ADMIN_BACKUP_DIR: "${SVN_ADMIN_BACKUP_DIR:-/data/backup}"
+      SVN_ADMIN_TRASH_DIR: "${SVN_ADMIN_TRASH_DIR:-/data/trash}"
+      SVN_ADMIN_UID: "${SVN_ADMIN_UID:-1000}"
+      SVN_ADMIN_GID: "${SVN_ADMIN_GID:-1000}"
+      SVN_ADMIN_ENABLE_DOCS: "${SVN_ADMIN_ENABLE_DOCS:-true}"
+      SVN_ADMIN_DEFAULT_LOCALE: "${SVN_ADMIN_DEFAULT_LOCALE:-zh_CN}"
+      SVN_ADMIN_TOKEN_TTL: "${SVN_ADMIN_TOKEN_TTL:-12h}"
+      SVN_ADMIN_TOKEN_IDLE: "${SVN_ADMIN_TOKEN_IDLE:-2h}"
+      # 刪倉庫預設開放（trash + 名稱確認作為安全網，計畫 D20）
+      SVN_ADMIN_REPO_DELETE_ENABLED: "${SVN_ADMIN_REPO_DELETE_ENABLED:-true}"
+      # 登入限流（次/分/IP）與 trash 保留策略（計畫 D7 / T4.5）
+      SVN_ADMIN_LOGIN_RATE_PER_MIN: "${SVN_ADMIN_LOGIN_RATE_PER_MIN:-5}"
+      SVN_ADMIN_TRASH_RETENTION: "${SVN_ADMIN_TRASH_RETENTION:-720h}"
+      SVN_ADMIN_TRASH_PURGE_INTERVAL: "${SVN_ADMIN_TRASH_PURGE_INTERVAL:-24h}"
+      # 第一次建立管理員用的一次性 token；留空則啟動時隨機產生並印在 log
+      SVN_ADMIN_BOOTSTRAP_TOKEN: "${SVN_ADMIN_BOOTSTRAP_TOKEN:-}"
+      # 第二層來源限制（Go）；Apache 是唯一受信任的代理
+      SVN_ADMIN_ALLOW_CIDRS: "${SVN_ADMIN_ALLOW_CIDRS:-10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}"
+      SVN_ADMIN_TRUSTED_PROXIES: "${SVN_ADMIN_TRUSTED_PROXIES:-svn}"
+    volumes:
+      - "${SVN_ROOT:-/var/svnlocal}:/var/svnlocal"
+      # userroleassignments.ini / backup / trash
+      - "${SVN_DATA_ROOT:-./data}:/data"
+    networks:
+      - demo2
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://127.0.0.1:8080/readyz"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
+
+networks:
+  demo2:
+    external: true
+    name: "${SVN_NETWORK:-demo2-net}"

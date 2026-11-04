@@ -1,24 +1,37 @@
-# build context 只保留建置真正需要的東西
+# build context 只保留 v3 建置真正需要的東西
+# （Dockerfile.svn：conf/ + docker-entrypoint.sh；Dockerfile.admin：web/ + api/）
 
 # 版本控制與本機設定
 .git
+.gitignore
 .gitattributes
 .env
+.env.*
+!.env.example
 
-# 文件與腳本
+# 文件
 *.md
-readme.md
-build.sh
+NOTICE
 
-# 測試資料（不進映像）
+# 測試與執行期資料（由 compose 掛載，不進映像）
 test/
+data/
 
-# 前端依賴與快取：由 node:22-alpine stage 重新安裝
+# v2 PHP 遺留（已刪除；保留規則避免舊工作區意外打進 context）
+app/
+views/
+translations/
+composer.json
+composer.lock
+vendor/
+
+# 依賴與快取：由 node:22-alpine / golang stage 重新取得
 node_modules/
+**/node_modules/
 .yarn/
+**/.yarn/
+*.log
 
-# PHP 依賴：由 composer:2 stage 重新安裝（--no-dev）
-app/vendor/
-
-# data/ 備份目錄（執行期產生）
-data/backup/
+# 建置不需要的本機腳本
+build.sh
+docker-compose*.yml

@@ -1,0 +1,27 @@
+svn-docker 3.0.0 — NOTICE
+
+This project (version 3.0.0 and later) is an independent implementation:
+a Go REST API (api/) plus a rspack/Vue 3/Tailwind SPA (web/) served through
+Apache mod_dav_svn. It contains no PHP and no original iF.SVNAdmin source code.
+
+Third-party attribution (historical)
+
+Up to and including tag v2.0.0 this repository shipped iF.SVNAdmin under app/.
+iF.SVNAdmin is Copyright (C) Manuel Freiholz and is licensed under the
+GNU General Public License, version 2 (GPL v2).
+
+  - The v2.0.0 tree, including the full app/ sources and the original
+    app/license.txt, remains available at git tag v2.0.0.
+  - Version 3.0.0 is a behavioural rewrite. Its interaction model, data
+    formats (svn-auth-file, svn-access-file, userroleassignments.ini) and UI
+    vocabulary were informed by that work, but no iF.SVNAdmin source file is
+    copied or linked into this tree.
+  - The GPL v2 text and the original copyright notice are preserved in the
+    v2.0.0 tag; consult app/license.txt there for the exact terms.
+
+Licensing of version 3.0.0
+
+The v3 sources (api/, web/, Dockerfile.svn, Dockerfile.admin,
+docker-entrypoint.sh, conf/, test/, documentation) are distributed under the
+same terms as the rest of this repository; see the LICENSE file if present, or
+the v2.0.0 tag's licensing section for the project's historical terms.

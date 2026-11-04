@@ -3,6 +3,54 @@
 本專案遵循 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) 的格式，
 版本號沿用 `MAJOR.MINOR.PATCH`（本專案先前為 `1.6.2`）。
 
+## 3.0.0 - 2026-11-04
+
+管理介面從 PHP（iF.SVNAdmin）改寫為 **Go REST API + 內嵌 Vue 3 SPA**，拆成
+`svn`（Apache + `mod_dav_svn`）與 `svn-admin`（Go）兩個映像，並把管理面限制在內網。
+**破壞性變更**：舊的 PHP 介面、`.php` 路徑、單容器部署與 `admin/admin` 首次啟動流程全部移除。
+
+### Added
+
+- `api/`：Go module（`cmd/svnadmin-api`、MVP 分層 `pkg/{model,view,presenter,transport,store,...}`），
+  提供 `/svnadmin/api/v1` REST API；`serve` / `admin grant` / `hash-password` / `check` 子命令。
+- `web/`：rspack 2 + Vue 3 + TypeScript + Tailwind v4 + Pinia + Vue Router；產物 embed 進 Go binary。
+- 認證：`POST /session` 發 opaque session token，`Authorization: Bearer`；TTL / 閒置 /
+  rotation / 撤銷 / 每人上限；不使用 cookie，因此無 CSRF。
+- 首次管理員：一次性 bootstrap token（`SVN_ADMIN_BOOTSTRAP_TOKEN`，未設時啟動印在 log）
+  + `POST /setup/admin`；不再有 `admin/admin`。
+- authz / htpasswd / 角色檔 **lossless 行導向編輯**：保留註解、空行、CRLF、未知 section；
+  `flock` + mtime/hash 檢查 + 原子 rename + 寫入前備份。
+- 倉庫刪除改為移到 `data/trash/<repo>-<ts>`，保留 30 天（`SVN_ADMIN_TRASH_RETENTION`），
+  需輸入倉庫名確認；預設開放（`SVN_ADMIN_REPO_DELETE_ENABLED=true`）。
+- Swagger UI（`swaggo`，離線內嵌）：`/svnadmin/api/docs/index.html`，僅管理員 + 內網。
+- `Dockerfile.svn` / `Dockerfile.admin` 雙映像；`docker-entrypoint.sh` 以 `PUID`/`PGID` 對齊 uid；
+  `svn-admin` 只 `expose`，永不 publish。
+- 內網限制：Apache `mod_remoteip` + `RemoteIPTrustedProxy` + `<Location /svnadmin> Require ip RFC1918`，
+  Go 端第二層 `SVN_ADMIN_ALLOW_CIDRS` / `SVN_ADMIN_TRUSTED_PROXIES`。
+- `test/verify-v2.sh`（91 項端到端）與 `test/fixtures.sh`；`ci-v3.yml`（Go / 前端 / `make layers` /
+  `make swag` 漂移）。
+- `NOTICE`：保留 iF.SVNAdmin（GPL v2，Manuel Freiholz）的 attribution。
+
+### Changed
+
+- 版號 `2.0.0` → **`3.0.0`**；映像改為 `mmhk/svn:3.0` + `mmhk/svn-admin:3.0`。
+- 設定來源改以環境變數 `SVN_ADMIN_*` 為權威；`data/config.ini` 僅作三個 SVN 路徑的唯讀 fallback。
+- 進程 uid/gid 預設 **`1000:1000`**（等於 `/var/svnlocal` owner），不再依賴 `www-data`(33) 與 777。
+- `/svn` 行為不變（DAV + Basic + `AuthzSVNAccessFile`）；`/svnadmin` 由 Apache `mod_proxy` 轉到 Go。
+- 密碼寫入維持 APR1，讀取相容 APR1 / `{SHA}` / bcrypt / crypt。
+- `readme.md` 改以 v3 為主，v2 內容只留歷史摘要（完整版見 tag `v2.0.0`）。
+- `build.sh` 改為建置兩個 v3 映像。
+
+### Removed
+
+- **PHP 管理介面**：`app/`（iF.SVNAdmin 全部原始碼）、`assets/`、`build-assets.mjs`、
+  根目錄 `package.json` / `yarn.lock` / `.yarnrc.yml`、`conf/php-svnadmin.ini`、`conf/svn-real.conf`、
+  PHP 版 `Dockerfile`。
+- 舊 `.php` 路由（`/svnadmin/userlist.php` 等）直接 404，不做 301。
+- `test/verify.sh`、`test/verify-real.sh`、`test/probe-real-repos.sh`、`test/data/`、
+  `.github/workflows/ci.yml`（PHP CI）。
+- 既有資料格式不變；回滾方式見 `readme.md`「備份與回滾 2.0.0」。
+
 ## 2.0.0 - 2026-11-04
 
 iF.SVNAdmin 現代化：Composer / PSR-4、前端控制器路由、Tailwind v4 + Primer UI、

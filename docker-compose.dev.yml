@@ -1,0 +1,20 @@
+# =============================================================================
+# 本機測試用覆寫：把 svn 的 80 發佈到 host 的 loopback
+#
+#   SVN_HTTP_PORT=18080 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+# 生產環境（nginx 在同一個 docker 網路）不需要這個檔案。
+# svn-admin 仍然不 publish。
+# =============================================================================
+services:
+  svn:
+    ports:
+      - "127.0.0.1:${SVN_HTTP_PORT:-18080}:80"
+
+  svn-admin:
+    environment:
+      # 本機的 /var/svnlocal 與 /data 是兩個獨立 bind mount；Docker Desktop
+      # （Windows/macOS）會讓它們各自成為獨立檔案系統，導致刪倉庫 rename 得到
+      # EXDEV（API 回 409，這是刻意的保護）。本機把 trash 放進 repos 掛載內，
+      # 「刪除 → trash」才能完整走通；生產維持 /data/trash。
+      SVN_ADMIN_TRASH_DIR: "/var/svnlocal/.trash"

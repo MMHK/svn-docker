@@ -1,0 +1,2280 @@
+basePath: /
+definitions:
+  github_com_mmhk_svn-admin_pkg_view.ACLEntry:
+    properties:
+      permission:
+        enum:
+        - none
+        - r
+        - rw
+        example: rw
+        type: string
+      principal:
+        example: '@devs'
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.AccessPath:
+    properties:
+      acl:
+        items:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ACLEntry'
+        type: array
+      managers:
+        example:
+        - alice
+        items:
+          type: string
+        type: array
+      path:
+        example: project:/trunk
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.AccessPathList:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.AccessPath'
+        type: array
+      page:
+        example: 1
+        type: integer
+      size:
+        example: 50
+        type: integer
+      total:
+        example: 1
+        type: integer
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.AccessPathManagers:
+    properties:
+      path:
+        example: project:/trunk
+        type: string
+      users:
+        example:
+        - alice
+        items:
+          type: string
+        type: array
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.AccessPathManagersRequest:
+    properties:
+      users:
+        example:
+        - alice
+        items:
+          type: string
+        type: array
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.ChangePasswordRequest:
+    properties:
+      password:
+        example: new-passphrase
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.CreateAccessPathRequest:
+    properties:
+      path:
+        example: project:/trunk
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.CreateGroupRequest:
+    properties:
+      name:
+        example: devs
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.CreateRepositoryRequest:
+    properties:
+      accessPath:
+        example: true
+        type: boolean
+      name:
+        example: project
+        type: string
+      projectName:
+        example: project
+        type: string
+      structure:
+        enum:
+        - none
+        - single
+        - multi
+        example: single
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.CreateUserRequest:
+    properties:
+      password:
+        example: correct horse battery staple
+        type: string
+      username:
+        example: alice
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.ErrorDetail:
+    properties:
+      code:
+        example: validation_error
+        type: string
+      details:
+        additionalProperties:
+          type: string
+        type: object
+      message:
+        example: name must not be empty
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope:
+    properties:
+      error:
+        $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorDetail'
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.Group:
+    properties:
+      description:
+        example: Development team
+        type: string
+      members:
+        example:
+        - alice
+        - bob
+        items:
+          type: string
+        type: array
+      name:
+        example: devs
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.GroupAccessPaths:
+    properties:
+      accessPaths:
+        example:
+        - project:/trunk
+        items:
+          type: string
+        type: array
+      name:
+        example: devs
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.GroupDetail:
+    properties:
+      accessPaths:
+        example:
+        - project:/trunk
+        items:
+          type: string
+        type: array
+      description:
+        example: Development team
+        type: string
+      members:
+        example:
+        - alice
+        - bob
+        items:
+          type: string
+        type: array
+      name:
+        example: devs
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.GroupList:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.Group'
+        type: array
+      page:
+        example: 1
+        type: integer
+      size:
+        example: 50
+        type: integer
+      total:
+        example: 1
+        type: integer
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.GroupMembers:
+    properties:
+      name:
+        example: devs
+        type: string
+      users:
+        example:
+        - alice
+        - bob
+        items:
+          type: string
+        type: array
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.GroupMembersRequest:
+    properties:
+      users:
+        example:
+        - alice
+        - bob
+        items:
+          type: string
+        type: array
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.Health:
+    properties:
+      status:
+        example: ok
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.LoginRequest:
+    properties:
+      password:
+        example: secret
+        type: string
+      username:
+        example: alice
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.PathInfo:
+    properties:
+      exists:
+        example: true
+        type: boolean
+      isDir:
+        example: true
+        type: boolean
+      path:
+        example: /var/svnlocal
+        type: string
+      readable:
+        example: true
+        type: boolean
+      writable:
+        example: true
+        type: boolean
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.Readiness:
+    properties:
+      checks:
+        items:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ReadinessCheck'
+        type: array
+      status:
+        example: ok
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.ReadinessCheck:
+    properties:
+      message:
+        example: missing
+        type: string
+      name:
+        example: svnParentPath
+        type: string
+      ok:
+        example: true
+        type: boolean
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.Repository:
+    properties:
+      headRevision:
+        example: 42
+        type: integer
+      isRepository:
+        example: true
+        type: boolean
+      lastChangedAt:
+        type: string
+      lastChangedAuthor:
+        example: mixmedia
+        type: string
+      lastChangedRev:
+        example: 42
+        type: integer
+      name:
+        example: project
+        type: string
+      parent:
+        example: /var/svnlocal
+        type: string
+      url:
+        example: file:///var/svnlocal/project
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.RepositoryCreated:
+    properties:
+      createdStructure:
+        example: single
+        type: string
+      name:
+        example: project
+        type: string
+      parent:
+        example: /var/svnlocal
+        type: string
+      url:
+        example: file:///var/svnlocal/project
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.RepositoryEntry:
+    properties:
+      author:
+        example: mixmedia
+        type: string
+      date:
+        type: string
+      kind:
+        enum:
+        - dir
+        - file
+        example: dir
+        type: string
+      name:
+        example: trunk
+        type: string
+      revision:
+        example: 42
+        type: integer
+      size:
+        example: 1024
+        type: integer
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.RepositoryList:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.Repository'
+        type: array
+      page:
+        example: 1
+        type: integer
+      size:
+        example: 50
+        type: integer
+      total:
+        example: 1
+        type: integer
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.RepositoryTree:
+    properties:
+      entries:
+        items:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.RepositoryEntry'
+        type: array
+      page:
+        example: 1
+        type: integer
+      path:
+        example: trunk
+        type: string
+      revision:
+        example: 42
+        type: integer
+      size:
+        example: 50
+        type: integer
+      total:
+        example: 1
+        type: integer
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.Role:
+    properties:
+      description:
+        example: Full control over the management API.
+        type: string
+      name:
+        example: Administrator
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.RoleList:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.Role'
+        type: array
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.Session:
+    properties:
+      expiresAt:
+        type: string
+      idleExpiresAt:
+        type: string
+      me:
+        $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.SessionUser'
+      permissions:
+        example:
+        - repository:view
+        - user:view
+        items:
+          type: string
+        type: array
+      roles:
+        example:
+        - Administrator
+        items:
+          type: string
+        type: array
+      token:
+        example: svna_...
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.SessionUser:
+    properties:
+      name:
+        example: alice
+        type: string
+      roles:
+        example:
+        - Administrator
+        items:
+          type: string
+        type: array
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.SetACLPermissionRequest:
+    properties:
+      permission:
+        enum:
+        - none
+        - r
+        - rw
+        example: rw
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.SetupRequest:
+    properties:
+      token:
+        example: bootstrap-token-from-stderr
+        type: string
+      username:
+        example: alice
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.SetupResult:
+    properties:
+      role:
+        example: Administrator
+        type: string
+      username:
+        example: alice
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.SystemInfo:
+    properties:
+      defaultLocale:
+        example: zh_CN
+        type: string
+      docsEnabled:
+        example: true
+        type: boolean
+      goVersion:
+        example: go1.24.0
+        type: string
+      platform:
+        example: linux/amd64
+        type: string
+      serverTime:
+        type: string
+      svnAccessFile:
+        $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.PathInfo'
+      svnAuthFile:
+        $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.PathInfo'
+      svnParentPath:
+        $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.PathInfo'
+      version:
+        example: 3.0.0-dev
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.User:
+    properties:
+      comment:
+        example: Frontend team
+        type: string
+      createdAt:
+        type: string
+      groups:
+        example:
+        - devs
+        items:
+          type: string
+        type: array
+      name:
+        example: alice
+        type: string
+      roles:
+        example:
+        - User
+        - Repository-Creator
+        items:
+          type: string
+        type: array
+      updatedAt:
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.UserAccessPath:
+    properties:
+      group:
+        example: devs
+        type: string
+      inherited:
+        example: true
+        type: boolean
+      path:
+        example: project:/trunk
+        type: string
+      permission:
+        enum:
+        - none
+        - r
+        - rw
+        example: rw
+        type: string
+      source:
+        enum:
+        - user
+        - group
+        - global
+        example: group
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.UserAccessPaths:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.UserAccessPath'
+        type: array
+      name:
+        example: alice
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.UserGroups:
+    properties:
+      groups:
+        example:
+        - devs
+        items:
+          type: string
+        type: array
+      name:
+        example: alice
+        type: string
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.UserGroupsRequest:
+    properties:
+      groups:
+        example:
+        - devs
+        - ops
+        items:
+          type: string
+        type: array
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.UserList:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.User'
+        type: array
+      page:
+        example: 1
+        type: integer
+      size:
+        example: 50
+        type: integer
+      total:
+        example: 1
+        type: integer
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.UserRoles:
+    properties:
+      name:
+        example: alice
+        type: string
+      roles:
+        example:
+        - User
+        - Repository-Creator
+        items:
+          type: string
+        type: array
+    type: object
+  github_com_mmhk_svn-admin_pkg_view.UserRolesRequest:
+    properties:
+      roles:
+        example:
+        - User
+        - Repository-Creator
+        items:
+          type: string
+        type: array
+    type: object
+info:
+  contact: {}
+  description: |-
+    SVN administration API. The service is reachable only from RFC1918 networks and, from P1, requires a bearer session token.
+    Error responses always use {"error":{"code":"...","message":"..."}}.
+  title: SVN Admin API
+  version: 3.0.0-dev
+paths:
+  /healthz:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.Health'
+      summary: Liveness probe
+      tags:
+      - system
+  /readyz:
+    get:
+      description: Checks that the SVN parent directory is usable and the auth/access
+        files exist.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.Readiness'
+        "503":
+          description: one or more checks failed
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.Readiness'
+      summary: Readiness probe
+      tags:
+      - system
+  /svnadmin/api/v1/access-paths:
+    get:
+      description: Every non-groups section of the authz file, with its ACL and project
+        managers. Principals are returned verbatim so $authenticated, $anonymous and
+        &aliases stay visible.
+      parameters:
+      - description: case-insensitive path filter
+        in: query
+        name: q
+        type: string
+      - description: page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: page size (default 50, max 500)
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.AccessPathList'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: List access paths
+      tags:
+      - access-paths
+    post:
+      consumes:
+      - application/json
+      description: Appends a `<repo>:/<path>` section. The path must match ^[A-Za-z0-9_-]{1,64}:/.*$
+        and must not contain '..', NUL, a control character or a backslash. A Project-Manager
+        may only create paths under a path they manage.
+      parameters:
+      - description: new access path
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.CreateAccessPathRequest'
+      - description: sha256 of the authz file the edit is based on
+        in: header
+        name: If-Match
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.AccessPath'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: outside the project-manager scope
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "409":
+          description: the path already exists or the file changed
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Create an access path
+      tags:
+      - access-paths
+  /svnadmin/api/v1/access-paths/{path}:
+    delete:
+      description: Removes the section and every ACL entry in it, then clears the
+        matching `[user:AccessPaths]` project-manager assignments. A Project-Manager
+        may only delete a path they manage or one of its children.
+      parameters:
+      - description: URL-safe base64 of <repo>:/<path>
+        in: path
+        name: path
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "500":
+          description: the section was removed but a manager assignment could not
+            be
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Delete an access path
+      tags:
+      - access-paths
+  /svnadmin/api/v1/access-paths/{path}/acl:
+    get:
+      description: The path segment is the URL-safe base64 encoding of values such
+        as project:/trunk; ?path= is accepted instead.
+      parameters:
+      - description: URL-safe base64 of <repo>:/<path>
+        in: path
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.AccessPath'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Get one access path ACL
+      tags:
+      - access-paths
+  /svnadmin/api/v1/access-paths/{path}/acl/{principal}:
+    delete:
+      description: Deletes every line for the principal. Removing an entry that is
+        already absent is a no-op. Read-only principals are rejected with 422.
+      parameters:
+      - description: URL-safe base64 of <repo>:/<path>
+        in: path
+        name: path
+        required: true
+        type: string
+      - description: user name, @group or *
+        in: path
+        name: principal
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Remove one ACL entry
+      tags:
+      - access-paths
+    put:
+      consumes:
+      - application/json
+      description: Writes `principal = permission` for a user, an @group or `*`. The
+        permission is none, r or rw; none removes the line. $authenticated, $anonymous
+        and &aliases are read-only and rejected with 422.
+      parameters:
+      - description: URL-safe base64 of <repo>:/<path>
+        in: path
+        name: path
+        required: true
+        type: string
+      - description: user name, @group or *
+        in: path
+        name: principal
+        required: true
+        type: string
+      - description: permission
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.SetACLPermissionRequest'
+      - description: sha256 of the authz file the edit is based on
+        in: header
+        name: If-Match
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.AccessPath'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Set one ACL entry
+      tags:
+      - access-paths
+  /svnadmin/api/v1/access-paths/{path}/managers:
+    get:
+      parameters:
+      - description: URL-safe base64 of <repo>:/<path>
+        in: path
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.AccessPathManagers'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: List the project managers of an access path
+      tags:
+      - access-paths
+    put:
+      consumes:
+      - application/json
+      description: Adds and removes `[user:AccessPaths]` index entries in the role
+        file. `/` cannot be delegated.
+      parameters:
+      - description: URL-safe base64 of <repo>:/<path>
+        in: path
+        name: path
+        required: true
+        type: string
+      - description: complete manager list
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.AccessPathManagersRequest'
+      - description: sha256 of the role file the edit is based on
+        in: header
+        name: If-Match
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.AccessPathManagers'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Replace the project managers of an access path
+      tags:
+      - access-paths
+  /svnadmin/api/v1/groups:
+    get:
+      parameters:
+      - description: case-insensitive name filter
+        in: query
+        name: q
+        type: string
+      - description: page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: page size (default 50, max 500)
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.GroupList'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: List authz groups
+      tags:
+      - groups
+    post:
+      consumes:
+      - application/json
+      description: Appends a `name =` line to the [groups] block without rewriting
+        any other line. The name must match ^[A-Za-z0-9_-]{1,64}$.
+      parameters:
+      - description: new group
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.CreateGroupRequest'
+      - description: sha256 of the authz file the edit is based on
+        in: header
+        name: If-Match
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.Group'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "409":
+          description: the group already exists or the file changed
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: invalid group name
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Create an authz group
+      tags:
+      - groups
+  /svnadmin/api/v1/groups/{name}:
+    delete:
+      description: Removes every `name =` line from [groups] and every `@name` entry
+        from access-path sections. Users with the same name are never touched.
+      parameters:
+      - description: group name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Delete an authz group
+      tags:
+      - groups
+    get:
+      description: Returns the group members and the access paths whose ACL references
+        the group.
+      parameters:
+      - description: group name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.GroupDetail'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Get one authz group
+      tags:
+      - groups
+  /svnadmin/api/v1/groups/{name}/access-paths:
+    get:
+      parameters:
+      - description: group name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.GroupAccessPaths'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: List the access paths that reference a group
+      tags:
+      - groups
+  /svnadmin/api/v1/groups/{name}/members:
+    get:
+      parameters:
+      - description: group name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.GroupMembers'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Read the members of a group
+      tags:
+      - groups
+    put:
+      consumes:
+      - application/json
+      description: Rewrites only the matching `[groups]` line. The submitted users
+        replace the previous member list; every name is validated.
+      parameters:
+      - description: group name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: complete member list
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.GroupMembersRequest'
+      - description: sha256 of the authz file the edit is based on
+        in: header
+        name: If-Match
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.GroupMembers'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Replace the members of a group
+      tags:
+      - groups
+  /svnadmin/api/v1/repos:
+    get:
+      description: Lists the directories under SVNParentPath that contain format,
+        db/ and conf/, so stray directories are not reported as repositories.
+      parameters:
+      - description: case-insensitive name filter
+        in: query
+        name: q
+        type: string
+      - description: page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: page size (default 50, max 500)
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.RepositoryList'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: List repositories
+      tags:
+      - repositories
+    post:
+      consumes:
+      - application/json
+      description: Runs `svnadmin create --fs-type fsfs` in the first writable SVNParentPath,
+        optionally commits the standard layout ("single" = trunk/branches/tags, "multi"
+        = <projectName>/trunk|branches|tags) and optionally creates the `<name>:/`
+        authz section. The owner of the new repository is the service uid; nothing
+        is chowned.
+      parameters:
+      - description: repository name and optional layout
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.CreateRepositoryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.RepositoryCreated'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: role does not permit repository:add
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "409":
+          description: a repository with this name already exists
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: invalid name, structure or projectName
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "500":
+          description: svnadmin failed; the failed step is reported
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "501":
+          description: the Subversion CLI is not configured in this deployment
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Create a repository
+      tags:
+      - repositories
+  /svnadmin/api/v1/repos/{repo}:
+    delete:
+      description: Moves the repository into SVN_ADMIN_TRASH_DIR (default `<data>/trash`)
+        as `<repo>-<UTC20060102T150405Z>`; never removes data recursively. The caller
+        must repeat the repository name in `confirm`. Cross-filesystem moves are refused
+        with 409 and need a manual move. Deletion is enabled by default and disabled
+        with SVN_ADMIN_REPO_DELETE_ENABLED=false.
+      parameters:
+      - description: repository name
+        in: path
+        name: repo
+        required: true
+        type: string
+      - description: must equal the repository name
+        in: query
+        name: confirm
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: role does not permit repository:delete, or deletion is disabled
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "409":
+          description: the repository is on another filesystem than the trash directory
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: confirm does not match the repository name
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Delete a repository
+      tags:
+      - repositories
+  /svnadmin/api/v1/repos/{repo}/info:
+    get:
+      description: HEAD revision plus the last-changed revision, author and date.
+        HEAD comes from `svn log -r HEAD --limit 1`; `svn info` supplies the last
+        change, because its entry revision is not the repository HEAD.
+      parameters:
+      - description: repository name
+        in: path
+        name: repo
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.Repository'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "501":
+          description: the Subversion CLI is not configured in this deployment
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Repository information
+      tags:
+      - repositories
+  /svnadmin/api/v1/repos/{repo}/tree:
+    get:
+      description: Runs `svn list --xml` and returns one page of entries. `path` must
+        be relative and must not contain '.' or '..' segments; `rev` is a positive
+        revision number, empty means HEAD. Entries are sorted by name before paging
+        (default 100, max 1000). Subversion stderr and filesystem paths are never
+        returned.
+      parameters:
+      - description: repository name
+        in: path
+        name: repo
+        required: true
+        type: string
+      - description: relative directory path; empty means the repository root
+        in: query
+        name: path
+        type: string
+      - description: revision; empty means HEAD
+        in: query
+        name: rev
+        type: integer
+      - description: page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: page size (default 100, max 1000)
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.RepositoryTree'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: repository or path not found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: invalid path, revision or paging
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "501":
+          description: the Subversion CLI is not configured in this deployment
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Browse a repository directory
+      tags:
+      - repositories
+  /svnadmin/api/v1/roles:
+    get:
+      description: Returns the role catalogue used by userroleassignments.ini together
+        with a description of each role.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.RoleList'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: List the fixed roles
+      tags:
+      - roles
+  /svnadmin/api/v1/session:
+    delete:
+      description: Revokes the bearer token. The call is idempotent and returns 204
+        with no body.
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Revoke the current session
+      tags:
+      - session
+    get:
+      description: Returns the authenticated user, roles and permissions. The token
+        itself is never echoed back.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.Session'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Describe the current session
+      tags:
+      - session
+    post:
+      consumes:
+      - application/json
+      description: Verifies the htpasswd credentials and returns an opaque bearer
+        token. The token is only returned here and by POST /session/refresh; it is
+        never set as a cookie. Five attempts per minute per client IP are allowed.
+      parameters:
+      - description: username and password
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.Session'
+        "401":
+          description: invalid credentials
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: source address is not allowed
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "429":
+          description: too many login attempts
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      summary: Create a session
+      tags:
+      - session
+  /svnadmin/api/v1/session/refresh:
+    post:
+      description: Issues a new token and revokes the presented one immediately, so
+        the old token can never be used again.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.Session'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Rotate the session token
+      tags:
+      - session
+  /svnadmin/api/v1/setup/admin:
+    post:
+      consumes:
+      - application/json
+      description: Requires the one-time bootstrap token from SVN_ADMIN_BOOTSTRAP_TOKEN
+        (or the token printed to stderr at startup). It grants the Administrator role
+        to an existing SVN account and fails once an administrator already exists.
+        Other API routes answer 503 setup_required until this succeeds.
+      parameters:
+      - description: account name and bootstrap token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.SetupRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.SetupResult'
+        "403":
+          description: invalid bootstrap token
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "409":
+          description: an administrator already exists
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      summary: Create the first administrator
+      tags:
+      - setup
+  /svnadmin/api/v1/system/info:
+    get:
+      description: Service version, Go runtime and the state of the configured SVN
+        paths. File contents are never returned. Requires a valid bearer token.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.SystemInfo'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: source address is not allowed
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: System information
+      tags:
+      - system
+  /svnadmin/api/v1/users:
+    get:
+      description: Paged list of htpasswd accounts with their roles and groups. Password
+        hashes are never returned.
+      parameters:
+      - description: case-insensitive name filter
+        in: query
+        name: q
+        type: string
+      - description: page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: page size (default 50, max 500)
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.UserList'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: List SVN accounts
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Adds a `user:$apr1$...` line to the htpasswd file without disturbing
+        any other line. The password is hashed inside the store and never returned
+        or logged.
+      parameters:
+      - description: new account
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.User'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "409":
+          description: the account already exists
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: invalid name or password
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Create an SVN account
+      tags:
+      - users
+  /svnadmin/api/v1/users/{name}:
+    delete:
+      description: Removes the account from every authz group, every access-path ACL,
+        the role file (roles and `[user:AccessPaths]`) and finally the htpasswd file.
+        The steps run in that order; a failure returns 500 with the steps that already
+        completed. `*` is rejected.
+      parameters:
+      - description: account name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: invalid name such as *
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "500":
+          description: multi-step delete failed
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Delete an SVN account
+      tags:
+      - users
+    get:
+      parameters:
+      - description: account name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.User'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Get one SVN account
+      tags:
+      - users
+  /svnadmin/api/v1/users/{name}/access-paths:
+    get:
+      description: 'Returns every source of access: direct user entries, entries inherited
+        through the account''s groups and the global `*` entry. inherited is true
+        for the last two; source is user, group or global.'
+      parameters:
+      - description: account name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.UserAccessPaths'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: List the effective access paths of an account
+      tags:
+      - users
+  /svnadmin/api/v1/users/{name}/groups:
+    get:
+      parameters:
+      - description: account name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.UserGroups'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Read the authz groups of an account
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Edits only the necessary `[groups]` lines of the authz file. Every
+        submitted group must already exist; unknown groups are rejected with 422.
+      parameters:
+      - description: account name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: complete group list
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.UserGroupsRequest'
+      - description: sha256 of the authz file the edit is based on
+        in: header
+        name: If-Match
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.UserGroups'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Replace the group membership of an account
+      tags:
+      - users
+  /svnadmin/api/v1/users/{name}/password:
+    put:
+      consumes:
+      - application/json
+      description: Rewrites only the target htpasswd line with a fresh APR1 hash and
+        revokes every token of that account, including the caller's own token when
+        they rotate their own password. Changing somebody else's password needs user:changepass-other;
+        changing your own needs user:changepass.
+      parameters:
+      - description: account name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: new password
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ChangePasswordRequest'
+      - description: sha256 of the credentials file the edit is based on
+        in: header
+        name: If-Match
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "409":
+          description: the file changed since it was read
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "503":
+          description: setup_required
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Change an account password
+      tags:
+      - users
+  /svnadmin/api/v1/users/{name}/roles:
+    get:
+      parameters:
+      - description: account name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.UserRoles'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Read the roles of an account
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Rewrites only the `[user]` block of userroleassignments.ini, preserving
+        comments, ordering, other accounts and the `[user:AccessPaths]` block. Unknown
+        roles are rejected with 422. The affected account's tokens are revoked because
+        roles are baked into the session at login.
+      parameters:
+      - description: account name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: complete role set
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.UserRolesRequest'
+      - description: sha256 of the role file the edit is based on
+        in: header
+        name: If-Match
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.UserRoles'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope'
+      security:
+      - bearerAuth: []
+      summary: Replace the roles of an account
+      tags:
+      - users
+securityDefinitions:
+  bearerAuth:
+    description: Bearer session token returned by POST /svnadmin/api/v1/session, e.g.
+      "Bearer svna_...".
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

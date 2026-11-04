@@ -1,0 +1,79 @@
+# syntax=docker/dockerfile:1
+# =============================================================================
+# mmhk/svn-admin:3.0 — Go REST API + 內嵌 Vue 3 SPA
+#
+# 三階段：web（rspack build）→ api（Go 靜態編譯）→ runtime（只有 binary）
+# runtime 不含 PHP / Node / Go / Composer。
+#
+# 建置：
+#   docker build -f Dockerfile.admin -t mmhk/svn-admin:3.0-dev .
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 階段 1：前端產物（輸出到 api/pkg/webui/dist，供 go:embed 打包）
+# -----------------------------------------------------------------------------
+FROM node:22-alpine AS web
+
+WORKDIR /src/web
+
+RUN corepack enable
+
+# 先只複製依賴清單，讓 yarn install 的 layer 可以被 cache
+COPY web/package.json web/yarn.lock web/.yarnrc.yml ./
+RUN yarn install --immutable
+
+COPY web ./
+RUN yarn build
+
+# -----------------------------------------------------------------------------
+# 階段 2：Go 靜態執行檔（把 web/dist 一併 embed）
+# -----------------------------------------------------------------------------
+FROM golang:1.24-alpine AS api
+
+WORKDIR /src
+
+COPY api/go.mod api/go.sum ./api/
+RUN cd api && go mod download
+
+COPY api ./api
+COPY --from=web /src/api/pkg/webui/dist ./api/pkg/webui/dist
+
+# 這個 repo 是 SVN working copy 內的 git repo，Go 會拒絕 stamp VCS 資訊；
+# 以 -buildvcs=false 關掉，確保任何環境都能重現建置。
+RUN cd api \
+ && CGO_ENABLED=0 GOFLAGS=-buildvcs=false \
+      go build -trimpath -ldflags '-s -w' -o /out/svnadmin-api ./cmd/svnadmin-api
+
+# -----------------------------------------------------------------------------
+# 階段 3：runtime（非 root 執行）
+# -----------------------------------------------------------------------------
+FROM debian:bookworm-slim
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# 只需要 svn / svnadmin CLI（Go 以 argv 陣列呼叫，不經 shell）與 curl（healthcheck）
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      subversion \
+      curl \
+      ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+# 非 root 執行帳號；預設 uid/gid = 1000:1000，entrypoint 會依 PUID/PGID 再調整
+RUN groupadd -g 1000 svnadmin \
+ && useradd -u 1000 -g 1000 -M -d /nonexistent -s /usr/sbin/nologin svnadmin \
+ && mkdir -p /var/svnlocal /data
+
+COPY --from=api /out/svnadmin-api /usr/local/bin/svnadmin-api
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+RUN chmod 0755 /usr/local/bin/docker-entrypoint.sh \
+ && chown 1000:1000 /data
+
+ENV SVN_ENTRY_USER=svnadmin
+
+WORKDIR /data
+EXPOSE 8080
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["/usr/local/bin/svnadmin-api", "serve"]
