@@ -152,6 +152,10 @@ XFF 裡的私有位址不會被採信，`%a` 會顯示 nginx 的容器 IP；存�
 IPv4 loopback（`127.0.0.1`）不在 `/svnadmin` allowlist（只有 `::1` 與 RFC1918），這是刻意的；
 容器內自我測試請用 `http://svn/svnadmin/...`。
 
+**不提供預設站台**：`svn` 映像移除 `autoindex` / `negotiation` 模組與 `serve-cgi-bin.conf`，
+刪除 `/var/www/html`，並由 `conf/svn.conf` 的 `<Directory /var/www>` 明確拒絕。
+`/`、`/html/`、`/cgi-bin/` 一律回 `403`（或 `404`），不會列出目錄；只有 `/svn` 與 `/svnadmin` 可用。
+
 ## 設定（環境變數）
 
 v3 以環境變數為權威（`SVN_ADMIN_*`），完整範本見 `.env.example`。

@@ -51,6 +51,13 @@
   `.github/workflows/ci.yml`（PHP CI）。
 - 既有資料格式不變；回滾方式見 `readme.md`「備份與回滾 2.0.0」。
 
+### Fixed
+
+- `svn` 映像不再保留 Debian 的預設站台：移除 `autoindex` / `negotiation` 模組與
+  `serve-cgi-bin.conf`，刪除 `/var/www/html`；`conf/svn.conf` 以 `<Directory /var/www>`
+  明確拒絕未定義路徑。`/`、`/html/`、`/cgi-bin/` 現在回 `403`
+  （或 `404`），不再列出目錄或顯示預設歡迎頁，`/svn` 與 `/svnadmin` 行為不變。
+
 ## 2.0.0 - 2026-11-04
 
 iF.SVNAdmin 現代化：Composer / PSR-4、前端控制器路由、Tailwind v4 + Primer UI、

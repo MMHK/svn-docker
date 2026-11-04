@@ -491,5 +491,34 @@ fi
 
 check_contains "備份含 authz 檔" "$BACKUP_FILES" "svn-access-file."
 
+# -----------------------------------------------------------------------------
+# 18) 預設站台已移除（只剩 /svn 與 /svnadmin）
+# -----------------------------------------------------------------------------
+echo "== 18) 預設站台 =="
+
+check_eq "GET / 應 403" "403" "$(status "$BASE/")"
+check_absent "GET / 不含目錄列表" "$(body "$BASE/")" "Index of /"
+
+case "$(status "$BASE/html/")" in
+  403 | 404) pass "GET /html/ 應 403/404 ($(status "$BASE/html/"))" ;;
+  *) fail "GET /html/ 應 403/404（got $(status "$BASE/html/")）" ;;
+esac
+
+case "$(status "$BASE/cgi-bin/")" in
+  403 | 404) pass "GET /cgi-bin/ 應 403/404 ($(status "$BASE/cgi-bin/"))" ;;
+  *) fail "GET /cgi-bin/ 應 403/404（got $(status "$BASE/cgi-bin/")）" ;;
+esac
+
+if dexec svn sh -c 'test ! -e /var/www/html'; then
+  pass "映像內沒有 /var/www/html"
+else
+  fail "映像內仍有 /var/www/html"
+fi
+
+SVN_MODULES="$(dexec svn sh -c 'apache2ctl -M 2>&1' || true)"
+check_absent "autoindex 未載入" "$SVN_MODULES" "autoindex"
+check_absent "negotiation 未載入" "$SVN_MODULES" "negotiation"
+check_absent "serve-cgi-bin 未啟用" "$(dexec svn ls /etc/apache2/conf-enabled || true)" "serve-cgi-bin.conf"
+
 echo
 exit 0

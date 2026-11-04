@@ -34,6 +34,17 @@ RUN a2enmod dav dav_svn authz_core auth_basic authz_user \
             proxy proxy_http remoteip headers \
  && rm -f /etc/apache2/sites-enabled/*
 
+# 收掉 Debian 的預設站台：沒有目錄列表、沒有 content negotiation、沒有 /cgi-bin/，
+# 也沒有 /var/www/html 的歡迎頁。保留空的 /var/www 讓 DocumentRoot 有效。
+# mod_dir 必須保留：svn.conf 用 DirectoryIndex disabled 關掉索引檔，
+# 而且沒有 mod_dir 時 Apache 會因 Unknown directive 起不來。
+# autoindex 在 Debian 被標成 essential，a2dismod 需要 -f 才會真的移除。
+RUN a2dismod -f autoindex \
+ && a2dismod -f negotiation \
+ && a2disconf serve-cgi-bin \
+ && rm -rf /var/www/html \
+ && mkdir -p /var/www
+
 COPY conf/svn.conf /etc/apache2/sites-enabled/000-default.conf
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
