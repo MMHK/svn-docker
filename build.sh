@@ -3,8 +3,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-SVN_IMAGE="${SVN_IMAGE:-svn-docker:repo}"
-ADMIN_IMAGE="${ADMIN_IMAGE:-svn-docker:admin}"
+SVN_IMAGE="${SVN_IMAGE:-mmhk/svn-docker:repo}"
+ADMIN_IMAGE="${ADMIN_IMAGE:-mmhk/svn-docker:admin}"
 SVN_TAG="${SVN_TAG:-${SVN_IMAGE##*:}}"
 ADMIN_TAG="${ADMIN_TAG:-${ADMIN_IMAGE##*:}}"
 
@@ -16,11 +16,11 @@ echo "built ${ADMIN_IMAGE}"
 
 # 例：REGISTRY=docker-registry.demo2.mixmedia.com ./build.sh
 if [ -n "${REGISTRY:-}" ]; then
-  docker tag "${SVN_IMAGE}" "${REGISTRY}/svn-docker:${SVN_TAG}"
-  docker push "${REGISTRY}/svn-docker:${SVN_TAG}"
-  echo "pushed ${REGISTRY}/svn-docker:${SVN_TAG}"
+  docker tag "${SVN_IMAGE}" "${REGISTRY}/mmhk/svn-docker:${SVN_TAG}"
+  docker push "${REGISTRY}/mmhk/svn-docker:${SVN_TAG}"
+  echo "pushed ${REGISTRY}/mmhk/svn-docker:${SVN_TAG}"
 
-  docker tag "${ADMIN_IMAGE}" "${REGISTRY}/svn-docker:${ADMIN_TAG}"
-  docker push "${REGISTRY}/svn-docker:${ADMIN_TAG}"
-  echo "pushed ${REGISTRY}/svn-docker:${ADMIN_TAG}"
+  docker tag "${ADMIN_IMAGE}" "${REGISTRY}/mmhk/svn-docker:${ADMIN_TAG}"
+  docker push "${REGISTRY}/mmhk/svn-docker:${ADMIN_TAG}"
+  echo "pushed ${REGISTRY}/mmhk/svn-docker:${ADMIN_TAG}"
 fi

@@ -191,7 +191,7 @@ done
 # -----------------------------------------------------------------------------
 echo "== 1) 映像與 runtime 內容 =="
 
-for image in svn-docker:repo svn-docker:admin; do
+for image in mmhk/svn-docker:repo mmhk/svn-docker:admin; do
   if docker image inspect "$image" >/dev/null 2>&1; then pass "映像存在：$image"; else fail "映像不存在：$image"; fi
 done
 
