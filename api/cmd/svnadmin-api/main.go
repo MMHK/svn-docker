@@ -17,6 +17,7 @@ import (
 	"github.com/mmhk/svn-admin/pkg/auth"
 	"github.com/mmhk/svn-admin/pkg/config"
 	"github.com/mmhk/svn-admin/pkg/presenter"
+	"github.com/mmhk/svn-admin/pkg/store/adminfile"
 	"github.com/mmhk/svn-admin/pkg/store/authz"
 	"github.com/mmhk/svn-admin/pkg/store/htpasswd"
 	"github.com/mmhk/svn-admin/pkg/store/svnrepos"
@@ -110,6 +111,7 @@ func serve(stderr io.Writer) int {
 
 	users := htpasswd.New(cfg.SVNAuthFile, htpasswd.WithBackupDir(cfg.BackupDir))
 	groupStore := authz.New(cfg.SVNAccessFile, authz.WithBackupDir(cfg.BackupDir))
+	adminStore := adminfile.New(cfg.AdminFile)
 
 	svnCommand := svncli.New(svncli.Options{
 		Runner:   svncli.ExecRunner{},
@@ -167,12 +169,14 @@ func serve(stderr io.Writer) int {
 		Allowlist: allowlist,
 		Tokens:    tokens,
 		System:    presenter.NewSystem(version, cfg),
-		Session:   presenter.NewSession(users, tokens, limiter),
+		Session:   presenter.NewSession(users, adminStore, tokens, limiter),
 		Setup: presenter.NewSetup(presenter.SetupDeps{
 			Users:          users,
 			Accounts:       users,
+			Admins:         adminStore,
 			AuthFile:       cfg.SVNAuthFile,
 			AccessFile:     cfg.SVNAccessFile,
+			AdminFile:      cfg.AdminFile,
 			BootstrapToken: bootstrapToken,
 		}),
 		User: presenter.NewUser(presenter.UserDeps{
@@ -221,6 +225,7 @@ func serve(stderr io.Writer) int {
 			slog.String("addr", cfg.Addr),
 			slog.Bool("docs_enabled", cfg.EnableDocs),
 			slog.String("default_locale", cfg.DefaultLocale),
+			slog.String("admin_file", cfg.AdminFile),
 		)
 
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {

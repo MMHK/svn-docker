@@ -11,11 +11,11 @@ type SetupRequest struct {
 }
 
 // SetupResult is the POST /setup/admin success payload. InitializedFiles lists
-// the files this call actually created (authFile, accessFile).
+// the files this call actually created (authFile, accessFile, adminFile).
 type SetupResult struct {
 	Username         string   `json:"username" example:"alice"`
 	AccountCreated   bool     `json:"accountCreated" example:"true"`
-	InitializedFiles []string `json:"initializedFiles" example:"authFile,accessFile"`
+	InitializedFiles []string `json:"initializedFiles" example:"authFile,accessFile,adminFile"`
 }
 
 // SetupFileStatus is the state of one bootstrap-related file. It never carries
@@ -35,12 +35,14 @@ type SetupAuthFileStatus struct {
 }
 
 // SetupStatus is the GET /setup/status payload. Reason is one of
-// "missing_auth_file", "missing_access_file", "no_users" or "" (setup done).
+// "missing_auth_file", "missing_access_file", "no_users", "no_admin" or ""
+// (setup done), in that order of precedence.
 type SetupStatus struct {
 	SetupRequired    bool                `json:"setupRequired" example:"true"`
 	Reason           string              `json:"reason" example:"no_users"`
 	AuthFile         SetupAuthFileStatus `json:"authFile"`
 	AccessFile       SetupFileStatus     `json:"accessFile"`
+	AdminFile        SetupFileStatus     `json:"adminFile"`
 	Users            []string            `json:"users"`
 	CanCreateAccount bool                `json:"canCreateAccount" example:"true"`
 }

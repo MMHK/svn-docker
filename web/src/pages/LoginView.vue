@@ -64,7 +64,7 @@ function messageFor(cause: unknown): string {
     case 401:
       return t('login.invalidCredentials');
     case 403:
-      return t('login.forbidden');
+      return cause.code === 'not_administrator' ? t('login.notAdmin') : t('login.forbidden');
     case 422:
       return t('login.missingFields');
     case 429:

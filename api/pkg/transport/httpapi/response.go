@@ -86,15 +86,16 @@ func (a *API) writeError(w http.ResponseWriter, r *http.Request, err error) {
 
 func classifyError(err error) (status int, code, message string) {
 	var (
-		validation    *model.ValidationError
-		notFound      *model.NotFoundError
-		conflict      *model.ConflictError
-		forbidden     *model.ForbiddenError
-		unauthorized  *model.UnauthorizedError
-		rateLimited   *model.RateLimitError
-		setupRequired *model.SetupRequiredError
-		storageFailed *model.StorageUnavailableError
-		operation     *model.OperationError
+		validation       *model.ValidationError
+		notFound         *model.NotFoundError
+		conflict         *model.ConflictError
+		notAdministrator *model.NotAdministratorError
+		forbidden        *model.ForbiddenError
+		unauthorized     *model.UnauthorizedError
+		rateLimited      *model.RateLimitError
+		setupRequired    *model.SetupRequiredError
+		storageFailed    *model.StorageUnavailableError
+		operation        *model.OperationError
 	)
 
 	switch {
@@ -108,6 +109,10 @@ func classifyError(err error) (status int, code, message string) {
 		// The deployment wired a read-only store: say so instead of blaming
 		// the request (P4 returns 501 when svncli is not configured).
 		return http.StatusNotImplemented, "not_implemented", "this operation is not available in this deployment"
+	case errors.As(err, &notAdministrator):
+		// Valid credentials, wrong account. Kept separate from the allowlist
+		// 403 so the login page can show the right message (plan D30).
+		return http.StatusForbidden, "not_administrator", "the account is not the svnadmin administrator"
 	case errors.As(err, &forbidden):
 		return http.StatusForbidden, "forbidden", forbidden.Error()
 	case errors.As(err, &operation):

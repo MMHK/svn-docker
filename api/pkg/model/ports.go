@@ -60,6 +60,14 @@ type CredentialStore interface {
 	VerifyPassword(ctx context.Context, username, password string) error
 }
 
+// AdminStore reads and writes the single-line administrator marker (plan P9,
+// D28). The marker is read on every login and request, so an operator can move
+// the administrator role by editing the file without a restart.
+type AdminStore interface {
+	Admin(ctx context.Context) (string, error)
+	SetAdmin(ctx context.Context, name string) error
+}
+
 // WriteOptions carries the per-write preconditions of plan sections 4.1 and
 // 5.1. ExpectedHash is the sha256 the caller based its edit on; when it is set
 // and the file changed, the store returns a ConflictError (HTTP 409). An empty
@@ -141,4 +149,3 @@ type AccessPathWriter interface {
 	SetACL(ctx context.Context, path, principal string, permission Permission, opts WriteOptions) error
 	DeleteACL(ctx context.Context, path, principal string, opts WriteOptions) error
 }
-

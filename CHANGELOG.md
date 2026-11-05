@@ -35,9 +35,13 @@
 
 - **BREAKING**：移除前後端角色系統（RBAC）。不再有 Administrator 等角色、
   `GET /roles`、`/users/{name}/roles`、`/access-paths/{b64}/managers`；
-  所有通過 Bearer 認證的登入使用者皆可管理。`userroleassignments.ini`
+  管理權限改由唯一內置 admin 決定（見下一條）。`userroleassignments.ini`
   不再讀寫（保留給 2.0.0 回滾），`SVN_ADMIN_ROLE_FILE` 已移除。
   `/setup/admin` 改為建立第一個使用者。
+- 唯一內置 admin：`/setup/admin` 指定的帳號會寫入 `SVN_ADMIN_ADMIN_FILE`
+  （預設 `/data/svnadmin-admin`，單行帳號名），之後只有該帳號能登入管理 API；
+  其他 SVN 帳號即使密碼正確也回 `403` `not_administrator`（allowlist 的 403 仍是 `forbidden`）。
+  轉移管理員只需手動改該檔，不需重啟，舊 token 立即失效。
 - SPA 改採 GitHub Primer 風格：配色、邊框、字體與深色主題對齊 Primer 設計系統。
 - 版號 `2.0.0` → **`3.0.0`**；映像改為 `mmhk/svn-docker:repo` + `mmhk/svn-docker:admin`。
 - 設定來源改以環境變數 `SVN_ADMIN_*` 為權威；`data/config.ini` 僅作三個 SVN 路徑的唯讀 fallback。

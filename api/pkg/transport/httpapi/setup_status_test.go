@@ -29,6 +29,10 @@ func TestSetupStatusOnConfiguredDeployment(t *testing.T) {
 		t.Errorf("authFile = %+v, want 3 accounts", status.AuthFile)
 	}
 
+	if !status.AdminFile.Exists || !status.AdminFile.Readable || !status.AdminFile.Writable {
+		t.Errorf("adminFile = %+v, want exists/readable/writable", status.AdminFile)
+	}
+
 	if !status.CanCreateAccount {
 		t.Error("canCreateAccount = false for a writable auth file")
 	}
@@ -65,6 +69,32 @@ func TestSetupStatusReportsMissingFiles(t *testing.T) {
 
 	if strings.Contains(recorder.Body.String(), env.dir) {
 		t.Error("setup status leaks an absolute path")
+	}
+}
+
+func TestSetupStatusReportsNoAdmin(t *testing.T) {
+	env := newTestEnv(t, func(cfg *config.Config) {
+		// Keep the accounts but replace the marker with an empty file.
+		emptyAdmin := filepath.Join(cfg.SVNParentPath, "empty-admin")
+		if err := os.WriteFile(emptyAdmin, nil, 0o600); err != nil {
+			t.Fatalf("write empty admin: %v", err)
+		}
+		cfg.AdminFile = emptyAdmin
+	})
+
+	recorder := env.request(t, http.MethodGet, "/svnadmin/api/v1/setup/status", "127.0.0.1:5555", nil, "")
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+
+	status := decodeBody[view.SetupStatus](t, recorder)
+
+	if !status.SetupRequired || status.Reason != "no_admin" {
+		t.Errorf("setupRequired/reason = %v/%q, want true/no_admin", status.SetupRequired, status.Reason)
+	}
+
+	if !status.AdminFile.Exists {
+		t.Errorf("adminFile = %+v, want it to exist", status.AdminFile)
 	}
 }
 

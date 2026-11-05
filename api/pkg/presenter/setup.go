@@ -27,8 +27,10 @@ const setupUserListLimit = 100
 type SetupDeps struct {
 	Users          model.UserStore
 	Accounts       model.AccountWriter
+	Admins         model.AdminStore
 	AuthFile       string
 	AccessFile     string
+	AdminFile      string
 	BootstrapToken string
 }
 
@@ -38,8 +40,10 @@ type SetupDeps struct {
 type Setup struct {
 	users      model.UserStore
 	accounts   model.AccountWriter
+	admins     model.AdminStore
 	authFile   string
 	accessFile string
+	adminFile  string
 	bootstrap  string
 }
 
@@ -48,14 +52,17 @@ func NewSetup(deps SetupDeps) *Setup {
 	return &Setup{
 		users:      deps.Users,
 		accounts:   deps.Accounts,
+		admins:     deps.Admins,
 		authFile:   deps.AuthFile,
 		accessFile: deps.AccessFile,
+		adminFile:  deps.AdminFile,
 		bootstrap:  deps.BootstrapToken,
 	}
 }
 
-// Required reports whether the deployment still needs its first account. It
-// is used by the auth middleware to gate the rest of the API.
+// Required reports whether the deployment still needs its first account or its
+// administrator marker. It is used by the auth middleware to gate the rest of
+// the API.
 func (p *Setup) Required(ctx context.Context) (bool, error) {
 	if p.users == nil {
 		return true, nil
@@ -66,7 +73,69 @@ func (p *Setup) Required(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	return page.Total == 0, nil
+	if page.Total == 0 {
+		return true, nil
+	}
+
+	admin, err := p.currentAdmin(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return admin == "", nil
+}
+
+// hasUsers reports whether the credential file already has an account.
+func (p *Setup) hasUsers(ctx context.Context) (bool, error) {
+	if p.users == nil {
+		return false, nil
+	}
+
+	page, err := p.users.ListUsers(ctx, model.PageQuery{Page: 1, Size: 1})
+	if err != nil {
+		return false, err
+	}
+
+	return page.Total > 0, nil
+}
+
+// currentAdmin returns the configured administrator, or "" when none is set.
+func (p *Setup) currentAdmin(ctx context.Context) (string, error) {
+	if p.admins == nil {
+		return "", nil
+	}
+
+	return p.admins.Admin(ctx)
+}
+
+// adminName is currentAdmin for the unauthenticated diagnostic: a read error
+// is reported as "no administrator" so GET /setup/status never turns into a
+// 500.
+func (p *Setup) adminName(ctx context.Context) string {
+	name, err := p.currentAdmin(ctx)
+	if err != nil {
+		return ""
+	}
+
+	return name
+}
+
+// setAdmin writes the marker, translating filesystem failures into the same
+// 503 the auth/access file flow uses.
+func (p *Setup) setAdmin(ctx context.Context, name string) error {
+	if p.admins == nil {
+		return &model.StorageUnavailableError{Reason: "admin path is not configured"}
+	}
+
+	if err := p.admins.SetAdmin(ctx, name); err != nil {
+		if model.IsValidation(err) || model.IsStorageUnavailable(err) {
+			return err
+		}
+
+		return &model.StorageUnavailableError{Reason: storageReason("adminFile", err)}
+	}
+
+	return nil
 }
 
 // Status is the unauthenticated diagnostic behind GET /setup/status. It never
@@ -74,6 +143,7 @@ func (p *Setup) Required(ctx context.Context) (bool, error) {
 func (p *Setup) Status(ctx context.Context) view.SetupStatus {
 	authFile := inspectPath(p.authFile)
 	accessFile := inspectPath(p.accessFile)
+	adminFile := inspectPath(p.adminFile)
 
 	status := view.SetupStatus{
 		AuthFile: view.SetupAuthFileStatus{
@@ -85,6 +155,11 @@ func (p *Setup) Status(ctx context.Context) view.SetupStatus {
 			Exists:   accessFile.Exists,
 			Readable: accessFile.Readable,
 			Writable: accessFile.Writable,
+		},
+		AdminFile: view.SetupFileStatus{
+			Exists:   adminFile.Exists,
+			Readable: adminFile.Readable,
+			Writable: adminFile.Writable,
 		},
 		Users: []string{},
 	}
@@ -118,6 +193,8 @@ func (p *Setup) Status(ctx context.Context) view.SetupStatus {
 		status.Reason = "missing_access_file"
 	case status.AuthFile.UserCount == 0:
 		status.Reason = "no_users"
+	case p.adminName(ctx) == "":
+		status.Reason = "no_admin"
 	default:
 		status.Reason = ""
 	}
@@ -134,8 +211,8 @@ func (p *Setup) Status(ctx context.Context) view.SetupStatus {
 	return status
 }
 
-// Admin creates (or reuses) an account, provided the bootstrap token matches
-// and no account exists yet.
+// Admin creates (or reuses) an account and records it as the single svnadmin
+// administrator, provided the bootstrap token matches.
 func (p *Setup) Admin(ctx context.Context, username, password, token string) (view.SetupResult, error) {
 	username = strings.TrimSpace(username)
 
@@ -148,16 +225,24 @@ func (p *Setup) Admin(ctx context.Context, username, password, token string) (vi
 		return view.SetupResult{}, err
 	}
 
-	required, err := p.Required(ctx)
+	hasUsers, err := p.hasUsers(ctx)
 	if err != nil {
 		return view.SetupResult{}, err
 	}
 
-	if !required {
+	admin, err := p.currentAdmin(ctx)
+	if err != nil {
+		return view.SetupResult{}, err
+	}
+
+	// A first-run deployment may always rewrite the marker. Once accounts
+	// exist, the marker can only be filled in when it is still empty; moving
+	// the administrator afterwards is a manual file edit (plan D29, D31).
+	if hasUsers && admin != "" {
 		return view.SetupResult{}, &model.ConflictError{
 			Kind:   model.KindUser,
 			Name:   username,
-			Reason: "a user already exists",
+			Reason: "an administrator already exists",
 		}
 	}
 
@@ -194,6 +279,10 @@ func (p *Setup) Admin(ctx context.Context, username, password, token string) (vi
 		created = true
 	}
 
+	if err := p.setAdmin(ctx, username); err != nil {
+		return view.SetupResult{}, err
+	}
+
 	return view.SetupResult{
 		Username:         username,
 		AccountCreated:   created,
@@ -201,8 +290,8 @@ func (p *Setup) Admin(ctx context.Context, username, password, token string) (vi
 	}, nil
 }
 
-// ensureFiles creates the auth and access files when they are missing. It
-// returns the names of the files it actually created.
+// ensureFiles creates the auth, access and admin files when they are missing.
+// It returns the names of the files it actually created.
 func (p *Setup) ensureFiles() ([]string, error) {
 	targets := []struct {
 		name string
@@ -210,6 +299,7 @@ func (p *Setup) ensureFiles() ([]string, error) {
 	}{
 		{name: "authFile", path: p.authFile},
 		{name: "accessFile", path: p.accessFile},
+		{name: "adminFile", path: p.adminFile},
 	}
 
 	created := make([]string, 0, len(targets))

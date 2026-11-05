@@ -18,6 +18,7 @@ import (
 	"github.com/mmhk/svn-admin/pkg/auth"
 	"github.com/mmhk/svn-admin/pkg/config"
 	"github.com/mmhk/svn-admin/pkg/presenter"
+	"github.com/mmhk/svn-admin/pkg/store/adminfile"
 	"github.com/mmhk/svn-admin/pkg/store/authz"
 	"github.com/mmhk/svn-admin/pkg/store/htpasswd"
 	"github.com/mmhk/svn-admin/pkg/store/svnrepos"
@@ -101,6 +102,7 @@ func newTestEnvWithLogs(t *testing.T, mutate func(*config.Config), logs io.Write
 		SVNAccessFile:   accessFile,
 		BackupDir:       filepath.Join(dir, "backup"),
 		TrashDir:        filepath.Join(dir, "trash"),
+		AdminFile:       filepath.Join(dir, "svnadmin-admin"),
 		SVNBinary:       "svn",
 		SVNAdminBinary:  "svnadmin",
 		AllowCIDRs:      []string{"10.0.0.0/8"},
@@ -120,6 +122,15 @@ func newTestEnvWithLogs(t *testing.T, mutate func(*config.Config), logs io.Write
 		mutate(&cfg)
 	}
 
+	// Every deployment under test has a single administrator. A test that
+	// wants the marker absent points AdminFile at a path it controls during
+	// mutate and leaves the file out.
+	if _, err := os.Stat(cfg.AdminFile); os.IsNotExist(err) {
+		if err := os.WriteFile(cfg.AdminFile, []byte("testuser\n"), 0o600); err != nil {
+			t.Fatalf("write admin file: %v", err)
+		}
+	}
+
 	allowlist, err := NewAllowlist(cfg.AllowCIDRs, cfg.TrustedProxies)
 	if err != nil {
 		t.Fatalf("NewAllowlist() error = %v", err)
@@ -132,6 +143,7 @@ func newTestEnvWithLogs(t *testing.T, mutate func(*config.Config), logs io.Write
 
 	users := htpasswd.New(cfg.SVNAuthFile)
 	groups := authz.New(cfg.SVNAccessFile)
+	admins := adminfile.New(cfg.AdminFile)
 	runner := newFakeSvnRunner()
 	repoStore := svnrepos.NewStore(svnrepos.Options{
 		Parents:  []string{cfg.SVNParentPath},
@@ -149,12 +161,14 @@ func newTestEnvWithLogs(t *testing.T, mutate func(*config.Config), logs io.Write
 		Allowlist: allowlist,
 		Tokens:    tokens,
 		System:    presenter.NewSystem("3.0.0-test", cfg),
-		Session:   presenter.NewSession(users, tokens, limiter),
+		Session:   presenter.NewSession(users, admins, tokens, limiter),
 		Setup: presenter.NewSetup(presenter.SetupDeps{
 			Users:          users,
 			Accounts:       users,
+			Admins:         admins,
 			AuthFile:       cfg.SVNAuthFile,
 			AccessFile:     cfg.SVNAccessFile,
+			AdminFile:      cfg.AdminFile,
 			BootstrapToken: bootstrap,
 		}),
 		User: presenter.NewUser(presenter.UserDeps{
@@ -177,7 +191,7 @@ func newTestEnvWithLogs(t *testing.T, mutate func(*config.Config), logs io.Write
 			groups,
 			groups,
 		),
-		Web:  web,
+		Web: web,
 	})
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -837,11 +851,16 @@ func TestAccessLogShapeAndNoSecrets(t *testing.T) {
 		t.Fatalf("write access file: %v", err)
 	}
 
+	if err := os.WriteFile(filepath.Join(dir, "svnadmin-admin"), []byte("testuser\n"), 0o600); err != nil {
+		t.Fatalf("write admin file: %v", err)
+	}
+
 	cfg := config.Config{
 		SVNParentPath:   parent,
 		SVNAuthFile:     authFile,
 		SVNAccessFile:   accessFile,
 		TrashDir:        filepath.Join(dir, "trash"),
+		AdminFile:       filepath.Join(dir, "svnadmin-admin"),
 		SVNBinary:       "svn",
 		SVNAdminBinary:  "svnadmin",
 		AllowCIDRs:      []string{"10.0.0.0/8"},
@@ -861,6 +880,7 @@ func TestAccessLogShapeAndNoSecrets(t *testing.T) {
 
 	users := htpasswd.New(cfg.SVNAuthFile)
 	groups := authz.New(cfg.SVNAccessFile)
+	admins := adminfile.New(cfg.AdminFile)
 	repoStore := svnrepos.NewStore(svnrepos.Options{
 		Parents:  []string{cfg.SVNParentPath},
 		CLI:      svncli.New(svncli.Options{Runner: newFakeSvnRunner()}),
@@ -875,12 +895,14 @@ func TestAccessLogShapeAndNoSecrets(t *testing.T) {
 		Allowlist: allowlist,
 		Tokens:    tokens,
 		System:    presenter.NewSystem("3.0.0-test", cfg),
-		Session:   presenter.NewSession(users, tokens, auth.NewRateLimiter(5, time.Minute)),
+		Session:   presenter.NewSession(users, admins, tokens, auth.NewRateLimiter(5, time.Minute)),
 		Setup: presenter.NewSetup(presenter.SetupDeps{
 			Users:          users,
 			Accounts:       users,
+			Admins:         admins,
 			AuthFile:       cfg.SVNAuthFile,
 			AccessFile:     cfg.SVNAccessFile,
+			AdminFile:      cfg.AdminFile,
 			BootstrapToken: bootstrap,
 		}),
 		User: presenter.NewUser(presenter.UserDeps{

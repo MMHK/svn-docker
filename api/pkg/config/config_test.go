@@ -74,6 +74,10 @@ func TestLoadDefaults(t *testing.T) {
 		t.Errorf("TrashDir = %q, want data/trash", cfg.TrashDir)
 	}
 
+	if cfg.AdminFile != filepath.Join("data", "svnadmin-admin") {
+		t.Errorf("AdminFile = %q, want data/svnadmin-admin", cfg.AdminFile)
+	}
+
 	if cfg.TrashRetention != 720*time.Hour {
 		t.Errorf("TrashRetention = %v, want 720h (30 days)", cfg.TrashRetention)
 	}
@@ -106,6 +110,7 @@ func TestLoadOverrides(t *testing.T) {
 		"SVN_ADMIN_ENABLE_DOCS":      "false",
 		"SVN_ADMIN_DEFAULT_LOCALE":   "en_US",
 		"SVN_ADMIN_SHUTDOWN_TIMEOUT": "5s",
+		"SVN_ADMIN_ADMIN_FILE":       "/srv/svn/svnadmin-admin",
 	}))
 	if err != nil {
 		t.Fatalf("LoadFrom() error = %v", err)
@@ -147,6 +152,10 @@ func TestLoadOverrides(t *testing.T) {
 	if cfg.ShutdownTimeout != 5*time.Second {
 		t.Errorf("ShutdownTimeout = %v", cfg.ShutdownTimeout)
 	}
+
+	if cfg.AdminFile != "/srv/svn/svnadmin-admin" {
+		t.Errorf("AdminFile = %q", cfg.AdminFile)
+	}
 }
 
 func TestLoadLegacyPathAliases(t *testing.T) {
@@ -174,6 +183,24 @@ func TestLoadLegacyPathAliases(t *testing.T) {
 
 	if cfg.SVNParentPath != "/new/svn" {
 		t.Errorf("SVNParentPath = %q, want /new/svn", cfg.SVNParentPath)
+	}
+}
+
+func TestValidateRejectsEmptyAdminFile(t *testing.T) {
+	cfg, err := LoadFrom(lookupFrom(nil))
+	if err != nil {
+		t.Fatalf("LoadFrom() error = %v", err)
+	}
+
+	cfg.AdminFile = ""
+
+	err = cfg.Validate()
+	if err == nil {
+		t.Fatal("Validate() error = nil, want an error mentioning SVN_ADMIN_ADMIN_FILE")
+	}
+
+	if !strings.Contains(err.Error(), "SVN_ADMIN_ADMIN_FILE") {
+		t.Errorf("error %q does not mention SVN_ADMIN_ADMIN_FILE", err)
 	}
 }
 

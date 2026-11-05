@@ -81,6 +81,21 @@ func (e *ForbiddenError) Error() string {
 	return "forbidden: " + e.Reason
 }
 
+// NotAdministratorError reports that the credentials are valid but the account
+// is not the single svnadmin administrator (plan P9, D30). The transport maps
+// it to 403 with code not_administrator, distinct from the allowlist denial.
+type NotAdministratorError struct {
+	Reason string
+}
+
+func (e *NotAdministratorError) Error() string {
+	if e.Reason == "" {
+		return "account is not the administrator"
+	}
+
+	return "account is not the administrator: " + e.Reason
+}
+
 // UnauthorizedError reports a missing, malformed, expired or revoked token, or
 // failed credentials. The transport maps it to 401.
 type UnauthorizedError struct {
@@ -158,6 +173,13 @@ func IsConflict(err error) bool {
 // IsForbidden reports whether err is a forbidden error.
 func IsForbidden(err error) bool {
 	var target *ForbiddenError
+
+	return errors.As(err, &target)
+}
+
+// IsNotAdministrator reports whether err is a not-administrator error.
+func IsNotAdministrator(err error) bool {
+	var target *NotAdministratorError
 
 	return errors.As(err, &target)
 }

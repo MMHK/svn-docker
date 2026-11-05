@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/mmhk/svn-admin/pkg/model"
+	"github.com/mmhk/svn-admin/pkg/store/adminfile"
 	"github.com/mmhk/svn-admin/pkg/store/htpasswd"
 )
 
@@ -17,7 +18,9 @@ type setupFixture struct {
 	dir        string
 	authFile   string
 	accessFile string
+	adminFile  string
 	accounts   *htpasswd.Store
+	admins     *adminfile.Store
 }
 
 // newSetupFixture points every bootstrap path into a fresh directory; with
@@ -31,7 +34,9 @@ func newSetupFixture(t *testing.T, create bool) setupFixture {
 		dir:        dir,
 		authFile:   filepath.Join(dir, "svn-auth-file"),
 		accessFile: filepath.Join(dir, "svn-access-file"),
+		adminFile:  filepath.Join(dir, "svnadmin-admin"),
 		accounts:   htpasswd.New(filepath.Join(dir, "svn-auth-file")),
+		admins:     adminfile.New(filepath.Join(dir, "svnadmin-admin")),
 	}
 
 	if !create {
@@ -51,10 +56,20 @@ func (f setupFixture) presenter() *Setup {
 	return NewSetup(SetupDeps{
 		Users:          f.accounts,
 		Accounts:       f.accounts,
+		Admins:         f.admins,
 		AuthFile:       f.authFile,
 		AccessFile:     f.accessFile,
+		AdminFile:      f.adminFile,
 		BootstrapToken: setupTestToken,
 	})
+}
+
+func (f setupFixture) writeAdmin(t *testing.T, name string) {
+	t.Helper()
+
+	if err := os.WriteFile(f.adminFile, []byte(name+"\n"), 0o640); err != nil {
+		t.Fatalf("write admin file: %v", err)
+	}
 }
 
 func (f setupFixture) writeAuth(t *testing.T, content string) {
@@ -79,7 +94,7 @@ func TestSetupCreatesFirstUserFromEmptyDeployment(t *testing.T) {
 		t.Error("AccountCreated = false, want true")
 	}
 
-	want := []string{"authFile", "accessFile"}
+	want := []string{"authFile", "accessFile", "adminFile"}
 	if len(result.InitializedFiles) != len(want) {
 		t.Fatalf("InitializedFiles = %v, want %v", result.InitializedFiles, want)
 	}
@@ -109,9 +124,22 @@ func TestSetupCreatesFirstUserFromEmptyDeployment(t *testing.T) {
 		t.Errorf("VerifyPassword() error = %v", err)
 	}
 
+	admin, err := fixture.admins.Admin(ctx)
+	if err != nil {
+		t.Fatalf("Admin() error = %v", err)
+	}
+
+	if admin != "alice" {
+		t.Errorf("admin file = %q, want alice", admin)
+	}
+
 	status := setup.Status(ctx)
 	if status.SetupRequired || status.Reason != "" {
 		t.Errorf("status after setup = %+v, want setup complete", status)
+	}
+
+	if !status.AdminFile.Exists {
+		t.Errorf("adminFile status = %+v, want exists", status.AdminFile)
 	}
 
 	if len(status.Users) != 0 {
@@ -147,6 +175,7 @@ func TestSetupRejectsSecondUser(t *testing.T) {
 	}
 
 	fixture.writeAuth(t, "bob:"+hash+"\n")
+	fixture.writeAdmin(t, "bob")
 
 	setup := fixture.presenter()
 
@@ -187,8 +216,10 @@ func TestSetupReportsStorageUnavailableWhenDirectoryIsMissing(t *testing.T) {
 	setup := NewSetup(SetupDeps{
 		Users:          htpasswd.New(filepath.Join(missing, "svn-auth-file")),
 		Accounts:       htpasswd.New(filepath.Join(missing, "svn-auth-file")),
+		Admins:         adminfile.New(filepath.Join(missing, "svnadmin-admin")),
 		AuthFile:       filepath.Join(missing, "svn-auth-file"),
 		AccessFile:     filepath.Join(missing, "svn-access-file"),
+		AdminFile:      filepath.Join(missing, "svnadmin-admin"),
 		BootstrapToken: setupTestToken,
 	})
 
@@ -199,5 +230,60 @@ func TestSetupReportsStorageUnavailableWhenDirectoryIsMissing(t *testing.T) {
 
 	if !model.IsStorageUnavailable(err) {
 		t.Fatalf("error = %v, want *model.StorageUnavailableError", err)
+	}
+}
+
+func TestSetupAdoptsExistingAccountWhenAdminFileIsEmpty(t *testing.T) {
+	fixture := newSetupFixture(t, true)
+
+	hash, err := htpasswd.HashAPR1("original-password")
+	if err != nil {
+		t.Fatalf("HashAPR1() error = %v", err)
+	}
+
+	fixture.writeAuth(t, "bob:"+hash+"\n")
+
+	setup := fixture.presenter()
+	ctx := context.Background()
+
+	required, err := setup.Required(ctx)
+	if err != nil {
+		t.Fatalf("Required() error = %v", err)
+	}
+
+	if !required {
+		t.Fatal("Required() = false, want true while no administrator is recorded")
+	}
+
+	status := setup.Status(ctx)
+	if !status.SetupRequired || status.Reason != "no_admin" {
+		t.Errorf("status = %+v, want reason no_admin", status)
+	}
+
+	result, err := setup.Admin(ctx, "bob", "", setupTestToken)
+	if err != nil {
+		t.Fatalf("Admin() error = %v", err)
+	}
+
+	if result.AccountCreated {
+		t.Error("AccountCreated = true, want false for an existing account")
+	}
+
+	admin, err := fixture.admins.Admin(ctx)
+	if err != nil {
+		t.Fatalf("Admin() error = %v", err)
+	}
+
+	if admin != "bob" {
+		t.Errorf("admin file = %q, want bob", admin)
+	}
+
+	required, err = setup.Required(ctx)
+	if err != nil {
+		t.Fatalf("Required() error = %v", err)
+	}
+
+	if required {
+		t.Error("Required() = true after the administrator was recorded")
 	}
 }

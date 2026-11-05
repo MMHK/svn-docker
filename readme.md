@@ -24,7 +24,7 @@ LAN ──► nginx :80 ──┬─ /svn      → svn:80 (mod_dav_svn)         
                     └─ /svnadmin → svn:80 (mod_remoteip → Require ip RFC1918) ─► mod_proxy ─► svn-admin:8080
                                                           │
                                                           ├─ /var/svnlocal  (RW, uid 1000:1000)
-                                                          └─ /data          (RW, 備份/trash)
+                                                          └─ /data          (RW, 備份/trash/admin)
 ```
 
 - nginx 只轉發 `/svn`、`/svnadmin` 給 `svn:80`，並**覆寫** `X-Forwarded-For`；不做 IP 判定。
@@ -48,8 +48,8 @@ LAN ──► nginx :80 ──┬─ /svn      → svn:80 (mod_dav_svn)         
 | `.env.example` | 全部 `SVN_ADMIN_*` / `SVN_ROOT` / `PUID` 等範本 |
 | `api/` | Go module（`cmd/`、`pkg/` MVP 分層、Swagger docs） |
 | `web/` | rspack + Vue 3 + TypeScript + Tailwind v4，產物輸出到 `api/pkg/webui/dist` |
-| `test/verify-v2.sh` | 端到端驗證（91 項）；`test/fixtures.sh` 產生隔離測資 |
-| `data/` | `backup/`、`trash/`（掛到 `/data`） |
+| `test/verify-v2.sh` | 端到端驗證（104 項）；`test/fixtures.sh` 產生隔離測資 |
+| `data/` | `backup/`、`trash/`、`svnadmin-admin`（掛到 `/data`） |
 | `NOTICE` | iF.SVNAdmin（GPL v2）的歷史 attribution |
 
 `api/pkg/webui/dist` 是 rspack 的建置產物，目前**入庫**，讓沒有 Node 的環境也能
@@ -91,7 +91,7 @@ location /svnadmin/ {
 
 ## 首次啟動：bootstrap token
 
-2.0.0 的 `admin`/`admin` 預設後門已移除。第一次建立登入使用者的流程：
+2.0.0 的 `admin`/`admin` 預設後門已移除。第一次建立**唯一 admin** 的流程：
 
 1. 帳號必須先存在於 `svn-auth-file`（htpasswd）。容器內有 `htpasswd`：
    ```sh
@@ -109,11 +109,26 @@ location /svnadmin/ {
      -H 'Content-Type: application/json' \
      -d '{"username":"admin","password":"<密碼>","token":"<bootstrap-token>"}'
    ```
-   成功回 `201 {"username":"admin","accountCreated":true,"initializedFiles":[...]}`。
+   成功回 `201 {"username":"admin","accountCreated":true,"initializedFiles":[...]}`；
+   該帳號會寫入 `data/svnadmin-admin`（`SVN_ADMIN_ADMIN_FILE`，一行帳號名）。
 4. 開 `/svnadmin/`，用該帳號 + 密碼登入。session token 存在瀏覽器
    `localStorage['svnadmin.token']`，**不使用 cookie**。
-5. 角色系統已移除，登入後即可管理；`setup/admin` 只允許在沒有任何帳號時執行
-   （已有帳號回 `409`）。
+5. **只有 `data/svnadmin-admin` 記錄的帳號**能登入管理 API；其他 SVN 帳號即使密碼正確，
+   登入也回 `403 not_administrator`（但仍可用 `/svn` 的 Basic 認證存取倉庫）。
+   `setup/admin` 只在尚未指定 admin 時可執行，已有 admin 回 `409`。
+
+### 轉移管理員
+
+管理員不是資料庫欄位，而是 `data/svnadmin-admin` 這個單行檔（內容為一行帳號名，
+該帳號必須已存在於 `svn-auth-file`）：
+
+```sh
+echo 'newadmin' > data/svnadmin-admin   # 或直接編輯該檔
+```
+
+- 不需重啟，下一次請求即生效；舊 admin 的 session token 立即失效。
+- 尚未指定 admin（檔案缺失或空）時，`GET /setup/status` 回 `reason="no_admin"`，
+  必須先完成 setup。
 
 ## 內網限制與 mod_remoteip（上線前必做）
 
@@ -177,11 +192,12 @@ v3 以環境變數為權威（`SVN_ADMIN_*`），完整範本見 `.env.example`�
 | `SVN_ADMIN_SVN_ACCESS_FILE` | `/var/svnlocal/svn-access-file` | authz INI |
 | `SVN_ADMIN_BACKUP_DIR` | `/data/backup` | 寫入前備份 |
 | `SVN_ADMIN_TRASH_DIR` | `/data/trash` | 刪倉庫的回收區 |
+| `SVN_ADMIN_ADMIN_FILE` | `/data/svnadmin-admin` | 唯一 admin 帳號（單行檔；改此檔即轉移管理員） |
 | `SVN_ADMIN_TRASH_RETENTION` | `720h`（30 天） | trash 保留期 |
 | `SVN_ADMIN_TRASH_PURGE_INTERVAL` | `24h` | trash 清除器間隔（啟動先跑一次） |
 | `SVN_ADMIN_REPO_DELETE_ENABLED` | `true` | 刪倉庫開關（仍需輸入倉庫名確認） |
 | `SVN_ADMIN_UID` / `SVN_ADMIN_GID` | `1000` / `1000` | 服務層記錄的進程身份 |
-| `SVN_ADMIN_ENABLE_DOCS` | `true` | Swagger UI 開關（仍僅登入使用者 + 內網） |
+| `SVN_ADMIN_ENABLE_DOCS` | `true` | Swagger UI 開關（仍僅 admin + 內網） |
 | `SVN_ADMIN_DEFAULT_LOCALE` | `zh_CN` | 預設語系（`zh_CN` / `en_US`） |
 | `SVN_ADMIN_BOOTSTRAP_TOKEN` | 空 | 空＝啟動時隨機產生並印 log |
 | `SVN_ADMIN_ALLOW_CIDRS` | `10/8,172.16/12,192.168/16` | Go 層來源限制 |
@@ -201,7 +217,7 @@ sudo chown -R 1000:1000 /var/svnlocal ./data
 
 Swagger UI：`/svnadmin/api/docs/index.html`（`SVN_ADMIN_ENABLE_DOCS=true` 時）。
 規格：`/svnadmin/api/docs/openapi.json`、`openapi.yaml`。
-與其他管理端點同一組保護：必須登入（角色系統已移除，登入使用者即可）且受 RFC1918 限制。
+與其他管理端點同一組保護：必須登入（唯一 admin）且受 RFC1918 限制。
 `swag` 產物在 `api/pkg/docs/`，CI 會執行 `make swag` 後比對 `git diff` 檢查漂移。
 
 ## 開發
@@ -228,7 +244,7 @@ yarn typecheck
 最後自動 `docker compose down -v`：
 
 ```sh
-bash test/verify-v2.sh          # 91 項，必須 0 FAIL
+bash test/verify-v2.sh          # 104 項；本機 compose 會 publish 8085/8086，故預期 2 FAIL
 ```
 
 Windows 請用 Git Bash：

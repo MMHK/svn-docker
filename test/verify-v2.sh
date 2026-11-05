@@ -277,6 +277,11 @@ TOKEN="$(json_str "$LOGIN_BODY" token)"
 
 check_contains "正確登入取得 token" "$TOKEN" "svna_"
 
+# 唯一內置 admin：其他 SVN 帳號即使密碼正確也不得登入管理 API
+check_eq "非 admin 帳號登入應 403" "403" "$(login_status admin adminpass)"
+check_contains "非 admin 錯誤碼為 not_administrator" \
+  "$(login_body admin adminpass)" '"code":"not_administrator"'
+
 if grep -qi '^set-cookie:' "$LOGIN_HEADERS"; then
   fail "登入回應不應有 Set-Cookie"
 else
@@ -303,16 +308,15 @@ echo "== 8) 使用者生命週期 =="
 check_eq "建立使用者 verifyuser" "201" \
   "$(token_write -X POST -d '{"username":"verifyuser","password":"verifypass1"}' "$API/users")"
 
-NEW_LOGIN="$(login_body verifyuser verifypass1)"
-NEW_TOKEN="$(json_str "$NEW_LOGIN" token)"
-check_contains "新使用者可登入" "$NEW_TOKEN" "svna_"
+# 唯一內置 admin：新建的一般帳號不可登入管理面（403 not_administrator）
+check_eq "新使用者不可登入管理面" "403" "$(login_status verifyuser verifypass1)"
+check_contains "新使用者登入錯誤碼為 not_administrator" \
+  "$(login_body verifyuser verifypass1)" '"code":"not_administrator"'
 
 check_eq "管理員改密碼" "204" \
   "$(token_write -X PUT -d '{"password":"verifypass2"}' "$API/users/verifyuser/password")"
 
-check_eq "改密碼後舊 token 應 401" "401" \
-  "$(status -H "Authorization: Bearer $NEW_TOKEN" "$API/session")"
-check_eq "新密碼可登入" "200" "$(login_status verifyuser verifypass2)"
+check_eq "非 admin 新密碼仍不可登入管理面" "403" "$(login_status verifyuser verifypass2)"
 
 check_eq "刪除使用者" "204" "$(token_write -X DELETE "$API/users/verifyuser")"
 check_eq "刪除後登入應 401" "401" "$(login_status verifyuser verifypass2)"
@@ -420,6 +424,7 @@ SETUP_STATUS_CODE="$(status "$API/setup/status")"
 SETUP_STATUS_BODY="$(body "$API/setup/status")"
 check_eq "免 token GET /setup/status" "200" "$SETUP_STATUS_CODE"
 check_contains "setup 完成後 setupRequired=false" "$SETUP_STATUS_BODY" '"setupRequired":false'
+check_contains "setup/status 含 adminFile" "$SETUP_STATUS_BODY" '"adminFile":'
 check_contains "setup 完成後 userCount>=1" "$SETUP_STATUS_BODY" '"userCount":'
 check_absent "setup/status 不洩漏絕對路徑" "$SETUP_STATUS_BODY" "$SVN_ROOT"
 

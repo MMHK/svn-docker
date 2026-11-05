@@ -69,14 +69,15 @@ export interface SetupAuthFileStatus extends SetupFileStatus {
 
 /**
  * GET /setup/status payload. `reason` is one of `missing_auth_file`,
- * `missing_access_file`, `no_users` or `''` (setup completed). `users` is only
- * populated while setup is pending.
+ * `missing_access_file`, `no_users`, `no_admin` or `''` (setup completed).
+ * `users` is only populated while setup is pending.
  */
 export interface SetupStatus {
   setupRequired: boolean;
   reason: string;
   authFile: SetupAuthFileStatus;
   accessFile: SetupFileStatus;
+  adminFile: SetupFileStatus;
   users: string[];
   canCreateAccount: boolean;
 }

@@ -72,6 +72,7 @@ const diagnostics = computed<Diagnostic[]>(() => {
   const items: Diagnostic[] = [];
   const authFile = current.authFile;
   const accessFile = current.accessFile;
+  const adminFile = current.adminFile;
 
   if (!authFile.exists) {
     items.push({ tone: 'error', text: t('setup.authFileMissing') });
@@ -83,6 +84,12 @@ const diagnostics = computed<Diagnostic[]>(() => {
     items.push({ tone: 'error', text: t('setup.accessFileMissing') });
   } else if (!accessFile.writable) {
     items.push({ tone: 'error', text: t('setup.accessFileUnwritable') });
+  }
+
+  // A missing admin file is fine: submitting creates it. Only a present but
+  // unwritable marker blocks the setup, because it could not be written.
+  if (adminFile.exists && !adminFile.writable) {
+    items.push({ tone: 'error', text: t('setup.adminFileUnwritable') });
   }
 
   if (!current.canCreateAccount) {
@@ -107,8 +114,8 @@ function fileLabel(name: string): string {
       return t('setup.fileAuth');
     case 'accessFile':
       return t('setup.fileAccess');
-    case 'roleFile':
-      return t('setup.fileRole');
+    case 'adminFile':
+      return t('setup.fileAdmin');
     default:
       return name;
   }
@@ -272,6 +279,11 @@ onMounted(() => {
   <section class="mx-auto mt-10 max-w-xl px-4">
     <h1 class="text-xl font-semibold">{{ t('setup.title') }}</h1>
     <p class="mt-2 text-sm text-[#656d76] dark:text-[#c9d1d9]">{{ t('setup.intro') }}</p>
+    <p
+      class="mt-3 rounded-md border border-[#d0d7de] bg-[#f6f8fa] px-3 py-2 text-xs text-[#656d76] dark:border-[#30363d] dark:bg-[#161b22] dark:text-[#c9d1d9]"
+    >
+      {{ t('setup.adminNote') }}
+    </p>
 
     <p v-if="loading" class="mt-6 text-sm text-[#656d76] dark:text-[#8b949e]" role="status">
       {{ t('setup.loading') }}

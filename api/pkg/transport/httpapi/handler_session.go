@@ -10,16 +10,17 @@ import (
 // login godoc
 //
 //	@Summary		Create a session
-//	@Description	Verifies the htpasswd credentials and returns an opaque bearer token. The token is only returned here and by POST /session/refresh; it is never set as a cookie. Five attempts per minute per client IP are allowed.
+//	@Description	Verifies the htpasswd credentials and returns an opaque bearer token. Only the single account recorded in the administrator file may sign in; other valid accounts receive 403 not_administrator. The token is only returned here and by POST /session/refresh; it is never set as a cookie. Five attempts per minute per client IP are allowed.
 //	@Tags			session
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body		view.LoginRequest	true	"username and password"
 //	@Success		200		{object}	view.Session
 //	@Failure		401		{object}	view.ErrorEnvelope	"invalid credentials"
-//	@Failure		403		{object}	view.ErrorEnvelope	"source address is not allowed"
+//	@Failure		403		{object}	view.ErrorEnvelope	"not_administrator: valid credentials but not the administrator, or the source address is not allowed"
 //	@Failure		422		{object}	view.ErrorEnvelope
 //	@Failure		429		{object}	view.ErrorEnvelope	"too many login attempts"
+//	@Failure		503		{object}	view.ErrorEnvelope	"setup_required: no administrator has been recorded yet"
 //	@Router			/svnadmin/api/v1/session [post]
 func (a *API) login(w http.ResponseWriter, r *http.Request) {
 	var request view.LoginRequest
@@ -65,7 +66,7 @@ func (a *API) currentSession(w http.ResponseWriter, r *http.Request) {
 // refreshSession godoc
 //
 //	@Summary		Rotate the session token
-//	@Description	Issues a new token and revokes the presented one immediately, so the old token can never be used again.
+//	@Description	Issues a new token and revokes the presented one immediately, so the old token can never be used again. The account must still be the administrator; otherwise the new token is revoked and the call returns 403 not_administrator.
 //	@Tags			session
 //	@Produce		json
 //	@Security		bearerAuth

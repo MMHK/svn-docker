@@ -32,6 +32,7 @@ type Config struct {
 	SVNAuthFile        string
 	SVNAccessFile      string
 	ConfigINI          string
+	AdminFile          string
 	BackupDir          string
 	TrashDir           string
 	SVNBinary          string
@@ -110,6 +111,9 @@ func LoadFrom(lookup func(string) (string, bool)) (Config, error) {
 	// is what the v2 tree already uses (plan section 5.1, D7).
 	cfg.BackupDir = l.str("BACKUP_DIR", filepath.Join(filepath.Dir(cfg.ConfigINI), "backup"))
 	cfg.TrashDir = l.str("TRASH_DIR", filepath.Join(filepath.Dir(cfg.ConfigINI), "trash"))
+	// The administrator marker lives next to config.ini by default so it moves
+	// with the rest of the data directory (plan P9, D28).
+	cfg.AdminFile = l.str("ADMIN_FILE", filepath.Join(filepath.Dir(cfg.ConfigINI), "svnadmin-admin"))
 	cfg.SVNBinary = l.str("SVN_BINARY", "svn")
 	cfg.SVNAdminBinary = l.str("SVNADMIN_BINARY", "svnadmin")
 
@@ -189,6 +193,10 @@ func (c *Config) Validate() error {
 
 	if c.TrashDir == "" {
 		return fmt.Errorf("config: %sTRASH_DIR must not be empty", EnvPrefix)
+	}
+
+	if c.AdminFile == "" {
+		return fmt.Errorf("config: %sADMIN_FILE must not be empty", EnvPrefix)
 	}
 
 	if strings.TrimSpace(c.SVNBinary) == "" {

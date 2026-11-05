@@ -94,6 +94,26 @@ func (a *API) authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
+		// The admin marker is re-read on every request so editing the file
+		// invalidates every token of the previous administrator (plan D31).
+		administrator, err := a.session.IsAdministrator(r.Context(), session.Username)
+		if err != nil {
+			a.writeError(w, r, err)
+
+			return
+		}
+
+		if !administrator {
+			a.logger.Warn(
+				"request rejected: account is not the administrator",
+				slog.String("path", r.URL.Path),
+				slog.String("request_id", requestIDFromContext(r.Context())),
+			)
+			a.writeError(w, r, &model.NotAdministratorError{Reason: "the account is not the svnadmin administrator"})
+
+			return
+		}
+
 		ctx := context.WithValue(r.Context(), sessionKey{}, session)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

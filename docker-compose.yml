@@ -74,6 +74,8 @@ services:
       # 管理資料（可持久化）
       SVN_ADMIN_BACKUP_DIR: "${SVN_ADMIN_BACKUP_DIR:-/data/backup}"
       SVN_ADMIN_TRASH_DIR: "${SVN_ADMIN_TRASH_DIR:-/data/trash}"
+      # 唯一 admin 帳號（一行）；只有此帳號能登入管理 API
+      SVN_ADMIN_ADMIN_FILE: "${SVN_ADMIN_ADMIN_FILE:-/data/svnadmin-admin}"
       SVN_ADMIN_UID: "${SVN_ADMIN_UID:-1000}"
       SVN_ADMIN_GID: "${SVN_ADMIN_GID:-1000}"
       SVN_ADMIN_ENABLE_DOCS: "${SVN_ADMIN_ENABLE_DOCS:-true}"

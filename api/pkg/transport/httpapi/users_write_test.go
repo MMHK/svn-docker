@@ -11,6 +11,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/mmhk/svn-admin/pkg/config"
 	"github.com/mmhk/svn-admin/pkg/store/htpasswd"
 	"github.com/mmhk/svn-admin/pkg/view"
 )
@@ -65,10 +66,15 @@ func TestCreateUser(t *testing.T) {
 		t.Error("the create response leaks the hash or the password")
 	}
 
-	// The new account can log in, which also proves the APR1 hash Apache will
-	// read is valid.
-	if login := env.login(t, "dave", "dave-secret"); login.Code != http.StatusOK {
-		t.Fatalf("login as the new user = %d, body = %s", login.Code, login.Body.String())
+	// The new account can authenticate (a 403 rather than 401 proves the APR1
+	// hash Apache will read is valid), but only the administrator may sign in.
+	login := env.login(t, "dave", "dave-secret")
+	if login.Code != http.StatusForbidden {
+		t.Fatalf("login as the new user = %d, want 403 (body %s)", login.Code, login.Body.String())
+	}
+
+	if envelope := decodeBody[view.ErrorEnvelope](t, login); envelope.Error.Code != "not_administrator" {
+		t.Errorf("error code = %q, want not_administrator", envelope.Error.Code)
 	}
 
 	// A duplicate is a conflict, not a silent overwrite.
@@ -207,7 +213,10 @@ func TestDeleteUserCascade(t *testing.T) {
 }
 
 func TestPasswordChangeRevokesTokens(t *testing.T) {
-	env := newTestEnv(t, nil)
+	// This test deliberately logs in more than the default five times.
+	env := newTestEnv(t, func(cfg *config.Config) {
+		cfg.LoginRatePerMin = 50
+	})
 	admin := env.mustToken(t, "testuser", testPassword)
 
 	if recorder := env.request(t, http.MethodPost, "/svnadmin/api/v1/users", "127.0.0.1:5555",
@@ -215,44 +224,50 @@ func TestPasswordChangeRevokesTokens(t *testing.T) {
 		t.Fatalf("create status = %d", recorder.Code)
 	}
 
-	userToken := env.mustToken(t, "roger", "old-secret")
-
-	// Any authenticated account can reset somebody else's password.
-	if cross := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/viewer/password", "127.0.0.1:5555",
-		bearer(userToken), `{"password":"hijacked"}`); cross.Code != http.StatusNoContent {
-		t.Errorf("cross-user password change = %d, want 204", cross.Code)
+	// A general account still authenticates, but it is not the administrator:
+	// the login is rejected with 403, not 401.
+	nonAdminLogin := env.login(t, "roger", "old-secret")
+	if nonAdminLogin.Code != http.StatusForbidden {
+		t.Fatalf("roger login = %d, want 403 (body %s)", nonAdminLogin.Code, nonAdminLogin.Body.String())
 	}
 
-	recorder := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/roger/password", "127.0.0.1:5555",
+	if envelope := decodeBody[view.ErrorEnvelope](t, nonAdminLogin); envelope.Error.Code != "not_administrator" {
+		t.Errorf("error code = %q, want not_administrator", envelope.Error.Code)
+	}
+
+	// The administrator rotates their own password. Every token of that
+	// account dies, including the caller's own token.
+	self := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/testuser/password", "127.0.0.1:5555",
 		bearer(admin), `{"password":"new-secret"}`)
+	if self.Code != http.StatusNoContent {
+		t.Fatalf("self password change = %d, body = %s", self.Code, self.Body.String())
+	}
+
+	if stale := env.request(t, http.MethodGet, "/svnadmin/api/v1/session", "127.0.0.1:5555", bearer(admin), ""); stale.Code != http.StatusUnauthorized {
+		t.Errorf("self-changed token = %d, want 401", stale.Code)
+	}
+
+	if login := env.login(t, "testuser", testPassword); login.Code != http.StatusUnauthorized {
+		t.Errorf("old password login = %d, want 401", login.Code)
+	}
+
+	admin = env.mustToken(t, "testuser", "new-secret")
+
+	// The administrator can reset another account's password; the old
+	// password stops working and the new one still only reaches 403.
+	recorder := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/roger/password", "127.0.0.1:5555",
+		bearer(admin), `{"password":"third-secret"}`)
 	if recorder.Code != http.StatusNoContent {
 		t.Fatalf("password change = %d, body = %s", recorder.Code, recorder.Body.String())
-	}
-
-	// Every token of the target is revoked, the old password stops working and
-	// the new one works.
-	if stale := env.request(t, http.MethodGet, "/svnadmin/api/v1/session", "127.0.0.1:5555", bearer(userToken), ""); stale.Code != http.StatusUnauthorized {
-		t.Errorf("old token = %d, want 401", stale.Code)
 	}
 
 	if login := env.login(t, "roger", "old-secret"); login.Code != http.StatusUnauthorized {
 		t.Errorf("old password login = %d, want 401", login.Code)
 	}
 
-	fresh := env.mustToken(t, "roger", "new-secret")
-
-	// Self-service: roger rotates his own password and his token dies too.
-	self := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/roger/password", "127.0.0.1:5555",
-		bearer(fresh), `{"password":"third-secret"}`)
-	if self.Code != http.StatusNoContent {
-		t.Fatalf("self password change = %d, body = %s", self.Code, self.Body.String())
+	if login := env.login(t, "roger", "third-secret"); login.Code != http.StatusForbidden {
+		t.Errorf("new password login = %d, want 403", login.Code)
 	}
-
-	if stale := env.request(t, http.MethodGet, "/svnadmin/api/v1/session", "127.0.0.1:5555", bearer(fresh), ""); stale.Code != http.StatusUnauthorized {
-		t.Errorf("self-changed token = %d, want 401", stale.Code)
-	}
-
-	env.mustToken(t, "roger", "third-secret")
 
 	// Unknown account and weak password.
 	if missing := env.request(t, http.MethodPut, "/svnadmin/api/v1/users/nobody/password", "127.0.0.1:5555",
@@ -267,7 +282,7 @@ func TestPasswordChangeRevokesTokens(t *testing.T) {
 		}
 	}
 
-	// testuser's own token must still work (it was never the target).
+	// The refreshed admin token must still work.
 	if ok := env.request(t, http.MethodGet, "/svnadmin/api/v1/users", "127.0.0.1:5555", bearer(admin), ""); ok.Code != http.StatusOK {
 		t.Errorf("admin token = %d, want 200", ok.Code)
 	}

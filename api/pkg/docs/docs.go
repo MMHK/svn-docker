@@ -1405,7 +1405,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Verifies the htpasswd credentials and returns an opaque bearer token. The token is only returned here and by POST /session/refresh; it is never set as a cookie. Five attempts per minute per client IP are allowed.",
+                "description": "Verifies the htpasswd credentials and returns an opaque bearer token. Only the single account recorded in the administrator file may sign in; other valid accounts receive 403 not_administrator. The token is only returned here and by POST /session/refresh; it is never set as a cookie. Five attempts per minute per client IP are allowed.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1441,7 +1441,7 @@ const docTemplate = `{
                         }
                     },
                     "403": {
-                        "description": "source address is not allowed",
+                        "description": "not_administrator: valid credentials but not the administrator, or the source address is not allowed",
                         "schema": {
                             "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
                         }
@@ -1454,6 +1454,12 @@ const docTemplate = `{
                     },
                     "429": {
                         "description": "too many login attempts",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
+                        }
+                    },
+                    "503": {
+                        "description": "setup_required: no administrator has been recorded yet",
                         "schema": {
                             "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
                         }
@@ -1497,7 +1503,7 @@ const docTemplate = `{
                         "bearerAuth": []
                     }
                 ],
-                "description": "Issues a new token and revokes the presented one immediately, so the old token can never be used again.",
+                "description": "Issues a new token and revokes the presented one immediately, so the old token can never be used again. The account must still be the administrator; otherwise the new token is revoked and the call returns 403 not_administrator.",
                 "produces": [
                     "application/json"
                 ],
@@ -1529,7 +1535,7 @@ const docTemplate = `{
         },
         "/svnadmin/api/v1/setup/admin": {
             "post": {
-                "description": "Requires the one-time bootstrap token from SVN_ADMIN_BOOTSTRAP_TOKEN (or the token printed to stderr at startup). When the account does not exist yet a password is required and the account is created; when it exists the password is ignored. Missing auth/access files are created. Other API routes answer 503 setup_required until this succeeds.",
+                "description": "Requires the one-time bootstrap token from SVN_ADMIN_BOOTSTRAP_TOKEN (or the token printed to stderr at startup). The chosen account is written to the single-line administrator file and becomes the only account allowed to sign in to the management API. When the account does not exist yet a password is required and the account is created; when it exists the password is ignored. On a fresh deployment the marker is overwritten; once the marker exists, moving the administrator is a manual file edit. Missing auth/access/admin files are created. Other API routes answer 503 setup_required until this succeeds.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1583,7 +1589,7 @@ const docTemplate = `{
                         }
                     },
                     "503": {
-                        "description": "storage_unavailable: the auth/access directory is missing or not writable",
+                        "description": "storage_unavailable: the auth/access/admin directory is missing or not writable",
                         "schema": {
                             "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.ErrorEnvelope"
                         }
@@ -1593,7 +1599,7 @@ const docTemplate = `{
         },
         "/svnadmin/api/v1/setup/status": {
             "get": {
-                "description": "Public diagnostic used by the login page. It reports whether an administrator still has to be created, why, and whether the credential file is usable. It never exposes absolute paths, password hashes or file contents. The users list is only populated while setup is pending.",
+                "description": "Public diagnostic used by the login page. It reports whether the single administrator still has to be created, why (missing_auth_file, missing_access_file, no_users, no_admin), and whether the auth/access/admin files are usable. It never exposes absolute paths, password hashes, file contents or the administrator account name. The users list is only populated while setup is pending.",
                 "produces": [
                     "application/json"
                 ],
@@ -2820,7 +2826,8 @@ const docTemplate = `{
                     },
                     "example": [
                         "authFile",
-                        "accessFile"
+                        "accessFile",
+                        "adminFile"
                     ]
                 },
                 "username": {
@@ -2833,6 +2840,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "accessFile": {
+                    "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.SetupFileStatus"
+                },
+                "adminFile": {
                     "$ref": "#/definitions/github_com_mmhk_svn-admin_pkg_view.SetupFileStatus"
                 },
                 "authFile": {

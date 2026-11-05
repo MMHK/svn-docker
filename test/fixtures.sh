@@ -7,7 +7,7 @@
 #   repos/test2             真倉庫，空（r0）
 #   repos/svn-auth-file     testuser/testpass、admin/adminpass（APR1）
 #   repos/svn-access-file   authz：含 # 與 ; 註解、CRLF、[groups]、[test1:/]
-#   appdata/userroleassignments.ini   testuser = Administrator
+#   appdata/svnadmin-admin   唯一 admin 帳號（一行）：testuser
 #   appdata/backup/         備份目錄（verify-v2 會檢查寫入後有備份檔）
 #   appdata/trash/          刪倉庫的 trash 目錄
 #
@@ -98,7 +98,7 @@ apr1() { # password salt
 } > "$REPOS/svn-access-file"
 
 # ---- 4) 管理資料 ------------------------------------------------------------
-printf '[testuser]\nAdministrator=\n' > "$APPDATA/userroleassignments.ini"
+printf 'testuser\n' > "$APPDATA/svnadmin-admin"
 
 # config.ini 只在沒有對應環境變數時被 legacy 匯入讀取；放一份讓佈局與部署一致。
 if [ -f data/config.ini ]; then
