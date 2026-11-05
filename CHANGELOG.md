@@ -24,11 +24,11 @@
   需輸入倉庫名確認；預設開放（`SVN_ADMIN_REPO_DELETE_ENABLED=true`）。
 - Swagger UI（`swaggo`，離線內嵌）：`/svnadmin/api/docs/index.html`，僅登入使用者 + 內網。
 - `Dockerfile.svn` / `Dockerfile.admin` 雙映像；`docker-entrypoint.sh` 以 `PUID`/`PGID` 對齊 uid；
-  `svn-admin` 只 `expose`，永不 publish。
+  `svn-admin` 預設只 `expose`；目前 compose 為本機測試 publish `8086`，正式部署請移除。
 - 內網限制：Apache `mod_remoteip` + `RemoteIPTrustedProxy` + `<Location /svnadmin> Require ip RFC1918`，
   Go 端第二層 `SVN_ADMIN_ALLOW_CIDRS` / `SVN_ADMIN_TRUSTED_PROXIES`。
-- `test/verify-v2.sh`（91 項端到端）與 `test/fixtures.sh`；`ci-v3.yml`（Go / 前端 / `make layers` /
-  `make swag` 漂移）。
+- `test/verify-v2.sh`（端到端）與 `test/fixtures.sh`；Go / 前端建置與測試、`make layers` /
+  `make swag` 漂移檢查（發行前本機執行）。
 - `NOTICE`：保留 iF.SVNAdmin（GPL v2，Manuel Freiholz）的 attribution。
 
 ### Changed
@@ -59,6 +59,8 @@
 - 舊 `.php` 路由（`/svnadmin/userlist.php` 等）直接 404，不做 301。
 - `test/verify.sh`、`test/verify-real.sh`、`test/probe-real-repos.sh`、`test/data/`、
   `.github/workflows/ci.yml`（PHP CI）。
+- 移除 GitHub Actions（`.github/workflows/ci-v3.yml`）；Go 與前端的建置/測試改為發行前在本機執行
+  （`make test`、`yarn typecheck`、`yarn build`、`make swag`）。
 - 既有資料格式不變；回滾方式見 `readme.md`「備份與回滾 2.0.0」。
 
 ### Fixed

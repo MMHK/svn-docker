@@ -276,7 +276,7 @@ sudo chown -R 1000:1000 /var/svnlocal ./data
 Swagger UI：`/svnadmin/api/docs/index.html`（`SVN_ADMIN_ENABLE_DOCS=true` 時）。
 規格：`/svnadmin/api/docs/openapi.json`、`openapi.yaml`。
 與其他管理端點同一組保護：必須登入（唯一 admin）且受 RFC1918 限制。
-`swag` 產物在 `api/pkg/docs/`，CI 會執行 `make swag` 後比對 `git diff` 檢查漂移。
+`swag` 產物在 `api/pkg/docs/`；改動 Swagger 註解後請先執行 `make swag` 再提交（本專案已無 GitHub Actions，這些檢查改在發行前本機執行）。
 
 ## 開發
 
