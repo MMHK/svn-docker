@@ -39,20 +39,20 @@ onBeforeUnmount(() => {
   <Teleport to="body">
     <div
       v-if="open"
-      class="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4"
+      class="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-[#1f2328]/50 p-4"
       @click.self="close"
     >
       <div
-        class="mt-8 w-full max-w-lg rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900"
+        class="mt-8 w-full max-w-lg rounded-lg border border-[#d0d7de] bg-[#ffffff] shadow-xl dark:border-[#30363d] dark:bg-[#161b22]"
         role="dialog"
         aria-modal="true"
         :aria-label="title"
       >
-        <div class="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-3 dark:border-slate-800">
+        <div class="flex items-start justify-between gap-3 border-b border-[#d0d7de] px-5 py-3 dark:border-[#30363d]">
           <h2 class="text-base font-semibold">{{ title }}</h2>
           <button
             type="button"
-            class="rounded px-1 text-xl leading-none text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+            class="rounded-md px-1 text-xl leading-none text-[#656d76] hover:text-[#1f2328] dark:text-[#8b949e] dark:hover:text-[#e6edf3]"
             :aria-label="t('common.close')"
             @click="close"
           >
@@ -64,7 +64,7 @@ onBeforeUnmount(() => {
           <slot />
         </div>
 
-        <div v-if="$slots.footer" class="border-t border-slate-200 px-5 py-3 dark:border-slate-800">
+        <div v-if="$slots.footer" class="border-t border-[#d0d7de] px-5 py-3 dark:border-[#30363d]">
           <slot name="footer" />
         </div>
       </div>

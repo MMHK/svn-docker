@@ -41,21 +41,21 @@ async function signOut(): Promise<void> {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-    <header class="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-      <div class="flex w-full flex-wrap items-center gap-3 px-4 py-3">
+  <div class="min-h-screen bg-[#ffffff] text-[#1f2328] dark:bg-[#0d1117] dark:text-[#e6edf3]">
+    <header class="border-b border-[#d0d7de] bg-[#f6f8fa] dark:border-[#30363d] dark:bg-[#161b22]">
+      <div class="flex w-full flex-wrap items-center gap-3 px-4 py-2.5">
         <RouterLink to="/" class="flex items-baseline gap-2">
-          <span class="text-lg font-semibold tracking-tight">{{ t('app.title') }}</span>
-          <span class="hidden text-xs text-slate-500 sm:inline dark:text-slate-400">{{ t('app.subtitle') }}</span>
+          <span class="text-sm font-semibold">{{ t('app.title') }}</span>
+          <span class="hidden text-xs text-[#656d76] sm:inline dark:text-[#8b949e]">{{ t('app.subtitle') }}</span>
         </RouterLink>
 
         <div class="ml-auto flex flex-wrap items-center gap-2">
-          <span v-if="auth.userName" class="text-sm text-slate-600 dark:text-slate-300">
-            {{ t('nav.signedInAs') }} <span class="font-medium text-slate-900 dark:text-white">{{ auth.userName }}</span>
+          <span v-if="auth.userName" class="text-sm text-[#656d76] dark:text-[#c9d1d9]">
+            {{ t('nav.signedInAs') }} <span class="font-medium text-[#1f2328] dark:text-[#e6edf3]">{{ auth.userName }}</span>
           </span>
 
           <select
-            class="rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            class="rounded-md border border-[#d0d7de] bg-[#f6f8fa] px-2.5 py-1 text-xs text-[#24292f] hover:bg-[#f3f4f6] dark:border-[#30363d] dark:bg-[#21262d] dark:text-[#e6edf3] dark:hover:bg-[#30363d]"
             :value="locale"
             :aria-label="t('nav.language')"
             @change="changeLocale"
@@ -66,7 +66,7 @@ async function signOut(): Promise<void> {
 
           <button
             type="button"
-            class="rounded border border-slate-300 px-2 py-1 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+            class="rounded-md border border-[#d0d7de] bg-[#f6f8fa] px-2.5 py-1 text-xs hover:bg-[#f3f4f6] dark:border-[#30363d] dark:bg-[#21262d] dark:hover:bg-[#30363d]"
             :title="themeLabel"
             @click="toggleTheme"
           >
@@ -75,7 +75,7 @@ async function signOut(): Promise<void> {
 
           <button
             type="button"
-            class="rounded border border-slate-300 px-2 py-1 text-sm hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+            class="rounded-md border border-[#d0d7de] bg-[#f6f8fa] px-2.5 py-1 text-xs hover:bg-[#f3f4f6] disabled:opacity-50 dark:border-[#30363d] dark:bg-[#21262d] dark:hover:bg-[#30363d]"
             :disabled="signingOut"
             @click="signOut"
           >
@@ -86,13 +86,13 @@ async function signOut(): Promise<void> {
     </header>
 
     <div class="flex flex-col md:flex-row">
-      <aside class="shrink-0 border-b border-slate-200 bg-white px-2 py-3 md:w-56 md:border-b-0 md:border-r dark:border-slate-800 dark:bg-slate-900">
+      <aside class="shrink-0 border-b border-[#d0d7de] bg-[#ffffff] px-2 py-3 md:w-56 md:border-b-0 md:border-r dark:border-[#30363d] dark:bg-[#0d1117]">
         <nav class="flex flex-row flex-wrap gap-1 md:flex-col" :aria-label="t('nav.menu')">
           <RouterLink
             :to="{ name: 'home' }"
-            class="rounded px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-            active-class="bg-slate-100 font-medium text-slate-900 dark:bg-slate-800 dark:text-white"
-            exact-active-class="bg-slate-100 font-medium text-slate-900 dark:bg-slate-800 dark:text-white"
+            class="rounded-md px-3 py-1.5 text-sm text-[#656d76] hover:bg-[#f6f8fa] dark:text-[#c9d1d9] dark:hover:bg-[#21262d]"
+            active-class="bg-[#f6f8fa] font-semibold text-[#1f2328] dark:bg-[#21262d] dark:text-[#e6edf3]"
+            exact-active-class="bg-[#f6f8fa] font-semibold text-[#1f2328] dark:bg-[#21262d] dark:text-[#e6edf3]"
           >
             {{ t('nav.home') }}
           </RouterLink>
@@ -100,8 +100,8 @@ async function signOut(): Promise<void> {
             v-for="item in NAV_ITEMS"
             :key="item.name"
             :to="{ name: item.name }"
-            class="rounded px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-            active-class="bg-slate-100 font-medium text-slate-900 dark:bg-slate-800 dark:text-white"
+            class="rounded-md px-3 py-1.5 text-sm text-[#656d76] hover:bg-[#f6f8fa] dark:text-[#c9d1d9] dark:hover:bg-[#21262d]"
+            active-class="bg-[#f6f8fa] font-semibold text-[#1f2328] dark:bg-[#21262d] dark:text-[#e6edf3]"
           >
             {{ t(item.labelKey) }}
           </RouterLink>

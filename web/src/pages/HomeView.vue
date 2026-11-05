@@ -11,9 +11,9 @@ const auth = useAuthStore();
   <section class="space-y-6">
     <div>
       <h1 class="text-xl font-semibold">{{ t('home.title') }}</h1>
-      <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">
+      <p class="mt-1 text-sm text-[#656d76] dark:text-[#c9d1d9]">
         {{ t('home.welcome') }}
-        <span v-if="auth.userName" class="font-medium text-slate-900 dark:text-white">{{ auth.userName }}</span>
+        <span v-if="auth.userName" class="font-medium text-[#1f2328] dark:text-[#e6edf3]">{{ auth.userName }}</span>
       </p>
     </div>
 
@@ -24,10 +24,10 @@ const auth = useAuthStore();
           v-for="item in NAV_ITEMS"
           :key="item.name"
           :to="{ name: item.name }"
-          class="rounded border border-slate-200 bg-white p-4 transition hover:border-sky-400 hover:shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:hover:border-sky-600"
+          class="rounded-md border border-[#d0d7de] bg-[#ffffff] p-4 transition hover:border-[#0969da] hover:shadow-sm dark:border-[#30363d] dark:bg-[#161b22] dark:hover:border-[#2f81f7]"
         >
-          <p class="font-medium text-slate-900 dark:text-white">{{ t(item.labelKey) }}</p>
-          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ t(item.descriptionKey) }}</p>
+          <p class="font-medium text-[#1f2328] dark:text-[#e6edf3]">{{ t(item.labelKey) }}</p>
+          <p class="mt-1 text-xs text-[#656d76] dark:text-[#8b949e]">{{ t(item.descriptionKey) }}</p>
         </RouterLink>
       </div>
     </div>

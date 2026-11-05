@@ -97,7 +97,7 @@ const diagnosticClass: Record<Diagnostic['tone'], string> = {
     'border-red-300 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200',
   warning:
     'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200',
-  info: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300',
+  info: 'border-[#d0d7de] bg-[#f6f8fa] text-[#24292f] dark:border-[#30363d] dark:bg-[#161b22] dark:text-[#c9d1d9]',
 };
 
 /** Human readable names for the files reported in `initializedFiles`. */
@@ -271,22 +271,22 @@ onMounted(() => {
 <template>
   <section class="mx-auto mt-10 max-w-xl px-4">
     <h1 class="text-xl font-semibold">{{ t('setup.title') }}</h1>
-    <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ t('setup.intro') }}</p>
+    <p class="mt-2 text-sm text-[#656d76] dark:text-[#c9d1d9]">{{ t('setup.intro') }}</p>
 
-    <p v-if="loading" class="mt-6 text-sm text-slate-500 dark:text-slate-400" role="status">
+    <p v-if="loading" class="mt-6 text-sm text-[#656d76] dark:text-[#8b949e]" role="status">
       {{ t('setup.loading') }}
     </p>
 
     <div
       v-else-if="loadError !== ''"
-      class="mt-6 rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+      class="mt-6 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
       role="alert"
     >
       <p class="font-medium">{{ t('setup.statusLoadFailed') }}</p>
       <p class="mt-1 break-words">{{ loadError }}</p>
       <button
         type="button"
-        class="mt-3 rounded border border-red-400 px-3 py-1 text-sm font-medium hover:bg-red-100 dark:border-red-700 dark:hover:bg-red-900"
+        class="mt-3 rounded-md border border-red-400 px-3 py-1 text-sm font-medium hover:bg-red-100 dark:border-red-700 dark:hover:bg-red-900"
         @click="loadStatus()"
       >
         {{ t('setup.retry') }}
@@ -295,14 +295,14 @@ onMounted(() => {
 
     <div
       v-else-if="!setupRequired"
-      class="mt-6 rounded border border-emerald-300 bg-emerald-50 px-4 py-4 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
+      class="mt-6 rounded-md border border-emerald-300 bg-emerald-50 px-4 py-4 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
       role="status"
     >
       <p class="font-medium">{{ t('setup.doneTitle') }}</p>
       <p class="mt-1">{{ t('setup.doneHint') }}</p>
       <button
         type="button"
-        class="mt-3 rounded bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+        class="mt-3 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
         @click="router.push({ name: 'login' })"
       >
         {{ t('setup.gotoLogin') }}
@@ -311,7 +311,7 @@ onMounted(() => {
 
     <div
       v-else-if="result !== null"
-      class="mt-6 rounded border border-emerald-300 bg-emerald-50 px-4 py-4 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
+      class="mt-6 rounded-md border border-emerald-300 bg-emerald-50 px-4 py-4 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
       role="status"
     >
       <p class="font-medium">{{ t('setup.success') }}</p>
@@ -337,7 +337,7 @@ onMounted(() => {
       <p class="mt-2">{{ t('setup.successHint') }}</p>
       <button
         type="button"
-        class="mt-3 rounded bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+        class="mt-3 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
         @click="router.push({ name: 'login' })"
       >
         {{ t('setup.gotoLogin') }}
@@ -347,27 +347,27 @@ onMounted(() => {
     <template v-else>
       <section class="mt-6 space-y-2" aria-labelledby="setup-diagnostics">
         <h2 id="setup-diagnostics" class="text-sm font-semibold">{{ t('setup.diagnostics') }}</h2>
-        <p v-if="diagnostics.length === 0" class="text-sm text-slate-500 dark:text-slate-400">
+        <p v-if="diagnostics.length === 0" class="text-sm text-[#656d76] dark:text-[#8b949e]">
           {{ t('setup.diagnosticsOk') }}
         </p>
         <ul v-else class="space-y-2">
           <li
             v-for="item in diagnostics"
             :key="item.text"
-            class="rounded border px-3 py-2 text-sm"
+            class="rounded-md border px-3 py-2 text-sm"
             :class="diagnosticClass[item.tone]"
             role="status"
           >
             {{ item.text }}
           </li>
         </ul>
-        <p class="text-xs text-slate-500 dark:text-slate-400">
+        <p class="text-xs text-[#656d76] dark:text-[#8b949e]">
           {{ t('setup.reasonLabel') }}: {{ statusMessage === '' ? t('common.none') : statusMessage }}
         </p>
       </section>
 
       <form
-        class="mt-6 space-y-4 rounded border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900"
+        class="mt-6 space-y-4 rounded-md border border-[#d0d7de] bg-[#ffffff] p-6 dark:border-[#30363d] dark:bg-[#161b22]"
         @submit.prevent="submit"
       >
         <fieldset class="space-y-4" :disabled="!canCreateAccount || submitting">
@@ -381,7 +381,7 @@ onMounted(() => {
               id="setup-account"
               v-model="selectedAccount"
               name="account"
-              class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+              class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
             >
               <option v-for="name in users" :key="name" :value="name">{{ name }}</option>
               <option :value="NEW_ACCOUNT">{{ t('setup.newAccountOption') }}</option>
@@ -395,13 +395,13 @@ onMounted(() => {
               type="text"
               autocomplete="username"
               required
-              class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+              class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
             />
 
-            <p v-if="usesSelect && selectedAccount !== NEW_ACCOUNT" class="text-xs text-slate-500 dark:text-slate-400">
+            <p v-if="usesSelect && selectedAccount !== NEW_ACCOUNT" class="text-xs text-[#656d76] dark:text-[#8b949e]">
               {{ t('setup.existingAccountHint') }}
             </p>
-            <p v-else class="text-xs text-slate-500 dark:text-slate-400">
+            <p v-else class="text-xs text-[#656d76] dark:text-[#8b949e]">
               {{ t('setup.newUsernameHint') }}
             </p>
           </div>
@@ -414,21 +414,21 @@ onMounted(() => {
               name="newUsername"
               type="text"
               autocomplete="off"
-              class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+              class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
             />
           </div>
 
           <template v-if="creatingAccount">
             <div>
               <label for="setup-password" class="block text-sm font-medium">{{ t('setup.password') }}</label>
-              <p class="text-xs text-slate-500 dark:text-slate-400">{{ t('setup.passwordHint') }}</p>
+              <p class="text-xs text-[#656d76] dark:text-[#8b949e]">{{ t('setup.passwordHint') }}</p>
               <input
                 id="setup-password"
                 v-model="password"
                 name="password"
                 type="password"
                 autocomplete="new-password"
-                class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+                class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
               />
             </div>
 
@@ -442,18 +442,18 @@ onMounted(() => {
                 name="confirmPassword"
                 type="password"
                 autocomplete="new-password"
-                class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+                class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
               />
             </div>
           </template>
 
-          <p v-else class="rounded border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+          <p v-else class="rounded-md border border-[#d0d7de] bg-[#f6f8fa] px-3 py-2 text-xs text-[#656d76] dark:border-[#30363d] dark:bg-[#161b22] dark:text-[#c9d1d9]">
             {{ t('setup.passwordKeepHint') }}
           </p>
 
           <div>
             <label for="setup-token" class="block text-sm font-medium">{{ t('setup.token') }}</label>
-            <p class="text-xs text-slate-500 dark:text-slate-400">{{ t('setup.tokenHint') }}</p>
+            <p class="text-xs text-[#656d76] dark:text-[#8b949e]">{{ t('setup.tokenHint') }}</p>
             <input
               id="setup-token"
               v-model="bootstrapToken"
@@ -461,14 +461,14 @@ onMounted(() => {
               type="password"
               autocomplete="off"
               required
-              class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-800"
+              class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 font-mono text-sm dark:border-[#30363d] dark:bg-[#21262d]"
             />
           </div>
         </fieldset>
 
         <p
           v-if="formError"
-          class="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+          class="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
           role="alert"
         >
           {{ formError }}
@@ -476,14 +476,14 @@ onMounted(() => {
 
         <button
           type="submit"
-          class="w-full rounded bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
+          class="w-full rounded-md bg-[#1f883d] px-4 py-2 text-sm font-medium text-white hover:bg-[#1a7f37] disabled:opacity-50"
           :disabled="submitting || !canCreateAccount"
         >
           {{ submitting ? t('setup.submitting') : t('setup.submit') }}
         </button>
 
-        <p class="text-center text-xs text-slate-500 dark:text-slate-400">
-          <RouterLink to="/login" class="text-sky-600 hover:underline dark:text-sky-400">
+        <p class="text-center text-xs text-[#656d76] dark:text-[#8b949e]">
+          <RouterLink to="/login" class="text-[#0969da] hover:underline dark:text-[#2f81f7]">
             {{ t('setup.backToLogin') }}
           </RouterLink>
         </p>

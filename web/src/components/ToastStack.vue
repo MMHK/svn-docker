@@ -13,7 +13,7 @@ const toasts = useToastStore();
     <div
       v-for="toast in toasts.items"
       :key="toast.id"
-      class="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded border px-4 py-3 text-sm shadow-lg"
+      class="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-md border px-4 py-3 text-sm shadow-lg"
       :class="
         toast.tone === 'error'
           ? 'border-red-300 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200'
@@ -24,7 +24,7 @@ const toasts = useToastStore();
       <p class="flex-1 break-words">{{ toast.message }}</p>
       <button
         type="button"
-        class="shrink-0 rounded px-1 text-base leading-none opacity-70 hover:opacity-100"
+        class="shrink-0 rounded-md px-1 text-base leading-none opacity-70 hover:opacity-100"
         :aria-label="t('common.close')"
         @click="toasts.dismiss(toast.id)"
       >

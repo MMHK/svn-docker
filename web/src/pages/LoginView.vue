@@ -128,18 +128,18 @@ onMounted(async () => {
 <template>
   <section class="mx-auto mt-10 max-w-md px-4">
     <h1 class="text-xl font-semibold">{{ t('login.title') }}</h1>
-    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ t('app.subtitle') }}</p>
+    <p class="mt-1 text-sm text-[#656d76] dark:text-[#8b949e]">{{ t('app.subtitle') }}</p>
 
     <p
       v-if="expired"
-      class="mt-4 rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200"
+      class="mt-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200"
       role="status"
     >
       {{ t('login.expired') }}
     </p>
 
     <form
-      class="mt-6 space-y-4 rounded border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900"
+      class="mt-6 space-y-4 rounded-md border border-[#d0d7de] bg-[#ffffff] p-6 dark:border-[#30363d] dark:bg-[#161b22]"
       @submit.prevent="submit"
     >
       <div>
@@ -151,7 +151,7 @@ onMounted(async () => {
           type="text"
           autocomplete="username"
           required
-          class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+          class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
         />
       </div>
 
@@ -164,24 +164,24 @@ onMounted(async () => {
           type="password"
           autocomplete="current-password"
           required
-          class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+          class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
         />
       </div>
 
-      <p v-if="error" class="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200" role="alert">
+      <p v-if="error" class="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200" role="alert">
         {{ error }}
       </p>
 
       <button
         type="submit"
-        class="w-full rounded bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
+        class="w-full rounded-md bg-[#1f883d] px-4 py-2 text-sm font-medium text-white hover:bg-[#1a7f37] disabled:opacity-50"
         :disabled="submitting"
       >
         {{ submitting ? t('login.submitting') : t('login.submit') }}
       </button>
 
-      <p class="text-center text-xs text-slate-500 dark:text-slate-400">
-        <RouterLink to="/setup" class="text-sky-600 hover:underline dark:text-sky-400">
+      <p class="text-center text-xs text-[#656d76] dark:text-[#8b949e]">
+        <RouterLink to="/setup" class="text-[#0969da] hover:underline dark:text-[#2f81f7]">
           {{ t('login.setupLink') }}
         </RouterLink>
       </p>

@@ -24,10 +24,10 @@ function go(page: number): void {
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+  <div class="flex flex-wrap items-center gap-3 text-sm text-[#656d76] dark:text-[#c9d1d9]">
     <button
       type="button"
-      class="rounded border border-slate-300 px-3 py-1 hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-800"
+      class="rounded-md border border-[#d0d7de] px-3 py-1 hover:bg-[#f6f8fa] disabled:opacity-40 dark:border-[#30363d] dark:hover:bg-[#21262d]"
       :disabled="page <= 1"
       @click="go(page - 1)"
     >
@@ -38,7 +38,7 @@ function go(page: number): void {
     </span>
     <button
       type="button"
-      class="rounded border border-slate-300 px-3 py-1 hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-800"
+      class="rounded-md border border-[#d0d7de] px-3 py-1 hover:bg-[#f6f8fa] disabled:opacity-40 dark:border-[#30363d] dark:hover:bg-[#21262d]"
       :disabled="page >= totalPages"
       @click="go(page + 1)"
     >

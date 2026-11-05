@@ -309,7 +309,7 @@ watch(
 
 <template>
   <section class="space-y-6">
-    <RouterLink :to="{ name: 'users' }" class="text-sm text-sky-700 hover:underline dark:text-sky-400">
+    <RouterLink :to="{ name: 'users' }" class="text-sm text-[#0969da] hover:underline dark:text-[#2f81f7]">
       ← {{ t('users.title') }}
     </RouterLink>
 
@@ -317,20 +317,20 @@ watch(
       <template v-if="user">
         <div>
           <h1 class="text-xl font-semibold">{{ user.name }}</h1>
-          <p v-if="user.comment" class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ user.comment }}</p>
+          <p v-if="user.comment" class="mt-1 text-sm text-[#656d76] dark:text-[#c9d1d9]">{{ user.comment }}</p>
 
           <div class="mt-3 flex flex-wrap gap-2">
             <button
               v-if="canChangePassword"
               type="button"
-              class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+              class="rounded-md border border-[#d0d7de] px-3 py-1 text-sm hover:bg-[#f6f8fa] dark:border-[#30363d] dark:hover:bg-[#21262d]"
               @click="openPassword"
             >
               {{ t('userDetail.changePassword') }}
             </button>
             <button
               type="button"
-              class="rounded border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
+              class="rounded-md border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
               @click="openDelete"
             >
               {{ t('userDetail.delete') }}
@@ -339,22 +339,22 @@ watch(
         </div>
 
         <div class="mt-4 grid gap-4 sm:grid-cols-2">
-          <div class="rounded border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <div class="rounded-md border border-[#d0d7de] bg-[#ffffff] p-4 dark:border-[#30363d] dark:bg-[#161b22]">
             <div class="flex items-center justify-between gap-2">
-              <h2 class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('users.groups') }}</h2>
+              <h2 class="text-xs uppercase tracking-wide text-[#656d76] dark:text-[#8b949e]">{{ t('users.groups') }}</h2>
               <button
                 type="button"
-                class="text-xs text-sky-700 hover:underline dark:text-sky-400"
+                class="text-xs text-[#0969da] hover:underline dark:text-[#2f81f7]"
                 @click="openGroups"
               >
                 {{ t('userDetail.editGroups') }}
               </button>
             </div>
-            <p v-if="user.groups.length === 0" class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            <p v-if="user.groups.length === 0" class="mt-2 text-sm text-[#656d76] dark:text-[#8b949e]">
               {{ t('common.none') }}
             </p>
             <ul v-else class="mt-2 flex flex-wrap gap-2">
-              <li v-for="group in user.groups" :key="group" class="rounded bg-slate-100 px-2 py-1 text-xs dark:bg-slate-800">
+              <li v-for="group in user.groups" :key="group" class="rounded-md bg-[#f6f8fa] px-2 py-1 text-xs dark:bg-[#21262d]">
                 <RouterLink :to="{ name: 'group-detail', params: { name: group } }" class="hover:underline">
                   {{ group }}
                 </RouterLink>
@@ -365,17 +365,17 @@ watch(
 
         <div class="mt-6">
           <h2 class="text-sm font-semibold">{{ t('userDetail.access') }}</h2>
-          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ t('userDetail.accessNote') }}</p>
+          <p class="mt-1 text-xs text-[#656d76] dark:text-[#8b949e]">{{ t('userDetail.accessNote') }}</p>
 
-          <p v-if="!canViewAccessPaths" class="mt-3 rounded border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+          <p v-if="!canViewAccessPaths" class="mt-3 rounded-md border border-[#d0d7de] bg-[#ffffff] px-4 py-3 text-sm text-[#656d76] dark:border-[#30363d] dark:bg-[#161b22] dark:text-[#8b949e]">
             {{ t('userDetail.accessForbidden') }}
           </p>
-          <p v-else-if="accessLoading" class="mt-3 text-sm text-slate-500 dark:text-slate-400">
+          <p v-else-if="accessLoading" class="mt-3 text-sm text-[#656d76] dark:text-[#8b949e]">
             {{ t('common.loading') }}
           </p>
           <div
             v-else-if="accessError"
-            class="mt-3 rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+            class="mt-3 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
             role="alert"
           >
             <p class="font-medium">{{ describeError(accessError).title }}</p>
@@ -383,13 +383,13 @@ watch(
           </div>
           <p
             v-else-if="accessRows.length === 0"
-            class="mt-3 rounded border border-dashed border-slate-300 bg-white px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
+            class="mt-3 rounded-md border border-dashed border-[#d0d7de] bg-[#ffffff] px-4 py-6 text-center text-sm text-[#656d76] dark:border-[#30363d] dark:bg-[#161b22] dark:text-[#8b949e]"
           >
             {{ t('userDetail.emptyAccess') }}
           </p>
-          <div v-else class="mt-3 overflow-x-auto rounded border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+          <div v-else class="mt-3 overflow-x-auto rounded-md border border-[#d0d7de] bg-[#ffffff] dark:border-[#30363d] dark:bg-[#161b22]">
             <table class="w-full text-left text-sm">
-              <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
+              <thead class="bg-[#f6f8fa] text-xs uppercase tracking-wide text-[#656d76] dark:bg-[#161b22] dark:text-[#8b949e]">
                 <tr>
                   <th class="px-4 py-2 font-medium">{{ t('accessPaths.path') }}</th>
                   <th class="px-4 py-2 font-medium">{{ t('accessPaths.permission') }}</th>
@@ -397,17 +397,17 @@ watch(
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="row in accessRows" :key="`${row.path}-${row.source}-${row.group}`" class="border-t border-slate-100 dark:border-slate-800">
+                <tr v-for="row in accessRows" :key="`${row.path}-${row.source}-${row.group}`" class="border-t border-[#eaeef2] dark:border-[#30363d]">
                   <td class="px-4 py-2 font-mono text-xs">
                     <RouterLink
                       :to="{ name: 'access-path-detail', params: { path: encodeAccessPath(row.path) } }"
-                      class="text-sky-700 hover:underline dark:text-sky-400"
+                      class="text-[#0969da] hover:underline dark:text-[#2f81f7]"
                     >
                       {{ row.path }}
                     </RouterLink>
                   </td>
                   <td class="px-4 py-2 font-mono text-xs">{{ row.permission }}</td>
-                  <td class="px-4 py-2 text-slate-600 dark:text-slate-300">
+                  <td class="px-4 py-2 text-[#656d76] dark:text-[#c9d1d9]">
                     <span v-if="row.source === 'user'">{{ t('userDetail.direct') }}</span>
                     <span v-else-if="row.source === 'group'">{{ t('userDetail.viaGroup') }} @{{ row.group }}</span>
                     <span v-else>{{ t('userDetail.global') }}</span>
@@ -420,7 +420,7 @@ watch(
 
         <ModalDialog :open="passwordOpen" :title="t('userDetail.passwordTitle')" @close="closePassword">
           <form id="change-password-form" class="space-y-4" @submit.prevent="submitPassword">
-            <p class="text-xs text-slate-500 dark:text-slate-400">
+            <p class="text-xs text-[#656d76] dark:text-[#8b949e]">
               {{ isSelf ? t('userDetail.passwordSelfHint') : t('userDetail.passwordOtherHint') }}
             </p>
 
@@ -431,7 +431,7 @@ watch(
                 v-model="newPassword"
                 type="password"
                 autocomplete="new-password"
-                class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+                class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
               />
             </div>
 
@@ -442,13 +442,13 @@ watch(
                 v-model="confirmPassword"
                 type="password"
                 autocomplete="new-password"
-                class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+                class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
               />
             </div>
 
             <p
               v-if="passwordError"
-              class="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+              class="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
               role="alert"
             >
               {{ passwordError }}
@@ -459,7 +459,7 @@ watch(
             <div class="flex justify-end gap-2">
               <button
                 type="button"
-                class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                class="rounded-md border border-[#d0d7de] px-3 py-1 text-sm hover:bg-[#f6f8fa] disabled:opacity-50 dark:border-[#30363d] dark:hover:bg-[#21262d]"
                 :disabled="passwordSaving"
                 @click="closePassword"
               >
@@ -468,7 +468,7 @@ watch(
               <button
                 type="submit"
                 form="change-password-form"
-                class="rounded bg-sky-600 px-3 py-1 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
+                class="rounded-md bg-[#1f883d] px-3 py-1 text-sm font-medium text-white hover:bg-[#1a7f37] disabled:opacity-50"
                 :disabled="passwordSaving"
               >
                 {{ passwordSaving ? t('userDetail.passwordSubmitting') : t('userDetail.passwordSubmit') }}
@@ -494,13 +494,13 @@ watch(
                 type="text"
                 autocomplete="off"
                 spellcheck="false"
-                class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-800"
+                class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 font-mono text-sm dark:border-[#30363d] dark:bg-[#21262d]"
               />
             </div>
 
             <p
               v-if="deleteError"
-              class="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+              class="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
               role="alert"
             >
               {{ deleteError }}
@@ -511,7 +511,7 @@ watch(
             <div class="flex justify-end gap-2">
               <button
                 type="button"
-                class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                class="rounded-md border border-[#d0d7de] px-3 py-1 text-sm hover:bg-[#f6f8fa] disabled:opacity-50 dark:border-[#30363d] dark:hover:bg-[#21262d]"
                 :disabled="deleteSaving"
                 @click="closeDelete"
               >
@@ -520,7 +520,7 @@ watch(
               <button
                 type="submit"
                 form="delete-user-form"
-                class="rounded bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                class="rounded-md bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
                 :disabled="deleteSaving || deleteConfirm.trim() !== user.name"
               >
                 {{ deleteSaving ? t('userDetail.deleting') : t('userDetail.deleteSubmit') }}
@@ -531,20 +531,20 @@ watch(
 
         <ModalDialog :open="groupsOpen" :title="t('userDetail.groupsTitle')" @close="closeGroups">
           <form id="edit-groups-form" class="space-y-3" @submit.prevent="submitGroups">
-            <p v-if="groupsLoading" class="text-sm text-slate-500 dark:text-slate-400">{{ t('common.loading') }}</p>
-            <p v-else-if="groupOptions.length === 0" class="text-sm text-slate-500 dark:text-slate-400">
+            <p v-if="groupsLoading" class="text-sm text-[#656d76] dark:text-[#8b949e]">{{ t('common.loading') }}</p>
+            <p v-else-if="groupOptions.length === 0" class="text-sm text-[#656d76] dark:text-[#8b949e]">
               {{ t('userDetail.noGroups') }}
             </p>
             <div v-else class="space-y-2">
               <label
                 v-for="group in groupOptions"
                 :key="group.name"
-                class="flex items-start gap-2 rounded border border-slate-200 px-3 py-2 text-sm dark:border-slate-800"
+                class="flex items-start gap-2 rounded-md border border-[#d0d7de] px-3 py-2 text-sm dark:border-[#30363d]"
               >
                 <input v-model="selectedGroups" type="checkbox" :value="group.name" class="mt-0.5" />
                 <span>
                   <span class="font-medium">{{ group.name }}</span>
-                  <span class="block text-xs text-slate-500 dark:text-slate-400">
+                  <span class="block text-xs text-[#656d76] dark:text-[#8b949e]">
                     {{ group.members.length }} {{ t('userDetail.memberCount') }}
                   </span>
                 </span>
@@ -553,7 +553,7 @@ watch(
 
             <p
               v-if="groupsError"
-              class="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+              class="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
               role="alert"
             >
               {{ groupsError }}
@@ -564,7 +564,7 @@ watch(
             <div class="flex justify-end gap-2">
               <button
                 type="button"
-                class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                class="rounded-md border border-[#d0d7de] px-3 py-1 text-sm hover:bg-[#f6f8fa] disabled:opacity-50 dark:border-[#30363d] dark:hover:bg-[#21262d]"
                 :disabled="groupsSaving"
                 @click="closeGroups"
               >
@@ -573,7 +573,7 @@ watch(
               <button
                 type="submit"
                 form="edit-groups-form"
-                class="rounded bg-sky-600 px-3 py-1 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
+                class="rounded-md bg-[#1f883d] px-3 py-1 text-sm font-medium text-white hover:bg-[#1a7f37] disabled:opacity-50"
                 :disabled="groupsSaving || groupsLoading"
               >
                 {{ groupsSaving ? t('userDetail.saving') : t('common.save') }}

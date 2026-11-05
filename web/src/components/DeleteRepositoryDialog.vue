@@ -93,7 +93,7 @@ async function submit(): Promise<void> {
     <form id="delete-repository-form" class="space-y-4" @submit.prevent="submit">
       <p class="text-sm text-red-700 dark:text-red-300">{{ t('repos.delete.hint') }}</p>
 
-      <p class="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+      <p class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
         {{ t('repos.delete.trashNote') }}
       </p>
 
@@ -112,13 +112,13 @@ async function submit(): Promise<void> {
           type="text"
           autocomplete="off"
           spellcheck="false"
-          class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-800"
+          class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 font-mono text-sm dark:border-[#30363d] dark:bg-[#21262d]"
         />
       </div>
 
       <p
         v-if="error"
-        class="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+        class="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
         role="alert"
       >
         {{ error }}
@@ -129,7 +129,7 @@ async function submit(): Promise<void> {
       <div class="flex justify-end gap-2">
         <button
           type="button"
-          class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+          class="rounded-md border border-[#d0d7de] px-3 py-1 text-sm hover:bg-[#f6f8fa] disabled:opacity-50 dark:border-[#30363d] dark:hover:bg-[#21262d]"
           :disabled="saving"
           @click="close"
         >
@@ -138,7 +138,7 @@ async function submit(): Promise<void> {
         <button
           type="submit"
           form="delete-repository-form"
-          class="rounded bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+          class="rounded-md bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
           :disabled="saving || confirm.trim() !== name"
         >
           {{ saving ? t('repos.delete.deleting') : t('repos.delete.submit') }}

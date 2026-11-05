@@ -194,14 +194,14 @@ onMounted(() => {
       <h1 class="text-xl font-semibold">{{ t('repos.title') }}</h1>
       <button
         type="button"
-        class="rounded bg-sky-600 px-3 py-1 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
+        class="rounded-md bg-[#1f883d] px-3 py-1 text-sm font-medium text-white hover:bg-[#1a7f37] disabled:opacity-50"
         @click="openCreate"
       >
         {{ t('repos.create.button') }}
       </button>
       <button
         type="button"
-        class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+        class="rounded-md border border-[#d0d7de] px-3 py-1 text-sm hover:bg-[#f6f8fa] disabled:opacity-50 dark:border-[#30363d] dark:hover:bg-[#21262d]"
         :disabled="loading"
         @click="load"
       >
@@ -215,11 +215,11 @@ onMounted(() => {
         type="search"
         :placeholder="t('repos.searchPlaceholder')"
         :aria-label="t('common.search')"
-        class="w-64 rounded border border-slate-300 bg-white px-3 py-1 text-sm dark:border-slate-700 dark:bg-slate-800"
+        class="w-64 rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-1 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
       />
       <button
         type="submit"
-        class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+        class="rounded-md border border-[#d0d7de] px-3 py-1 text-sm hover:bg-[#f6f8fa] dark:border-[#30363d] dark:hover:bg-[#21262d]"
       >
         {{ t('common.search') }}
       </button>
@@ -231,9 +231,9 @@ onMounted(() => {
       :empty="items.length === 0"
       :empty-text="t('repos.empty')"
     >
-      <div class="overflow-x-auto rounded border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <div class="overflow-x-auto rounded-md border border-[#d0d7de] bg-[#ffffff] dark:border-[#30363d] dark:bg-[#161b22]">
         <table class="w-full text-left text-sm">
-          <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
+          <thead class="bg-[#f6f8fa] text-xs uppercase tracking-wide text-[#656d76] dark:bg-[#161b22] dark:text-[#8b949e]">
             <tr>
               <th class="px-4 py-2 font-medium">{{ t('repos.name') }}</th>
               <th class="px-4 py-2 font-medium">{{ t('repos.parent') }}</th>
@@ -244,24 +244,24 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="repo in items" :key="repo.name" class="border-t border-slate-100 dark:border-slate-800">
+            <tr v-for="repo in items" :key="repo.name" class="border-t border-[#eaeef2] dark:border-[#30363d]">
               <td class="px-4 py-2">
                 <RouterLink
                   :to="{ name: 'repo-browse', params: { repo: repo.name } }"
-                  class="font-medium text-sky-700 hover:underline dark:text-sky-400"
+                  class="font-medium text-[#0969da] hover:underline dark:text-[#2f81f7]"
                 >
                   {{ repo.name }}
                 </RouterLink>
               </td>
-              <td class="px-4 py-2 font-mono text-xs text-slate-600 dark:text-slate-300">{{ repo.parent }}</td>
+              <td class="px-4 py-2 font-mono text-xs text-[#656d76] dark:text-[#c9d1d9]">{{ repo.parent }}</td>
               <td class="px-4 py-2">{{ repo.isRepository ? t('common.yes') : t('common.no') }}</td>
               <td class="px-4 py-2">{{ repo.headRevision }}</td>
-              <td class="px-4 py-2 text-slate-600 dark:text-slate-300">{{ repo.lastChangedAt ?? t('common.notAvailable') }}</td>
+              <td class="px-4 py-2 text-[#656d76] dark:text-[#c9d1d9]">{{ repo.lastChangedAt ?? t('common.notAvailable') }}</td>
               <td class="px-4 py-2">
                 <div class="flex flex-wrap gap-2">
                   <RouterLink
                     :to="{ name: 'repo-browse', params: { repo: repo.name } }"
-                    class="text-xs text-sky-700 hover:underline dark:text-sky-400"
+                    class="text-xs text-[#0969da] hover:underline dark:text-[#2f81f7]"
                   >
                     {{ t('repos.browse') }}
                   </RouterLink>
@@ -292,9 +292,9 @@ onMounted(() => {
             type="text"
             autocomplete="off"
             spellcheck="false"
-            class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-800"
+            class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 font-mono text-sm dark:border-[#30363d] dark:bg-[#21262d]"
           />
-          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ t('repos.create.nameHint') }}</p>
+          <p class="mt-1 text-xs text-[#656d76] dark:text-[#8b949e]">{{ t('repos.create.nameHint') }}</p>
         </div>
 
         <div>
@@ -304,13 +304,13 @@ onMounted(() => {
           <select
             id="create-repository-structure"
             v-model="createStructure"
-            class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+            class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
           >
             <option value="none">{{ t('repos.create.structureNone') }}</option>
             <option value="single">{{ t('repos.create.structureSingle') }}</option>
             <option value="multi">{{ t('repos.create.structureMulti') }}</option>
           </select>
-          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ t('repos.create.structureHint') }}</p>
+          <p class="mt-1 text-xs text-[#656d76] dark:text-[#8b949e]">{{ t('repos.create.structureHint') }}</p>
         </div>
 
         <div v-if="createStructure === 'multi'">
@@ -323,22 +323,22 @@ onMounted(() => {
             type="text"
             autocomplete="off"
             spellcheck="false"
-            class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-800"
+            class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 font-mono text-sm dark:border-[#30363d] dark:bg-[#21262d]"
           />
-          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ t('repos.create.projectNameHint') }}</p>
+          <p class="mt-1 text-xs text-[#656d76] dark:text-[#8b949e]">{{ t('repos.create.projectNameHint') }}</p>
         </div>
 
         <label class="flex items-start gap-2 text-sm">
           <input v-model="createAccessPath" type="checkbox" class="mt-1" />
           <span>
             {{ t('repos.create.accessPath') }}
-            <span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">{{ t('repos.create.accessPathHint') }}</span>
+            <span class="mt-1 block text-xs text-[#656d76] dark:text-[#8b949e]">{{ t('repos.create.accessPathHint') }}</span>
           </span>
         </label>
 
         <p
           v-if="createError"
-          class="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+          class="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
           role="alert"
         >
           {{ createError }}
@@ -349,7 +349,7 @@ onMounted(() => {
         <div class="flex justify-end gap-2">
           <button
             type="button"
-            class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+            class="rounded-md border border-[#d0d7de] px-3 py-1 text-sm hover:bg-[#f6f8fa] disabled:opacity-50 dark:border-[#30363d] dark:hover:bg-[#21262d]"
             :disabled="creating"
             @click="closeCreate"
           >
@@ -358,7 +358,7 @@ onMounted(() => {
           <button
             type="submit"
             form="create-repository-form"
-            class="rounded bg-sky-600 px-3 py-1 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
+            class="rounded-md bg-[#1f883d] px-3 py-1 text-sm font-medium text-white hover:bg-[#1a7f37] disabled:opacity-50"
             :disabled="creating"
           >
             {{ creating ? t('repos.create.creating') : t('repos.create.submit') }}

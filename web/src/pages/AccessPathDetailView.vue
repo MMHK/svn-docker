@@ -357,13 +357,13 @@ watch(
 
 <template>
   <section class="space-y-6">
-    <RouterLink :to="{ name: 'access-paths' }" class="text-sm text-sky-700 hover:underline dark:text-sky-400">
+    <RouterLink :to="{ name: 'access-paths' }" class="text-sm text-[#0969da] hover:underline dark:text-[#2f81f7]">
       ← {{ t('accessPaths.title') }}
     </RouterLink>
 
     <div
       v-if="forbidden"
-      class="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200"
+      class="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200"
       role="alert"
     >
       <p class="font-medium">{{ t('common.forbidden') }}</p>
@@ -381,23 +381,23 @@ watch(
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 class="font-mono text-lg font-semibold">{{ accessPath.path }}</h1>
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ t('accessPathDetail.aclNote') }}</p>
+            <p class="mt-1 text-xs text-[#656d76] dark:text-[#8b949e]">{{ t('accessPathDetail.aclNote') }}</p>
           </div>
           <button
             type="button"
-            class="rounded border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
+            class="rounded-md border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
             @click="openDelete"
           >
             {{ t('accessPathDetail.delete') }}
           </button>
         </div>
 
-        <div class="mt-4 overflow-hidden rounded border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+        <div class="mt-4 overflow-hidden rounded-md border border-[#d0d7de] bg-[#ffffff] dark:border-[#30363d] dark:bg-[#161b22]">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#d0d7de] px-4 py-3 dark:border-[#30363d]">
             <h2 class="text-sm font-semibold">{{ t('accessPathDetail.acl') }} ({{ accessPath.acl.length }})</h2>
             <button
               type="button"
-              class="text-xs text-sky-700 hover:underline dark:text-sky-400"
+              class="text-xs text-[#0969da] hover:underline dark:text-[#2f81f7]"
               @click="openAdd"
             >
               {{ t('accessPathDetail.addPrincipal') }}
@@ -406,18 +406,18 @@ watch(
 
           <p
             v-if="aclError"
-            class="mx-4 mt-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+            class="mx-4 mt-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
             role="alert"
           >
             {{ aclError }}
           </p>
 
-          <p v-if="accessPath.acl.length === 0" class="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+          <p v-if="accessPath.acl.length === 0" class="px-4 py-6 text-center text-sm text-[#656d76] dark:text-[#8b949e]">
             {{ t('accessPathDetail.emptyAcl') }}
           </p>
           <div v-else class="overflow-x-auto">
             <table class="w-full text-left text-sm">
-              <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
+              <thead class="bg-[#f6f8fa] text-xs uppercase tracking-wide text-[#656d76] dark:bg-[#161b22] dark:text-[#8b949e]">
                 <tr>
                   <th class="px-4 py-2 font-medium">{{ t('accessPaths.principal') }}</th>
                   <th class="px-4 py-2 font-medium">{{ t('accessPaths.permission') }}</th>
@@ -425,10 +425,10 @@ watch(
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="entry in accessPath.acl" :key="entry.principal" class="border-t border-slate-100 dark:border-slate-800">
+                <tr v-for="entry in accessPath.acl" :key="entry.principal" class="border-t border-[#eaeef2] dark:border-[#30363d]">
                   <td class="px-4 py-2">
                     <span class="font-mono text-xs">{{ entry.principal }}</span>
-                    <span class="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                    <span class="ml-2 rounded-md bg-[#f6f8fa] px-1.5 py-0.5 text-[11px] text-[#656d76] dark:bg-[#21262d] dark:text-[#c9d1d9]">
                       {{ kindLabel(entry.principal) }}
                     </span>
                   </td>
@@ -438,7 +438,7 @@ watch(
                       :value="entry.permission"
                       :disabled="isSaving(entry.principal)"
                       :aria-label="t('accessPaths.permission')"
-                      class="rounded border border-slate-300 bg-white px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-800"
+                      class="rounded-md border border-[#d0d7de] bg-[#ffffff] px-2 py-1 text-xs dark:border-[#30363d] dark:bg-[#21262d]"
                       @change="changePermission(entry, $event)"
                     >
                       <option value="r">r</option>
@@ -457,7 +457,7 @@ watch(
                     >
                       {{ isSaving(entry.principal) ? t('accessPathDetail.removing') : t('accessPathDetail.remove') }}
                     </button>
-                    <span v-else class="text-xs text-slate-400 dark:text-slate-500">{{ t('accessPathDetail.readOnlyPrincipal') }}</span>
+                    <span v-else class="text-xs text-[#656d76] dark:text-[#6e7681]">{{ t('accessPathDetail.readOnlyPrincipal') }}</span>
                   </td>
                 </tr>
               </tbody>
@@ -472,7 +472,7 @@ watch(
               <select
                 id="principal-type"
                 v-model="addType"
-                class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+                class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
               >
                 <option value="user">{{ t('accessPathDetail.kindUser') }}</option>
                 <option value="group">{{ t('accessPathDetail.kindGroup') }}</option>
@@ -480,7 +480,7 @@ watch(
               </select>
             </div>
 
-            <p v-if="addLoading" class="text-sm text-slate-500 dark:text-slate-400">{{ t('common.loading') }}</p>
+            <p v-if="addLoading" class="text-sm text-[#656d76] dark:text-[#8b949e]">{{ t('common.loading') }}</p>
 
             <div v-else-if="addType === 'user'">
               <label for="principal-user" class="block text-sm font-medium">{{ t('accessPathDetail.principalName') }}</label>
@@ -488,7 +488,7 @@ watch(
                 v-if="useUserSelect"
                 id="principal-user"
                 v-model="addUser"
-                class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+                class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
               >
                 <option v-for="name in userOptions" :key="name" :value="name">{{ name }}</option>
               </select>
@@ -499,9 +499,9 @@ watch(
                 type="text"
                 autocomplete="off"
                 spellcheck="false"
-                class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-800"
+                class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 font-mono text-sm dark:border-[#30363d] dark:bg-[#21262d]"
               />
-              <p v-if="userOptionsFailed" class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <p v-if="userOptionsFailed" class="mt-1 text-xs text-[#656d76] dark:text-[#8b949e]">
                 {{ t('accessPathDetail.optionsUnavailable') }}
               </p>
             </div>
@@ -512,7 +512,7 @@ watch(
                 v-if="useGroupSelect"
                 id="principal-group"
                 v-model="addGroup"
-                class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+                class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
               >
                 <option v-for="name in groupOptions" :key="name" :value="name">@{{ name }}</option>
               </select>
@@ -523,32 +523,32 @@ watch(
                 type="text"
                 autocomplete="off"
                 spellcheck="false"
-                class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-800"
+                class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 font-mono text-sm dark:border-[#30363d] dark:bg-[#21262d]"
               />
-              <p v-if="groupOptionsFailed" class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <p v-if="groupOptionsFailed" class="mt-1 text-xs text-[#656d76] dark:text-[#8b949e]">
                 {{ t('accessPathDetail.optionsUnavailable') }}
               </p>
             </div>
 
-            <p v-else class="rounded border border-slate-200 px-3 py-2 font-mono text-sm dark:border-slate-800">*</p>
+            <p v-else class="rounded-md border border-[#d0d7de] px-3 py-2 font-mono text-sm dark:border-[#30363d]">*</p>
 
             <div>
               <label for="principal-permission" class="block text-sm font-medium">{{ t('accessPaths.permission') }}</label>
               <select
                 id="principal-permission"
                 v-model="addPermission"
-                class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+                class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
               >
                 <option value="r">r</option>
                 <option value="rw">rw</option>
                 <option value="none">none</option>
               </select>
-              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ t('accessPathDetail.permissionHint') }}</p>
+              <p class="mt-1 text-xs text-[#656d76] dark:text-[#8b949e]">{{ t('accessPathDetail.permissionHint') }}</p>
             </div>
 
             <p
               v-if="addError"
-              class="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+              class="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
               role="alert"
             >
               {{ addError }}
@@ -559,7 +559,7 @@ watch(
             <div class="flex justify-end gap-2">
               <button
                 type="button"
-                class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                class="rounded-md border border-[#d0d7de] px-3 py-1 text-sm hover:bg-[#f6f8fa] disabled:opacity-50 dark:border-[#30363d] dark:hover:bg-[#21262d]"
                 :disabled="addSaving"
                 @click="closeAdd"
               >
@@ -568,7 +568,7 @@ watch(
               <button
                 type="submit"
                 form="add-principal-form"
-                class="rounded bg-sky-600 px-3 py-1 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
+                class="rounded-md bg-[#1f883d] px-3 py-1 text-sm font-medium text-white hover:bg-[#1a7f37] disabled:opacity-50"
                 :disabled="addSaving || addLoading"
               >
                 {{ addSaving ? t('accessPathDetail.adding') : t('common.save') }}
@@ -596,13 +596,13 @@ watch(
                 type="text"
                 autocomplete="off"
                 spellcheck="false"
-                class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-800"
+                class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 font-mono text-sm dark:border-[#30363d] dark:bg-[#21262d]"
               />
             </div>
 
             <p
               v-if="deleteError"
-              class="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+              class="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
               role="alert"
             >
               {{ deleteError }}
@@ -613,7 +613,7 @@ watch(
             <div class="flex justify-end gap-2">
               <button
                 type="button"
-                class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                class="rounded-md border border-[#d0d7de] px-3 py-1 text-sm hover:bg-[#f6f8fa] disabled:opacity-50 dark:border-[#30363d] dark:hover:bg-[#21262d]"
                 :disabled="deleteSaving"
                 @click="closeDelete"
               >
@@ -622,7 +622,7 @@ watch(
               <button
                 type="submit"
                 form="delete-access-path-form"
-                class="rounded bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                class="rounded-md bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
                 :disabled="deleteSaving || deleteConfirm.trim() !== accessPath.path"
               >
                 {{ deleteSaving ? t('accessPathDetail.deleting') : t('accessPathDetail.deleteSubmit') }}

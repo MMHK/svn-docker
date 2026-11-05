@@ -26,13 +26,13 @@ const described = computed(() => (props.error === null ? null : describeError(pr
 </script>
 
 <template>
-  <p v-if="loading" class="text-sm text-slate-500 dark:text-slate-400" role="status">
+  <p v-if="loading" class="text-sm text-[#656d76] dark:text-[#8b949e]" role="status">
     {{ t('common.loading') }}
   </p>
 
   <div
     v-else-if="described"
-    class="rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+    class="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
     role="alert"
   >
     <p class="font-medium">{{ described.title }}</p>
@@ -41,7 +41,7 @@ const described = computed(() => (props.error === null ? null : describeError(pr
 
   <p
     v-else-if="empty"
-    class="rounded border border-dashed border-slate-300 bg-white px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
+    class="rounded-md border border-dashed border-[#d0d7de] bg-[#ffffff] px-4 py-6 text-center text-sm text-[#656d76] dark:border-[#30363d] dark:bg-[#161b22] dark:text-[#8b949e]"
   >
     {{ emptyText === '' ? t('common.empty') : emptyText }}
   </p>

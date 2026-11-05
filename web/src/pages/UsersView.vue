@@ -172,14 +172,14 @@ onMounted(() => {
       <h1 class="text-xl font-semibold">{{ t('users.title') }}</h1>
       <button
         type="button"
-        class="rounded bg-sky-600 px-3 py-1 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
+        class="rounded-md bg-[#1f883d] px-3 py-1 text-sm font-medium text-white hover:bg-[#1a7f37] disabled:opacity-50"
         @click="openCreate"
       >
         {{ t('users.create.button') }}
       </button>
       <button
         type="button"
-        class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+        class="rounded-md border border-[#d0d7de] px-3 py-1 text-sm hover:bg-[#f6f8fa] disabled:opacity-50 dark:border-[#30363d] dark:hover:bg-[#21262d]"
         :disabled="loading"
         @click="load"
       >
@@ -193,11 +193,11 @@ onMounted(() => {
         type="search"
         :placeholder="t('users.searchPlaceholder')"
         :aria-label="t('common.search')"
-        class="w-64 rounded border border-slate-300 bg-white px-3 py-1 text-sm dark:border-slate-700 dark:bg-slate-800"
+        class="w-64 rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-1 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
       />
       <button
         type="submit"
-        class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+        class="rounded-md border border-[#d0d7de] px-3 py-1 text-sm hover:bg-[#f6f8fa] dark:border-[#30363d] dark:hover:bg-[#21262d]"
       >
         {{ t('common.search') }}
       </button>
@@ -209,9 +209,9 @@ onMounted(() => {
       :empty="items.length === 0"
       :empty-text="t('users.empty')"
     >
-      <div class="overflow-x-auto rounded border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <div class="overflow-x-auto rounded-md border border-[#d0d7de] bg-[#ffffff] dark:border-[#30363d] dark:bg-[#161b22]">
         <table class="w-full text-left text-sm">
-          <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
+          <thead class="bg-[#f6f8fa] text-xs uppercase tracking-wide text-[#656d76] dark:bg-[#161b22] dark:text-[#8b949e]">
             <tr>
               <th class="px-4 py-2 font-medium">{{ t('users.name') }}</th>
               <th class="px-4 py-2 font-medium">{{ t('users.comment') }}</th>
@@ -222,25 +222,25 @@ onMounted(() => {
             <tr
               v-for="user in items"
               :key="user.name"
-              class="cursor-pointer border-t border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+              class="cursor-pointer border-t border-[#eaeef2] hover:bg-[#f6f8fa] dark:border-[#30363d] dark:hover:bg-[#21262d]"
               @click="openUser($event, user.name)"
             >
               <td class="px-4 py-2">
                 <RouterLink
                   :to="{ name: 'user-detail', params: { name: user.name } }"
-                  class="font-medium text-sky-700 hover:underline dark:text-sky-400"
+                  class="font-medium text-[#0969da] hover:underline dark:text-[#2f81f7]"
                 >
                   {{ user.name }}
                 </RouterLink>
               </td>
-              <td class="px-4 py-2 text-slate-600 dark:text-slate-300">{{ user.comment ?? t('common.notAvailable') }}</td>
+              <td class="px-4 py-2 text-[#656d76] dark:text-[#c9d1d9]">{{ user.comment ?? t('common.notAvailable') }}</td>
               <td class="px-4 py-2">
-                <span v-if="user.groups.length === 0" class="text-slate-400 dark:text-slate-500">{{ t('common.none') }}</span>
+                <span v-if="user.groups.length === 0" class="text-[#656d76] dark:text-[#6e7681]">{{ t('common.none') }}</span>
                 <span v-else class="flex flex-wrap gap-1">
                   <span
                     v-for="group in user.groups"
                     :key="group"
-                    class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800"
+                    class="rounded-md bg-[#f6f8fa] px-2 py-0.5 text-xs dark:bg-[#21262d]"
                   >
                     {{ group }}
                   </span>
@@ -264,9 +264,9 @@ onMounted(() => {
             type="text"
             autocomplete="off"
             spellcheck="false"
-            class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+            class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
           />
-          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ t('users.create.usernameHint') }}</p>
+          <p class="mt-1 text-xs text-[#656d76] dark:text-[#8b949e]">{{ t('users.create.usernameHint') }}</p>
         </div>
 
         <div>
@@ -276,7 +276,7 @@ onMounted(() => {
             v-model="createPassword"
             type="password"
             autocomplete="new-password"
-            class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+            class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
           />
         </div>
 
@@ -287,13 +287,13 @@ onMounted(() => {
             v-model="createConfirm"
             type="password"
             autocomplete="new-password"
-            class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+            class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
           />
         </div>
 
         <p
           v-if="createError"
-          class="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+          class="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
           role="alert"
         >
           {{ createError }}
@@ -304,7 +304,7 @@ onMounted(() => {
         <div class="flex justify-end gap-2">
           <button
             type="button"
-            class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+            class="rounded-md border border-[#d0d7de] px-3 py-1 text-sm hover:bg-[#f6f8fa] disabled:opacity-50 dark:border-[#30363d] dark:hover:bg-[#21262d]"
             :disabled="creating"
             @click="closeCreate"
           >
@@ -313,7 +313,7 @@ onMounted(() => {
           <button
             type="submit"
             form="create-user-form"
-            class="rounded bg-sky-600 px-3 py-1 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
+            class="rounded-md bg-[#1f883d] px-3 py-1 text-sm font-medium text-white hover:bg-[#1a7f37] disabled:opacity-50"
             :disabled="creating"
           >
             {{ creating ? t('users.create.creating') : t('users.create.submit') }}

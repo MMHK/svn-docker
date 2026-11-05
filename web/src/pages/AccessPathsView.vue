@@ -143,14 +143,14 @@ onMounted(() => {
       <h1 class="text-xl font-semibold">{{ t('accessPaths.title') }}</h1>
       <button
         type="button"
-        class="rounded bg-sky-600 px-3 py-1 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
+        class="rounded-md bg-[#1f883d] px-3 py-1 text-sm font-medium text-white hover:bg-[#1a7f37] disabled:opacity-50"
         @click="openCreate"
       >
         {{ t('accessPaths.create.button') }}
       </button>
       <button
         type="button"
-        class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+        class="rounded-md border border-[#d0d7de] px-3 py-1 text-sm hover:bg-[#f6f8fa] disabled:opacity-50 dark:border-[#30363d] dark:hover:bg-[#21262d]"
         :disabled="loading"
         @click="load"
       >
@@ -164,11 +164,11 @@ onMounted(() => {
         type="search"
         :placeholder="t('accessPaths.searchPlaceholder')"
         :aria-label="t('common.search')"
-        class="w-64 rounded border border-slate-300 bg-white px-3 py-1 text-sm dark:border-slate-700 dark:bg-slate-800"
+        class="w-64 rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-1 text-sm dark:border-[#30363d] dark:bg-[#21262d]"
       />
       <button
         type="submit"
-        class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+        class="rounded-md border border-[#d0d7de] px-3 py-1 text-sm hover:bg-[#f6f8fa] dark:border-[#30363d] dark:hover:bg-[#21262d]"
       >
         {{ t('common.search') }}
       </button>
@@ -180,31 +180,31 @@ onMounted(() => {
       :empty="items.length === 0"
       :empty-text="t('accessPaths.empty')"
     >
-      <div class="overflow-x-auto rounded border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <div class="overflow-x-auto rounded-md border border-[#d0d7de] bg-[#ffffff] dark:border-[#30363d] dark:bg-[#161b22]">
         <table class="w-full text-left text-sm">
-          <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
+          <thead class="bg-[#f6f8fa] text-xs uppercase tracking-wide text-[#656d76] dark:bg-[#161b22] dark:text-[#8b949e]">
             <tr>
               <th class="px-4 py-2 font-medium">{{ t('accessPaths.path') }}</th>
               <th class="px-4 py-2 font-medium">{{ t('accessPaths.acl') }}</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="path in items" :key="path.path" class="border-t border-slate-100 dark:border-slate-800">
+            <tr v-for="path in items" :key="path.path" class="border-t border-[#eaeef2] dark:border-[#30363d]">
               <td class="px-4 py-2">
                 <RouterLink
                   :to="{ name: 'access-path-detail', params: { path: encodeAccessPath(path.path) } }"
-                  class="font-mono text-xs font-medium text-sky-700 hover:underline dark:text-sky-400"
+                  class="font-mono text-xs font-medium text-[#0969da] hover:underline dark:text-[#2f81f7]"
                 >
                   {{ path.path }}
                 </RouterLink>
               </td>
               <td class="px-4 py-2">
-                <span v-if="path.acl.length === 0" class="text-slate-400 dark:text-slate-500">{{ t('common.none') }}</span>
+                <span v-if="path.acl.length === 0" class="text-[#656d76] dark:text-[#6e7681]">{{ t('common.none') }}</span>
                 <span v-else class="flex flex-wrap gap-1">
                   <span
                     v-for="entry in path.acl"
                     :key="entry.principal"
-                    class="rounded bg-slate-100 px-2 py-0.5 font-mono text-xs dark:bg-slate-800"
+                    class="rounded-md bg-[#f6f8fa] px-2 py-0.5 font-mono text-xs dark:bg-[#21262d]"
                   >
                     {{ entry.principal }}={{ entry.permission }}
                   </span>
@@ -229,14 +229,14 @@ onMounted(() => {
             autocomplete="off"
             spellcheck="false"
             placeholder="project:/trunk"
-            class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-800"
+            class="mt-1 w-full rounded-md border border-[#d0d7de] bg-[#ffffff] px-3 py-2 font-mono text-sm dark:border-[#30363d] dark:bg-[#21262d]"
           />
-          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ t('accessPaths.create.pathHint') }}</p>
+          <p class="mt-1 text-xs text-[#656d76] dark:text-[#8b949e]">{{ t('accessPaths.create.pathHint') }}</p>
         </div>
 
         <p
           v-if="createError"
-          class="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+          class="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
           role="alert"
         >
           {{ createError }}
@@ -247,7 +247,7 @@ onMounted(() => {
         <div class="flex justify-end gap-2">
           <button
             type="button"
-            class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+            class="rounded-md border border-[#d0d7de] px-3 py-1 text-sm hover:bg-[#f6f8fa] disabled:opacity-50 dark:border-[#30363d] dark:hover:bg-[#21262d]"
             :disabled="creating"
             @click="closeCreate"
           >
@@ -256,7 +256,7 @@ onMounted(() => {
           <button
             type="submit"
             form="create-access-path-form"
-            class="rounded bg-sky-600 px-3 py-1 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
+            class="rounded-md bg-[#1f883d] px-3 py-1 text-sm font-medium text-white hover:bg-[#1a7f37] disabled:opacity-50"
             :disabled="creating"
           >
             {{ creating ? t('accessPaths.create.submitting') : t('accessPaths.create.submit') }}
