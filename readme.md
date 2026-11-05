@@ -5,7 +5,8 @@
 - **`svn`**（`mmhk/svn-docker:repo`）：Apache 2.4 + `mod_dav_svn`，提供 `/svn`（Basic + authz），
   並把 `/svnadmin` 以 `mod_proxy` 轉給管理服務。
 - **`svn-admin`**（`mmhk/svn-docker:admin`）：**Go REST API**，內嵌 **rspack + Vue 3 + Tailwind CSS**
-  的 SPA，只 `expose: 8080`、永不 publish。
+  的 SPA，只 `expose: 8080`。預設架構不 publish 埠；目前 `docker-compose.yml` 為了本機測試
+  另外 publish `8086:8080`，正式部署請移除（見「快速開始」）。
 
 **沒有 PHP**：v3 不再包含 iF.SVNAdmin、Composer、模板引擎或 PHP Apache 模組。runtime 也不含
 Node / Go（SPA 與 Go binary 在建置階段產生並內嵌）。
@@ -30,7 +31,8 @@ LAN ──► nginx :80 ──┬─ /svn      → svn:80 (mod_dav_svn)         
 - nginx 只轉發 `/svn`、`/svnadmin` 給 `svn:80`，並**覆寫** `X-Forwarded-For`；不做 IP 判定。
 - `svn` 啟用 **`mod_remoteip`**：信任 nginx 來源、還原真實 client，再以
   `<Location /svnadmin>` 的 `Require ip` 限制在 RFC1918 / `::1`，最後 `ProxyPass` 到 `svn-admin:8080`。
-- `svn-admin` 不 publish 埠；Go 端用 `SVN_ADMIN_ALLOW_CIDRS` + `SVN_ADMIN_TRUSTED_PROXIES`
+- `svn-admin` 預設架構不 publish 埠；目前 `docker-compose.yml` 為本機測試 publish `8086:8080`，
+  正式部署請移除、只留 `expose`。Go 端用 `SVN_ADMIN_ALLOW_CIDRS` + `SVN_ADMIN_TRUSTED_PROXIES`
   再做一次 CIDR 檢查（第二層防線）。
 - 兩容器都以 `PUID`/`PGID`（預設 `1000:1000`）執行，對齊 host 上 `/var/svnlocal` 的 owner，
   不需要 777。
@@ -43,8 +45,8 @@ LAN ──► nginx :80 ──┬─ /svn      → svn:80 (mod_dav_svn)         
 | `Dockerfile.admin` | 三階段：node:22-alpine（SPA）→ golang:1.24-alpine（靜態 binary）→ debian slim |
 | `docker-entrypoint.sh` | 兩映像共用：依 `PUID`/`PGID` 對齊 uid/gid |
 | `conf/svn.conf` | vhost：`/svn` + `/svnadmin`（含 `mod_remoteip`） |
-| `docker-compose.yml` | `svn` + `svn-admin`，接外部網路 `demo2-net` |
-| `docker-compose.dev.yml` | 本機測試才把 `svn:80` 發佈到 `127.0.0.1` |
+| `docker-compose.yml` | `svn` + `svn-admin`，接外部網路 `demo2-net`；目前為本機測試 publish `8085` / `8086` |
+| `docker-compose.dev.yml` | 本機測試疊加檔，再把 `svn:80` 綁到 `127.0.0.1:${SVN_HTTP_PORT}` |
 | `.env.example` | 全部 `SVN_ADMIN_*` / `SVN_ROOT` / `PUID` 等範本 |
 | `api/` | Go module（`cmd/`、`pkg/` MVP 分層、Swagger docs） |
 | `web/` | rspack + Vue 3 + TypeScript + Tailwind v4，產物輸出到 `api/pkg/webui/dist` |
@@ -57,16 +59,30 @@ LAN ──► nginx :80 ──┬─ /svn      → svn:80 (mod_dav_svn)         
 
 ## 快速開始
 
+主路徑是使用已發佈的映像（`mmhk/svn-docker:repo` + `mmhk/svn-docker:admin`）：
+
 ```sh
 cp .env.example .env            # 調整 SVN_ROOT / PUID / PGID / SVN_NETWORK
 docker network create demo2-net # 既有 nginx 網路已存在時可略過
-docker compose build
+docker compose pull             # 拉 mmhk/svn-docker:repo + mmhk/svn-docker:admin
 docker compose up -d
 docker compose ps               # 兩個 service 應為 healthy
 ```
 
+只有在需要改動本機程式碼時才自行建置（見「映像與建置」）：
+
+```sh
+docker compose build
+# 或 ./build.sh
+docker compose up -d
+```
+
 `svn` 的 healthcheck 打 `/svn/`（期待 401/403），`svn-admin` 打 `/readyz`。
-`svn-admin` 永遠不 publish；要從本機直接開瀏覽器時疊加 dev 檔：
+
+**埠與 publish**：預設架構不 publish 任何埠，由既有 nginx 轉發 `/svn`、`/svnadmin`。
+目前 `docker-compose.yml` 為了本機測試方便，publish 了 `8085:80`（svn）與 `8086:8080`（svn-admin）；
+**正式部署請移除這兩個 `ports`、只留 `expose`**，改用 nginx 轉發。要把 `svn:80` 綁到本機
+loopback 直接開瀏覽器時，可再疊加 dev 檔：
 
 ```sh
 SVN_HTTP_PORT=18080 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
@@ -89,33 +105,75 @@ location /svnadmin/ {
 }
 ```
 
-## 首次啟動：bootstrap token
+## 首次登入流程
 
-2.0.0 的 `admin`/`admin` 預設後門已移除。第一次建立**唯一 admin** 的流程：
+2.0.0 的 `admin`/`admin` 預設後門已移除。第一次建立**唯一 admin** 的流程如下。
 
-1. 帳號必須先存在於 `svn-auth-file`（htpasswd）。容器內有 `htpasswd`：
-   ```sh
-   docker compose exec -T svn htpasswd -b /var/svnlocal/svn-auth-file admin '你的密碼'
-   ```
-2. 取得一次性 token：
-   - `.env` 設了 `SVN_ADMIN_BOOTSTRAP_TOKEN` 就用該值；
-   - 留空時，服務啟動會隨機產生並印在 log：
-     ```sh
-     docker compose logs svn-admin | grep bootstrap_token
-     ```
-3. 呼叫 setup（需從內網存取）：
-   ```sh
-   curl -sS -X POST http://<host>/svnadmin/api/v1/setup/admin \
-     -H 'Content-Type: application/json' \
-     -d '{"username":"admin","password":"<密碼>","token":"<bootstrap-token>"}'
-   ```
-   成功回 `201 {"username":"admin","accountCreated":true,"initializedFiles":[...]}`；
-   該帳號會寫入 `data/svnadmin-admin`（`SVN_ADMIN_ADMIN_FILE`，一行帳號名）。
-4. 開 `/svnadmin/`，用該帳號 + 密碼登入。session token 存在瀏覽器
-   `localStorage['svnadmin.token']`，**不使用 cookie**。
-5. **只有 `data/svnadmin-admin` 記錄的帳號**能登入管理 API；其他 SVN 帳號即使密碼正確，
-   登入也回 `403 not_administrator`（但仍可用 `/svn` 的 Basic 認證存取倉庫）。
-   `setup/admin` 只在尚未指定 admin 時可執行，已有 admin 回 `409`。
+### 0. 前置
+
+- `/var/svnlocal`（`SVN_ROOT`）與 `./data`（`SVN_DATA_ROOT`）的 owner 必須是 `PUID:PGID`：
+  ```sh
+  sudo chown -R 1000:1000 /var/svnlocal ./data
+  ```
+- 外部網路 `demo2-net` 必須存在，既有 nginx 與兩個容器要接在同一張網。
+- nginx 轉發 `/svn`、`/svnadmin`（設定見「快速開始」，來源限制見「內網限制與 mod_remoteip」）。
+
+### 1. 取得 bootstrap token
+
+- `.env` 若設了 `SVN_ADMIN_BOOTSTRAP_TOKEN`，就用該值；
+- 留空時，服務啟動會隨機產生並印在 log：
+  ```sh
+  docker compose logs svn-admin | grep bootstrap_token
+  ```
+
+token 只在 setup 時需要。
+
+### 2. 指定唯一 admin（兩種等價方式）
+
+#### GUI（建議）
+
+1. 開 `http://<host>/svnadmin/`；尚未設定 admin 時會自動導向 `/setup`。
+2. 頁面顯示環境檢查結果（`authFile` / `accessFile` / `adminFile`）。
+3. 選擇既有 SVN 帳號，或「建立新帳號」（新帳號需設定密碼）。
+4. 輸入 bootstrap token。
+5. 成功後按「前往登入」。
+
+#### API
+
+```sh
+curl -sS -X POST http://<host>/svnadmin/api/v1/setup/admin \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"<密碼>","token":"<bootstrap-token>"}'
+```
+
+成功回 `201`，body 類似
+`{"username":"admin","accountCreated":true,"initializedFiles":["authFile","accessFile","adminFile"]}`；
+`initializedFiles` 會依實際建立情況包含 `authFile`、`accessFile`、`adminFile`。
+
+要點：
+
+- admin 帳號必須存在於 `svn-auth-file`（htpasswd），或在 setup 時一併建立。用既有帳號時
+  `password` 可省略；建立新帳號時會以 APR1 寫入 `svn-auth-file`。
+- 成功後帳號會寫入 `data/svnadmin-admin`（`SVN_ADMIN_ADMIN_FILE`，一行帳號名）。
+
+### 3. 登入
+
+用該帳號 + 密碼登入 `/svnadmin/`。session token 存在瀏覽器
+`localStorage['svnadmin.token']`，之後請求帶 `Authorization: Bearer`，**不使用 cookie**。
+TTL 12h（`SVN_ADMIN_TOKEN_TTL`）、閒置 2h（`SVN_ADMIN_TOKEN_IDLE`）；登出即撤銷 token。
+
+### 4. 登入後的行為與限制
+
+- **只有 `data/svnadmin-admin` 記錄的帳號**能登入管理 API；其他 SVN 帳號即使密碼正確，
+  登入也回 `403 not_administrator`，但 `/svn` 的 Basic 認證不受影響，仍可存取倉庫。
+- 登入失敗回 `401`；超過限流（`SVN_ADMIN_LOGIN_RATE_PER_MIN`）回 `429`。
+- 已有 admin 時再呼叫 `POST /svnadmin/api/v1/setup/admin` 回 `409`。
+
+### 5. 全新部署 vs 升級既有部署
+
+- `data/svnadmin-admin` 已存在且非空 → 直接登入，不需要 bootstrap token。
+- 缺檔或空檔 → `GET /setup/status` 回 `reason="no_admin"`（或 `no_users`）→ 先完成 setup。
+- bootstrap token 只在 setup 時需要，之後可留空。
 
 ### 轉移管理員
 
@@ -158,8 +216,8 @@ echo 'newadmin' > data/svnadmin-admin   # 或直接編輯該檔
    - 直打 `svn-admin:8080`（容器內）→ Go 層 `403`
 
 **直連風險**：若 `svn:80` 被 publish 到 LAN，直連仍會經過同一組 `Require ip`（XFF 不被信任、
-以 TCP peer 判定），但會繞過 nginx 的日誌與限流；因此預設不 publish，僅 dev 檔綁 loopback。
-禁止 `--network host`。
+以 TCP peer 判定），但會繞過 nginx 的日誌與限流；因此預設架構不 publish，僅在必要時用 dev 檔
+綁 loopback（目前 compose 的本機測試 publish 只供開發，正式部署請移除）。禁止 `--network host`。
 
 **`mod_remoteip` 的實際語意（實測）**：`RemoteIPTrustedProxy` 只把**公網**位址當成 useragent，
 XFF 裡的私有位址不會被採信，`%a` 會顯示 nginx 的容器 IP；存取判定仍正確（公網一律 `403`）。
@@ -259,19 +317,46 @@ SVN Basic/authz、session token、唯讀端點、使用者/群組/ACL/倉庫生�
 
 ## 映像與建置
 
+### 使用已發佈映像
+
+```sh
+docker pull mmhk/svn-docker:repo
+docker pull mmhk/svn-docker:admin
+# 或整組（依 compose 的 image 欄位）
+docker compose pull
+```
+
+| 映像 | 角色 | 由哪個 service 使用 | 內容 |
+| --- | --- | --- | --- |
+| `mmhk/svn-docker:repo` | `/svn` SVN 倉庫 | `svn` | Apache 2.4 + mod_dav_svn + subversion，提供 `/svn`，並代理 `/svnadmin` |
+| `mmhk/svn-docker:admin` | svnadmin 管理服務 | `svn-admin` | Go REST API + 內嵌 Vue 3 SPA |
+
+- registry：Docker Hub；平台：`linux/amd64`（ARM 主機請自行建置，或使用 emulation）。
+- `repo` / `admin` 是會隨更新移動的 tag；需要可重現的部署請釘 digest：
+  ```sh
+  docker buildx imagetools inspect mmhk/svn-docker:repo   # 取 sha256
+  # compose 內改成 image: mmhk/svn-docker:repo@sha256:...
+  ```
+- **不要用 `latest`**：它指向舊版 2.0（2026-03 的舊映像），不是 v3。
+- 實測大小：`repo` 約 280 MB、`admin` 約 177 MB（admin 超過原訂 150 MB 目標）。
+
+### 自行建置與推送
+
 ```sh
 docker build -f Dockerfile.svn   -t mmhk/svn-docker:repo .
 docker build -f Dockerfile.admin -t mmhk/svn-docker:admin .
-# 或一次建兩個（可選 REGISTRY=... 推送）
+
+# 或一次建兩個；REGISTRY 有值時會一併 tag + push
 ./build.sh
+REGISTRY=<registry-host> ./build.sh
+
+# 手動推送
+docker push mmhk/svn-docker:repo
+docker push mmhk/svn-docker:admin
 ```
 
-| 映像 | 內容 | 大小目標 |
-| --- | --- | --- |
-| `mmhk/svn-docker:repo` | apache2 + libapache2-mod-svn + subversion + curl | ≤ 300 MB |
-| `mmhk/svn-docker:admin` | subversion CLI + Go 靜態 binary（SPA 已 embed） | ≤ 150 MB |
-
-runtime 不含 PHP / Node / Go / Composer；`svn-admin` 以非 root 執行。
+只有在本機改動 `api/`、`web/`、Dockerfile 或 entrypoint 後才需要自行建置；
+一般部署直接用上面的已發佈映像。runtime 不含 PHP / Node / Go / Composer；`svn-admin` 以非 root 執行。
 
 ## 備份與回滾 2.0.0
 
