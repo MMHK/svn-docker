@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { ApiError, createUser, listUsers } from '../api/client';
 import { toError } from '../api/errors';
@@ -8,10 +8,8 @@ import ModalDialog from '../components/ModalDialog.vue';
 import Pagination from '../components/Pagination.vue';
 import StateBlock from '../components/StateBlock.vue';
 import { t } from '../i18n';
-import { useAuthStore } from '../stores/auth';
 import { useToastStore } from '../stores/toast';
 
-const auth = useAuthStore();
 const toast = useToastStore();
 const router = useRouter();
 
@@ -27,8 +25,6 @@ const error = ref<Error | null>(null);
 /** Mirrors the API's account-name rule so obvious mistakes never hit the wire. */
 const USERNAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const MAX_PASSWORD_LENGTH = 256;
-
-const canCreate = computed(() => auth.can('user:create'));
 
 const createOpen = ref(false);
 const createUsername = ref('');
@@ -175,7 +171,6 @@ onMounted(() => {
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-xl font-semibold">{{ t('users.title') }}</h1>
       <button
-        v-if="canCreate"
         type="button"
         class="rounded bg-sky-600 px-3 py-1 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
         @click="openCreate"
@@ -220,7 +215,6 @@ onMounted(() => {
             <tr>
               <th class="px-4 py-2 font-medium">{{ t('users.name') }}</th>
               <th class="px-4 py-2 font-medium">{{ t('users.comment') }}</th>
-              <th class="px-4 py-2 font-medium">{{ t('users.roles') }}</th>
               <th class="px-4 py-2 font-medium">{{ t('users.groups') }}</th>
             </tr>
           </thead>
@@ -240,18 +234,6 @@ onMounted(() => {
                 </RouterLink>
               </td>
               <td class="px-4 py-2 text-slate-600 dark:text-slate-300">{{ user.comment ?? t('common.notAvailable') }}</td>
-              <td class="px-4 py-2">
-                <span v-if="user.roles.length === 0" class="text-slate-400 dark:text-slate-500">{{ t('common.none') }}</span>
-                <span v-else class="flex flex-wrap gap-1">
-                  <span
-                    v-for="role in user.roles"
-                    :key="role"
-                    class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800"
-                  >
-                    {{ role }}
-                  </span>
-                </span>
-              </td>
               <td class="px-4 py-2">
                 <span v-if="user.groups.length === 0" class="text-slate-400 dark:text-slate-500">{{ t('common.none') }}</span>
                 <span v-else class="flex flex-wrap gap-1">

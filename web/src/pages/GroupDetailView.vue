@@ -14,12 +14,10 @@ import type { GroupDetail, User } from '../api/types';
 import ModalDialog from '../components/ModalDialog.vue';
 import StateBlock from '../components/StateBlock.vue';
 import { t } from '../i18n';
-import { useAuthStore } from '../stores/auth';
 import { useToastStore } from '../stores/toast';
 
 const props = defineProps<{ name: string }>();
 
-const auth = useAuthStore();
 const toast = useToastStore();
 const router = useRouter();
 
@@ -27,8 +25,8 @@ const group = ref<GroupDetail | null>(null);
 const loading = ref(false);
 const error = ref<Error | null>(null);
 
-const canEditMembers = computed(() => auth.can('group:assign'));
-const canDelete = computed(() => auth.can('group:delete'));
+const canEditMembers = computed(() => true);
+const canDelete = computed(() => true);
 const accessPaths = computed(() => group.value?.accessPaths ?? []);
 
 // -- members ---------------------------------------------------------------
@@ -89,11 +87,11 @@ async function openMembers(): Promise<void> {
     const extra = current.members.filter((member) => !known.has(member));
 
     memberOptions.value = [
-      ...extra.map((name) => ({ name, roles: [], groups: [] }) as User),
+      ...extra.map((name) => ({ name, groups: [] }) as User),
       ...(list.items ?? []),
     ];
   } catch (cause) {
-    memberOptions.value = current.members.map((name) => ({ name, roles: [], groups: [] }) as User);
+    memberOptions.value = current.members.map((name) => ({ name, groups: [] }) as User);
     membersError.value = actionErrorText(cause);
   } finally {
     membersLoading.value = false;

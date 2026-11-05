@@ -23,16 +23,13 @@ export const useAuthStore = defineStore('auth', {
     token: readToken(),
     expiresAt: '',
     idleExpiresAt: '',
-    me: null as { name: string; roles: string[] } | null,
-    roles: [] as string[],
-    permissions: [] as string[],
+    me: null as { name: string } | null,
     /** True once GET /session confirmed the token for this tab. */
     validated: false,
   }),
   getters: {
     isAuthenticated: (state): boolean => state.token !== '',
     userName: (state): string => state.me?.name ?? '',
-    isAdministrator: (state): boolean => state.roles.includes('Administrator'),
   },
   actions: {
     setToken(token: string): void {
@@ -52,8 +49,6 @@ export const useAuthStore = defineStore('auth', {
       }
 
       this.me = session.me ?? null;
-      this.roles = session.roles ?? session.me?.roles ?? [];
-      this.permissions = session.permissions ?? [];
       this.expiresAt = session.expiresAt ?? '';
       this.idleExpiresAt = session.idleExpiresAt ?? '';
       this.validated = true;
@@ -64,8 +59,6 @@ export const useAuthStore = defineStore('auth', {
       this.expiresAt = '';
       this.idleExpiresAt = '';
       this.me = null;
-      this.roles = [];
-      this.permissions = [];
       this.validated = false;
 
       try {
@@ -73,15 +66,6 @@ export const useAuthStore = defineStore('auth', {
       } catch {
         // Nothing else to do: the in-memory token is already gone.
       }
-    },
-
-    /** True when the session carries `module:action` (Administrator wins). */
-    can(permission: string): boolean {
-      if (this.roles.includes('Administrator')) {
-        return true;
-      }
-
-      return this.permissions.includes(permission);
     },
   },
 });

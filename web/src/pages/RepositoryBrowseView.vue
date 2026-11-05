@@ -8,7 +8,6 @@ import DeleteRepositoryDialog from '../components/DeleteRepositoryDialog.vue';
 import Pagination from '../components/Pagination.vue';
 import StateBlock from '../components/StateBlock.vue';
 import { locale, t } from '../i18n';
-import { useAuthStore } from '../stores/auth';
 
 /**
  * Repository browser (plan T4.2/T4.6).
@@ -19,13 +18,10 @@ import { useAuthStore } from '../stores/auth';
  */
 const props = defineProps<{ repo: string }>();
 
-const auth = useAuthStore();
 const route = useRoute();
 const router = useRouter();
 
 const PAGE_SIZE = 100;
-
-const canDelete = computed(() => auth.can('repository:delete'));
 
 function queryString(key: string): string {
   const value = route.query[key];
@@ -346,7 +342,6 @@ watch(
           {{ t('common.refresh') }}
         </button>
         <button
-          v-if="canDelete"
           type="button"
           class="rounded border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
           @click="deleteOpen = true"

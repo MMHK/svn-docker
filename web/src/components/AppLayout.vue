@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { RouterLink, RouterView, useRouter } from 'vue-router';
 import { destroySession } from '../api/client';
 import { locale, setLocale, t, type Locale } from '../i18n';
-import { NAV_ITEMS, type NavItem } from '../navigation';
+import { NAV_ITEMS } from '../navigation';
 import { useAuthStore } from '../stores/auth';
 import { theme, toggleTheme } from '../theme';
 
@@ -11,13 +11,6 @@ const auth = useAuthStore();
 const router = useRouter();
 
 const signingOut = ref(false);
-
-/**
- * Navigation is filtered by the `module:action` permissions returned by
- * GET /session (plan section 4.3). Hiding an entry is cosmetic: the API still
- * answers 403 and the page renders that state.
- */
-const visibleItems = computed<NavItem[]>(() => NAV_ITEMS.filter((item) => auth.can(item.permission)));
 
 const themeLabel = computed(() => (theme.value === 'dark' ? t('theme.light') : t('theme.dark')));
 
@@ -104,7 +97,7 @@ async function signOut(): Promise<void> {
             {{ t('nav.home') }}
           </RouterLink>
           <RouterLink
-            v-for="item in visibleItems"
+            v-for="item in NAV_ITEMS"
             :key="item.name"
             :to="{ name: item.name }"
             class="rounded px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"

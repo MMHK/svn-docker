@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { ApiError, createAccessPath, listAccessPaths } from '../api/client';
 import { encodeAccessPath } from '../api/encoding';
@@ -9,10 +9,8 @@ import ModalDialog from '../components/ModalDialog.vue';
 import Pagination from '../components/Pagination.vue';
 import StateBlock from '../components/StateBlock.vue';
 import { t } from '../i18n';
-import { useAuthStore } from '../stores/auth';
 import { useToastStore } from '../stores/toast';
 
-const auth = useAuthStore();
 const toast = useToastStore();
 
 const items = ref<AccessPath[]>([]);
@@ -26,8 +24,6 @@ const error = ref<Error | null>(null);
 
 /** Mirrors api/pkg/model/accesspath.go (plan section 5.4). */
 const PATH_PATTERN = /^[A-Za-z0-9_-]{1,64}:\/.*$/;
-
-const canCreate = computed(() => auth.can('access-path:add'));
 
 const createOpen = ref(false);
 const createPath = ref('');
@@ -146,7 +142,6 @@ onMounted(() => {
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-xl font-semibold">{{ t('accessPaths.title') }}</h1>
       <button
-        v-if="canCreate"
         type="button"
         class="rounded bg-sky-600 px-3 py-1 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
         @click="openCreate"
@@ -191,7 +186,6 @@ onMounted(() => {
             <tr>
               <th class="px-4 py-2 font-medium">{{ t('accessPaths.path') }}</th>
               <th class="px-4 py-2 font-medium">{{ t('accessPaths.acl') }}</th>
-              <th class="px-4 py-2 font-medium">{{ t('accessPaths.managers') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -213,18 +207,6 @@ onMounted(() => {
                     class="rounded bg-slate-100 px-2 py-0.5 font-mono text-xs dark:bg-slate-800"
                   >
                     {{ entry.principal }}={{ entry.permission }}
-                  </span>
-                </span>
-              </td>
-              <td class="px-4 py-2">
-                <span v-if="path.managers.length === 0" class="text-slate-400 dark:text-slate-500">{{ t('common.none') }}</span>
-                <span v-else class="flex flex-wrap gap-1">
-                  <span
-                    v-for="manager in path.managers"
-                    :key="manager"
-                    class="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-900 dark:bg-amber-900/40 dark:text-amber-200"
-                  >
-                    {{ manager }}
                   </span>
                 </span>
               </td>

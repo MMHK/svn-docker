@@ -8,7 +8,6 @@ import {
   getAccessPath,
   listGroups,
   listUsers,
-  setAccessPathManagers,
   setAccessPathPermission,
 } from '../api/client';
 import { decodeAccessPath } from '../api/encoding';
@@ -17,12 +16,10 @@ import type { ACLEntry, AccessPath, Permission } from '../api/types';
 import ModalDialog from '../components/ModalDialog.vue';
 import StateBlock from '../components/StateBlock.vue';
 import { t } from '../i18n';
-import { useAuthStore } from '../stores/auth';
 import { useToastStore } from '../stores/toast';
 
 const props = defineProps<{ path: string }>();
 
-const auth = useAuthStore();
 const toast = useToastStore();
 const router = useRouter();
 
@@ -32,12 +29,6 @@ const accessPath = ref<AccessPath | null>(null);
 const loading = ref(false);
 const error = ref<Error | null>(null);
 const forbidden = ref(false);
-
-const canAssign = computed(() => auth.can('access-path:assign'));
-const canUnassign = computed(() => auth.can('access-path:unassign'));
-const canDelete = computed(() => auth.can('access-path:delete'));
-const canEditManagers = computed(() => auth.can('projectmanager:assign'));
-const isRoot = computed(() => decoded.value === '/');
 
 const USER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const GROUP_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
@@ -302,99 +293,6 @@ async function submitAdd(): Promise<void> {
   }
 }
 
-// -- project managers ------------------------------------------------------
-
-const managersOpen = ref(false);
-const managerOptions = ref<string[]>([]);
-const selectedManagers = ref<string[]>([]);
-const managerManual = ref('');
-const managersLoading = ref(false);
-const managersSaving = ref(false);
-const managersError = ref('');
-const managerOptionsFailed = ref(false);
-
-function openManagers(): void {
-  const current = accessPath.value;
-
-  if (current === null || isRoot.value) {
-    return;
-  }
-
-  managersError.value = '';
-  managerManual.value = '';
-  selectedManagers.value = [...current.managers];
-  managerOptions.value = [...current.managers];
-  managerOptionsFailed.value = false;
-  managersOpen.value = true;
-  managersLoading.value = true;
-
-  void listUsers(1, 500)
-    .then((list) => {
-      const known = new Set((list.items ?? []).map((user) => user.name));
-      const extra = current.managers.filter((manager) => !known.has(manager));
-
-      managerOptions.value = [...extra, ...known];
-    })
-    .catch(() => {
-      // A Project-Manager may lack user:view; editing by name still works.
-      managerOptionsFailed.value = true;
-    })
-    .finally(() => {
-      managersLoading.value = false;
-    });
-}
-
-function closeManagers(): void {
-  if (!managersSaving.value) {
-    managersOpen.value = false;
-  }
-}
-
-function addManagerByName(): void {
-  const name = managerManual.value.trim();
-
-  if (!USER_PATTERN.test(name)) {
-    managersError.value = t('accessPathDetail.managerInvalid');
-
-    return;
-  }
-
-  if (!selectedManagers.value.includes(name)) {
-    selectedManagers.value = [...selectedManagers.value, name];
-  }
-
-  if (!managerOptions.value.includes(name)) {
-    managerOptions.value = [...managerOptions.value, name];
-  }
-
-  managerManual.value = '';
-  managersError.value = '';
-}
-
-async function submitManagers(): Promise<void> {
-  if (managersSaving.value) {
-    return;
-  }
-
-  managersSaving.value = true;
-  managersError.value = '';
-
-  try {
-    const updated = await setAccessPathManagers(props.path, selectedManagers.value);
-
-    if (accessPath.value !== null) {
-      accessPath.value = { ...accessPath.value, managers: updated.users ?? [] };
-    }
-
-    managersOpen.value = false;
-    toast.push(t('accessPathDetail.managersSaved'));
-  } catch (cause) {
-    managersError.value = actionErrorText(cause);
-  } finally {
-    managersSaving.value = false;
-  }
-}
-
 // -- delete path -----------------------------------------------------------
 
 const deleteOpen = ref(false);
@@ -449,7 +347,6 @@ watch(
   () => props.path,
   () => {
     addOpen.value = false;
-    managersOpen.value = false;
     deleteOpen.value = false;
     aclError.value = '';
     void load();
@@ -487,7 +384,6 @@ watch(
             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ t('accessPathDetail.aclNote') }}</p>
           </div>
           <button
-            v-if="canDelete"
             type="button"
             class="rounded border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
             @click="openDelete"
@@ -500,7 +396,6 @@ watch(
           <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
             <h2 class="text-sm font-semibold">{{ t('accessPathDetail.acl') }} ({{ accessPath.acl.length }})</h2>
             <button
-              v-if="canAssign"
               type="button"
               class="text-xs text-sky-700 hover:underline dark:text-sky-400"
               @click="openAdd"
@@ -539,7 +434,7 @@ watch(
                   </td>
                   <td class="px-4 py-2">
                     <select
-                      v-if="isEditable(entry.principal) && canAssign"
+                      v-if="isEditable(entry.principal)"
                       :value="entry.permission"
                       :disabled="isSaving(entry.principal)"
                       :aria-label="t('accessPaths.permission')"
@@ -554,7 +449,7 @@ watch(
                   </td>
                   <td class="px-4 py-2">
                     <button
-                      v-if="isEditable(entry.principal) && canUnassign"
+                      v-if="isEditable(entry.principal)"
                       type="button"
                       class="text-xs text-red-700 hover:underline disabled:opacity-50 dark:text-red-300"
                       :disabled="isSaving(entry.principal)"
@@ -568,36 +463,6 @@ watch(
               </tbody>
             </table>
           </div>
-        </div>
-
-        <div class="mt-4 rounded border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
-            <h2 class="text-sm font-semibold">{{ t('accessPaths.managers') }} ({{ accessPath.managers.length }})</h2>
-            <button
-              v-if="canEditManagers"
-              type="button"
-              class="text-xs text-sky-700 hover:underline disabled:cursor-not-allowed disabled:text-slate-400 disabled:no-underline dark:text-sky-400 dark:disabled:text-slate-500"
-              :disabled="isRoot"
-              @click="openManagers"
-            >
-              {{ t('accessPathDetail.editManagers') }}
-            </button>
-          </div>
-          <p v-if="isRoot" class="px-4 pt-3 text-xs text-amber-700 dark:text-amber-300">
-            {{ t('accessPathDetail.rootManagers') }}
-          </p>
-          <p v-if="accessPath.managers.length === 0" class="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
-            {{ t('accessPathDetail.noManagers') }}
-          </p>
-          <ul v-else class="flex flex-wrap gap-2 px-4 py-3">
-            <li
-              v-for="manager in accessPath.managers"
-              :key="manager"
-              class="rounded bg-amber-100 px-2 py-1 text-xs text-amber-900 dark:bg-amber-900/40 dark:text-amber-200"
-            >
-              {{ manager }}
-            </li>
-          </ul>
         </div>
 
         <ModalDialog :open="addOpen" :title="t('accessPathDetail.addPrincipalTitle')" @close="closeAdd">
@@ -707,76 +572,6 @@ watch(
                 :disabled="addSaving || addLoading"
               >
                 {{ addSaving ? t('accessPathDetail.adding') : t('common.save') }}
-              </button>
-            </div>
-          </template>
-        </ModalDialog>
-
-        <ModalDialog :open="managersOpen" :title="t('accessPathDetail.editManagers')" @close="closeManagers">
-          <form id="edit-managers-form" class="space-y-3" @submit.prevent="submitManagers">
-            <p class="text-xs text-slate-500 dark:text-slate-400">{{ t('accessPathDetail.managersHint') }}</p>
-
-            <p v-if="managersLoading" class="text-sm text-slate-500 dark:text-slate-400">{{ t('common.loading') }}</p>
-            <div v-else class="max-h-64 space-y-1 overflow-y-auto">
-              <label
-                v-for="name in managerOptions"
-                :key="name"
-                class="flex items-center gap-2 rounded border border-slate-200 px-3 py-2 text-sm dark:border-slate-800"
-              >
-                <input v-model="selectedManagers" type="checkbox" :value="name" />
-                <span class="font-mono">{{ name }}</span>
-              </label>
-            </div>
-
-            <div v-if="managerOptionsFailed" class="space-y-2">
-              <p class="text-xs text-slate-500 dark:text-slate-400">{{ t('accessPathDetail.managersUsersUnavailable') }}</p>
-              <div class="flex gap-2">
-                <input
-                  v-model="managerManual"
-                  type="text"
-                  autocomplete="off"
-                  spellcheck="false"
-                  :placeholder="t('accessPathDetail.managerName')"
-                  :aria-label="t('accessPathDetail.managerName')"
-                  class="w-full rounded border border-slate-300 bg-white px-3 py-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-800"
-                  @keydown.enter.prevent="addManagerByName"
-                />
-                <button
-                  type="button"
-                  class="shrink-0 rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
-                  @click="addManagerByName"
-                >
-                  {{ t('accessPathDetail.managerAdd') }}
-                </button>
-              </div>
-            </div>
-
-            <p
-              v-if="managersError"
-              class="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
-              role="alert"
-            >
-              {{ managersError }}
-            </p>
-          </form>
-
-          <template #footer>
-            <div class="flex justify-end gap-2">
-              <button
-                type="button"
-                class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
-                :disabled="managersSaving"
-                @click="closeManagers"
-              >
-                {{ t('common.cancel') }}
-              </button>
-              <button
-                type="submit"
-                form="edit-managers-form"
-                class="rounded bg-sky-600 px-3 py-1 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
-                :disabled="managersSaving || managersLoading"
-              >
-                {{ managersSaving ? t('userDetail.saving') : t('common.save') }}
               </button>
             </div>
           </template>

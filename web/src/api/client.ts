@@ -2,7 +2,6 @@ import { useAuthStore } from '../stores/auth';
 import type {
   AccessPath,
   AccessPathList,
-  AccessPathManagers,
   CreateRepositoryRequest,
   ErrorEnvelope,
   Group,
@@ -14,7 +13,6 @@ import type {
   RepositoryCreated,
   RepositoryList,
   RepositoryTree,
-  RoleList,
   Session,
   SetupResult,
   SetupStatus,
@@ -23,7 +21,6 @@ import type {
   UserAccessPaths,
   UserGroups,
   UserList,
-  UserRoles,
 } from './types';
 
 /** All management endpoints live under this prefix (plan D2). */
@@ -305,17 +302,6 @@ export function changeUserPassword(name: string, password: string): Promise<void
   });
 }
 
-export function getUserRoles(name: string): Promise<UserRoles> {
-  return request<UserRoles>(`/users/${encodeURIComponent(name)}/roles`);
-}
-
-export function setUserRoles(name: string, roles: string[]): Promise<UserRoles> {
-  return request<UserRoles>(`/users/${encodeURIComponent(name)}/roles`, {
-    method: 'PUT',
-    body: { roles },
-  });
-}
-
 export function getUserGroups(name: string): Promise<UserGroups> {
   return request<UserGroups>(`/users/${encodeURIComponent(name)}/groups`);
 }
@@ -396,19 +382,4 @@ export function deleteAccessPathPermission(encodedPath: string, principal: strin
     `/access-paths/${encodeURIComponent(encodedPath)}/acl/${encodeURIComponent(principal)}`,
     { method: 'DELETE' },
   );
-}
-
-export function getAccessPathManagers(encodedPath: string): Promise<AccessPathManagers> {
-  return request<AccessPathManagers>(`/access-paths/${encodeURIComponent(encodedPath)}/managers`);
-}
-
-export function setAccessPathManagers(encodedPath: string, users: string[]): Promise<AccessPathManagers> {
-  return request<AccessPathManagers>(`/access-paths/${encodeURIComponent(encodedPath)}/managers`, {
-    method: 'PUT',
-    body: { users },
-  });
-}
-
-export function listRoles(): Promise<RoleList> {
-  return request<RoleList>('/roles');
 }

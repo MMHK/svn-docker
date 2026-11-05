@@ -10,7 +10,6 @@ import LoginView from '../pages/LoginView.vue';
 import NotFoundView from '../pages/NotFoundView.vue';
 import ReposView from '../pages/ReposView.vue';
 import RepositoryBrowseView from '../pages/RepositoryBrowseView.vue';
-import RolesView from '../pages/RolesView.vue';
 import SetupView from '../pages/SetupView.vue';
 import SystemView from '../pages/SystemView.vue';
 import UserDetailView from '../pages/UserDetailView.vue';
@@ -56,7 +55,6 @@ export const routes: RouteRecordRaw[] = [
       { path: 'groups/:name', name: 'group-detail', component: GroupDetailView, props: true },
       { path: 'access-paths', name: 'access-paths', component: AccessPathsView },
       { path: 'access-paths/:path', name: 'access-path-detail', component: AccessPathDetailView, props: true },
-      { path: 'roles', name: 'roles', component: RolesView },
       { path: 'system', name: 'system', component: SystemView },
       { path: ':pathMatch(.*)*', name: 'not-found', component: NotFoundView },
     ],

@@ -85,10 +85,6 @@ const diagnostics = computed<Diagnostic[]>(() => {
     items.push({ tone: 'error', text: t('setup.accessFileUnwritable') });
   }
 
-  if (!current.roleFile.exists || !current.roleFile.administratorPresent) {
-    items.push({ tone: 'info', text: t('setup.roleFileWillCreate') });
-  }
-
   if (!current.canCreateAccount) {
     items.push({ tone: 'error', text: t('setup.cannotCreateAccount') });
   }

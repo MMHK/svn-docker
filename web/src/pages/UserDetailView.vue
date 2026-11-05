@@ -8,13 +8,11 @@ import {
   getUser,
   getUserAccessPaths,
   listGroups,
-  listRoles,
   setUserGroups,
-  setUserRoles,
 } from '../api/client';
 import { encodeAccessPath } from '../api/encoding';
 import { describeError, toError } from '../api/errors';
-import type { Group, Role, User, UserAccessPath } from '../api/types';
+import type { Group, User, UserAccessPath } from '../api/types';
 import ModalDialog from '../components/ModalDialog.vue';
 import StateBlock from '../components/StateBlock.vue';
 import { t } from '../i18n';
@@ -37,14 +35,9 @@ const accessPaths = ref<UserAccessPath[]>([]);
 const accessLoading = ref(false);
 const accessError = ref<Error | null>(null);
 
-const canViewAccessPaths = computed(() => auth.can('user:view'));
+const canViewAccessPaths = computed(() => true);
 const isSelf = computed(() => user.value !== null && user.value.name.toLowerCase() === auth.userName.toLowerCase());
-const canDelete = computed(() => auth.can('user:delete'));
-const canChangePassword = computed(() =>
-  isSelf.value ? auth.can('user:changepass') : auth.can('user:changepass-other'),
-);
-const canEditRoles = computed(() => auth.can('role:assign'));
-const canEditGroups = computed(() => auth.can('group:assign'));
+const canChangePassword = computed(() => true);
 
 // -- change password -------------------------------------------------------
 
@@ -61,14 +54,7 @@ const deleteConfirm = ref('');
 const deleteError = ref('');
 const deleteSaving = ref(false);
 
-// -- roles / groups --------------------------------------------------------
-
-const rolesOpen = ref(false);
-const roleOptions = ref<Role[]>([]);
-const selectedRoles = ref<string[]>([]);
-const rolesLoading = ref(false);
-const rolesSaving = ref(false);
-const rolesError = ref('');
+// -- groups ----------------------------------------------------------------
 
 const groupsOpen = ref(false);
 const groupOptions = ref<Group[]>([]);
@@ -254,59 +240,6 @@ async function submitDelete(): Promise<void> {
   }
 }
 
-// -- roles -----------------------------------------------------------------
-
-async function openRoles(): Promise<void> {
-  const current = user.value;
-
-  if (current === null) {
-    return;
-  }
-
-  rolesError.value = '';
-  selectedRoles.value = [...current.roles];
-  rolesOpen.value = true;
-  rolesLoading.value = true;
-
-  try {
-    const list = await listRoles();
-    roleOptions.value = list.items ?? [];
-  } catch (cause) {
-    roleOptions.value = [];
-    rolesError.value = actionErrorText(cause);
-  } finally {
-    rolesLoading.value = false;
-  }
-}
-
-function closeRoles(): void {
-  if (!rolesSaving.value) {
-    rolesOpen.value = false;
-  }
-}
-
-async function submitRoles(): Promise<void> {
-  const current = user.value;
-
-  if (current === null || rolesSaving.value) {
-    return;
-  }
-
-  rolesSaving.value = true;
-  rolesError.value = '';
-
-  try {
-    const updated = await setUserRoles(current.name, selectedRoles.value);
-    user.value = { ...current, roles: updated.roles ?? [] };
-    rolesOpen.value = false;
-    toast.push(t('userDetail.rolesSaved'));
-  } catch (cause) {
-    rolesError.value = actionErrorText(cause);
-  } finally {
-    rolesSaving.value = false;
-  }
-}
-
 // -- groups ----------------------------------------------------------------
 
 async function openGroups(): Promise<void> {
@@ -366,7 +299,6 @@ watch(
     accessPaths.value = [];
     passwordOpen.value = false;
     deleteOpen.value = false;
-    rolesOpen.value = false;
     groupsOpen.value = false;
     void loadUser();
     void loadAccessPaths();
@@ -397,7 +329,6 @@ watch(
               {{ t('userDetail.changePassword') }}
             </button>
             <button
-              v-if="canDelete"
               type="button"
               class="rounded border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
               @click="openDelete"
@@ -410,35 +341,8 @@ watch(
         <div class="mt-4 grid gap-4 sm:grid-cols-2">
           <div class="rounded border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <div class="flex items-center justify-between gap-2">
-              <h2 class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('users.roles') }}</h2>
-              <button
-                v-if="canEditRoles"
-                type="button"
-                class="text-xs text-sky-700 hover:underline dark:text-sky-400"
-                @click="openRoles"
-              >
-                {{ t('userDetail.editRoles') }}
-              </button>
-            </div>
-            <p v-if="user.roles.length === 0" class="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              {{ t('common.none') }}
-            </p>
-            <ul v-else class="mt-2 flex flex-wrap gap-2">
-              <li
-                v-for="role in user.roles"
-                :key="role"
-                class="rounded bg-slate-100 px-2 py-1 text-xs font-medium dark:bg-slate-800"
-              >
-                {{ role }}
-              </li>
-            </ul>
-          </div>
-
-          <div class="rounded border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <div class="flex items-center justify-between gap-2">
               <h2 class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('users.groups') }}</h2>
               <button
-                v-if="canEditGroups"
                 type="button"
                 class="text-xs text-sky-700 hover:underline dark:text-sky-400"
                 @click="openGroups"
@@ -620,57 +524,6 @@ watch(
                 :disabled="deleteSaving || deleteConfirm.trim() !== user.name"
               >
                 {{ deleteSaving ? t('userDetail.deleting') : t('userDetail.deleteSubmit') }}
-              </button>
-            </div>
-          </template>
-        </ModalDialog>
-
-        <ModalDialog :open="rolesOpen" :title="t('userDetail.rolesTitle')" @close="closeRoles">
-          <form id="edit-roles-form" class="space-y-3" @submit.prevent="submitRoles">
-            <p v-if="rolesLoading" class="text-sm text-slate-500 dark:text-slate-400">{{ t('common.loading') }}</p>
-            <p v-else-if="roleOptions.length === 0" class="text-sm text-slate-500 dark:text-slate-400">
-              {{ t('userDetail.noRoles') }}
-            </p>
-            <div v-else class="space-y-2">
-              <label
-                v-for="role in roleOptions"
-                :key="role.name"
-                class="flex items-start gap-2 rounded border border-slate-200 px-3 py-2 text-sm dark:border-slate-800"
-              >
-                <input v-model="selectedRoles" type="checkbox" :value="role.name" class="mt-0.5" />
-                <span>
-                  <span class="font-medium">{{ role.name }}</span>
-                  <span class="block text-xs text-slate-500 dark:text-slate-400">{{ role.description }}</span>
-                </span>
-              </label>
-            </div>
-
-            <p
-              v-if="rolesError"
-              class="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
-              role="alert"
-            >
-              {{ rolesError }}
-            </p>
-          </form>
-
-          <template #footer>
-            <div class="flex justify-end gap-2">
-              <button
-                type="button"
-                class="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
-                :disabled="rolesSaving"
-                @click="closeRoles"
-              >
-                {{ t('common.cancel') }}
-              </button>
-              <button
-                type="submit"
-                form="edit-roles-form"
-                class="rounded bg-sky-600 px-3 py-1 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
-                :disabled="rolesSaving || rolesLoading"
-              >
-                {{ rolesSaving ? t('userDetail.saving') : t('common.save') }}
               </button>
             </div>
           </template>

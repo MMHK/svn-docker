@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { ApiError, createRepository, listRepositories } from '../api/client';
 import { toError } from '../api/errors';
@@ -9,10 +9,8 @@ import ModalDialog from '../components/ModalDialog.vue';
 import Pagination from '../components/Pagination.vue';
 import StateBlock from '../components/StateBlock.vue';
 import { t } from '../i18n';
-import { useAuthStore } from '../stores/auth';
 import { useToastStore } from '../stores/toast';
 
-const auth = useAuthStore();
 const toast = useToastStore();
 const router = useRouter();
 
@@ -24,9 +22,6 @@ const query = ref('');
 const appliedQuery = ref('');
 const loading = ref(false);
 const error = ref<Error | null>(null);
-
-const canCreate = computed(() => auth.can('repository:add'));
-const canDelete = computed(() => auth.can('repository:delete'));
 
 /**
  * Mirrors the API contract (plan section 5.4): 1-64 letters, digits, '_' or
@@ -198,7 +193,6 @@ onMounted(() => {
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-xl font-semibold">{{ t('repos.title') }}</h1>
       <button
-        v-if="canCreate"
         type="button"
         class="rounded bg-sky-600 px-3 py-1 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
         @click="openCreate"
@@ -272,7 +266,6 @@ onMounted(() => {
                     {{ t('repos.browse') }}
                   </RouterLink>
                   <button
-                    v-if="canDelete"
                     type="button"
                     class="text-xs text-red-700 hover:underline dark:text-red-300"
                     @click="openDelete(repo.name)"
