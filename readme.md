@@ -13,7 +13,8 @@ Node / Go（SPA 與 Go binary 在建置階段產生並內嵌）。
 不變的部分（回滾 2.0.0 的基礎）：
 
 - 倉庫與授權檔路徑格式：`/var/svnlocal`、`svn-auth-file`（htpasswd）、`svn-access-file`（authz INI）
-- 角色指派檔：`data/userroleassignments.ini`
+- v3 **不再使用角色系統**（無 Administrator 等角色）；`userroleassignments.ini` 不再讀寫，
+  舊檔僅原樣保留給 2.0.0 回滾
 - `/svn` 的 DAV + Basic + `AuthzSVNAccessFile` 行為
 
 ## 架構
@@ -23,7 +24,7 @@ LAN ──► nginx :80 ──┬─ /svn      → svn:80 (mod_dav_svn)         
                     └─ /svnadmin → svn:80 (mod_remoteip → Require ip RFC1918) ─► mod_proxy ─► svn-admin:8080
                                                           │
                                                           ├─ /var/svnlocal  (RW, uid 1000:1000)
-                                                          └─ /data          (RW, 角色/備份/trash)
+                                                          └─ /data          (RW, 備份/trash)
 ```
 
 - nginx 只轉發 `/svn`、`/svnadmin` 給 `svn:80`，並**覆寫** `X-Forwarded-For`；不做 IP 判定。
@@ -48,7 +49,7 @@ LAN ──► nginx :80 ──┬─ /svn      → svn:80 (mod_dav_svn)         
 | `api/` | Go module（`cmd/`、`pkg/` MVP 分層、Swagger docs） |
 | `web/` | rspack + Vue 3 + TypeScript + Tailwind v4，產物輸出到 `api/pkg/webui/dist` |
 | `test/verify-v2.sh` | 端到端驗證（91 項）；`test/fixtures.sh` 產生隔離測資 |
-| `data/` | `userroleassignments.ini`、`backup/`、`trash/`（掛到 `/data`） |
+| `data/` | `backup/`、`trash/`（掛到 `/data`） |
 | `NOTICE` | iF.SVNAdmin（GPL v2）的歷史 attribution |
 
 `api/pkg/webui/dist` 是 rspack 的建置產物，目前**入庫**，讓沒有 Node 的環境也能
@@ -90,7 +91,7 @@ location /svnadmin/ {
 
 ## 首次啟動：bootstrap token
 
-2.0.0 的 `admin`/`admin` 預設後門已移除。第一次建立管理員的流程：
+2.0.0 的 `admin`/`admin` 預設後門已移除。第一次建立登入使用者的流程：
 
 1. 帳號必須先存在於 `svn-auth-file`（htpasswd）。容器內有 `htpasswd`：
    ```sh
@@ -106,12 +107,13 @@ location /svnadmin/ {
    ```sh
    curl -sS -X POST http://<host>/svnadmin/api/v1/setup/admin \
      -H 'Content-Type: application/json' \
-     -d '{"username":"admin","token":"<bootstrap-token>"}'
+     -d '{"username":"admin","password":"<密碼>","token":"<bootstrap-token>"}'
    ```
-   成功回 `201 {"username":"admin","role":"Administrator"}`。
-4. 開 `/svnadmin/`，用該帳號 + htpasswd 密碼登入。session token 存在瀏覽器
+   成功回 `201 {"username":"admin","accountCreated":true,"initializedFiles":[...]}`。
+4. 開 `/svnadmin/`，用該帳號 + 密碼登入。session token 存在瀏覽器
    `localStorage['svnadmin.token']`，**不使用 cookie**。
-5. 之後可在 GUI 指派其他角色；已存在管理員時 `setup/admin` 回 `409`。
+5. 角色系統已移除，登入後即可管理；`setup/admin` 只允許在沒有任何帳號時執行
+   （已有帳號回 `409`）。
 
 ## 內網限制與 mod_remoteip（上線前必做）
 
@@ -173,14 +175,13 @@ v3 以環境變數為權威（`SVN_ADMIN_*`），完整範本見 `.env.example`�
 | `SVN_ADMIN_SVN_PARENT_PATH` | `/var/svnlocal` | `SVNParentPath` |
 | `SVN_ADMIN_SVN_AUTH_FILE` | `/var/svnlocal/svn-auth-file` | htpasswd |
 | `SVN_ADMIN_SVN_ACCESS_FILE` | `/var/svnlocal/svn-access-file` | authz INI |
-| `SVN_ADMIN_ROLE_FILE` | `/data/userroleassignments.ini` | 角色指派 |
 | `SVN_ADMIN_BACKUP_DIR` | `/data/backup` | 寫入前備份 |
 | `SVN_ADMIN_TRASH_DIR` | `/data/trash` | 刪倉庫的回收區 |
 | `SVN_ADMIN_TRASH_RETENTION` | `720h`（30 天） | trash 保留期 |
 | `SVN_ADMIN_TRASH_PURGE_INTERVAL` | `24h` | trash 清除器間隔（啟動先跑一次） |
 | `SVN_ADMIN_REPO_DELETE_ENABLED` | `true` | 刪倉庫開關（仍需輸入倉庫名確認） |
 | `SVN_ADMIN_UID` / `SVN_ADMIN_GID` | `1000` / `1000` | 服務層記錄的進程身份 |
-| `SVN_ADMIN_ENABLE_DOCS` | `true` | Swagger UI 開關（仍僅管理員 + 內網） |
+| `SVN_ADMIN_ENABLE_DOCS` | `true` | Swagger UI 開關（仍僅登入使用者 + 內網） |
 | `SVN_ADMIN_DEFAULT_LOCALE` | `zh_CN` | 預設語系（`zh_CN` / `en_US`） |
 | `SVN_ADMIN_BOOTSTRAP_TOKEN` | 空 | 空＝啟動時隨機產生並印 log |
 | `SVN_ADMIN_ALLOW_CIDRS` | `10/8,172.16/12,192.168/16` | Go 層來源限制 |
@@ -200,7 +201,7 @@ sudo chown -R 1000:1000 /var/svnlocal ./data
 
 Swagger UI：`/svnadmin/api/docs/index.html`（`SVN_ADMIN_ENABLE_DOCS=true` 時）。
 規格：`/svnadmin/api/docs/openapi.json`、`openapi.yaml`。
-與其他管理端點同一組保護：必須登入且具 `settings:view`（管理員），並受 RFC1918 限制。
+與其他管理端點同一組保護：必須登入（角色系統已移除，登入使用者即可）且受 RFC1918 限制。
 `swag` 產物在 `api/pkg/docs/`，CI 會執行 `make swag` 後比對 `git diff` 檢查漂移。
 
 ## 開發
@@ -258,8 +259,9 @@ runtime 不含 PHP / Node / Go / Composer；`svn-admin` 以非 root 執行。
 
 ## 備份與回滾 2.0.0
 
-資料格式未變（`svn-auth-file`、`svn-access-file`、`userroleassignments.ini`），
-v3 只會寫合法的 INI 行，2.0.0 會忽略未知行；每次寫入前另有 `data/backup/` 備份。
+v3 只寫 `svn-auth-file`（htpasswd）與 `svn-access-file`（authz INI），**不寫**
+`userroleassignments.ini`（角色系統已移除，舊檔原樣保留給 2.0.0 回滾）；
+2.0.0 可讀回原有資料，每次寫入前另有 `data/backup/` 備份。
 
 回滾前先停 v3 stack 並備份 `/var/svnlocal` 與 `data/`：
 

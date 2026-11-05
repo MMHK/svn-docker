@@ -16,13 +16,13 @@
 - `web/`：rspack 2 + Vue 3 + TypeScript + Tailwind v4 + Pinia + Vue Router；產物 embed 進 Go binary。
 - 認證：`POST /session` 發 opaque session token，`Authorization: Bearer`；TTL / 閒置 /
   rotation / 撤銷 / 每人上限；不使用 cookie，因此無 CSRF。
-- 首次管理員：一次性 bootstrap token（`SVN_ADMIN_BOOTSTRAP_TOKEN`，未設時啟動印在 log）
+- 首次使用者：一次性 bootstrap token（`SVN_ADMIN_BOOTSTRAP_TOKEN`，未設時啟動印在 log）
   + `POST /setup/admin`；不再有 `admin/admin`。
-- authz / htpasswd / 角色檔 **lossless 行導向編輯**：保留註解、空行、CRLF、未知 section；
+- authz / htpasswd **lossless 行導向編輯**：保留註解、空行、CRLF、未知 section；
   `flock` + mtime/hash 檢查 + 原子 rename + 寫入前備份。
 - 倉庫刪除改為移到 `data/trash/<repo>-<ts>`，保留 30 天（`SVN_ADMIN_TRASH_RETENTION`），
   需輸入倉庫名確認；預設開放（`SVN_ADMIN_REPO_DELETE_ENABLED=true`）。
-- Swagger UI（`swaggo`，離線內嵌）：`/svnadmin/api/docs/index.html`，僅管理員 + 內網。
+- Swagger UI（`swaggo`，離線內嵌）：`/svnadmin/api/docs/index.html`，僅登入使用者 + 內網。
 - `Dockerfile.svn` / `Dockerfile.admin` 雙映像；`docker-entrypoint.sh` 以 `PUID`/`PGID` 對齊 uid；
   `svn-admin` 只 `expose`，永不 publish。
 - 內網限制：Apache `mod_remoteip` + `RemoteIPTrustedProxy` + `<Location /svnadmin> Require ip RFC1918`，
@@ -33,6 +33,12 @@
 
 ### Changed
 
+- **BREAKING**：移除前後端角色系統（RBAC）。不再有 Administrator 等角色、
+  `GET /roles`、`/users/{name}/roles`、`/access-paths/{b64}/managers`；
+  所有通過 Bearer 認證的登入使用者皆可管理。`userroleassignments.ini`
+  不再讀寫（保留給 2.0.0 回滾），`SVN_ADMIN_ROLE_FILE` 已移除。
+  `/setup/admin` 改為建立第一個使用者。
+- SPA 改採 GitHub Primer 風格：配色、邊框、字體與深色主題對齊 Primer 設計系統。
 - 版號 `2.0.0` → **`3.0.0`**；映像改為 `mmhk/svn-docker:repo` + `mmhk/svn-docker:admin`。
 - 設定來源改以環境變數 `SVN_ADMIN_*` 為權威；`data/config.ini` 僅作三個 SVN 路徑的唯讀 fallback。
 - 進程 uid/gid 預設 **`1000:1000`**（等於 `/var/svnlocal` owner），不再依賴 `www-data`(33) 與 777。
